@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-[#F8FAFC] text-[#0F172A] antialiased selection:bg-blue-500/20 selection:text-blue-700;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overflow-x: hidden;
+  }
+
+  /* Smooth custom scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F1F5F9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2563EB;
+  }
+}
+
+/* Smooth zoom-in on hover and swipe transitions */
+.zoom-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+.zoom-card:hover {
+  transform: translateY(-2px) scale(1.012);
+  box-shadow: 0 16px 32px -8px rgba(37, 99, 235, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+}
+
+.zoom-card:active {
+  transform: scale(0.99);
+}
+
+/* Horizontal swipe carousel smooth drag */
+.swipe-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.swipe-item {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 12px rgba(37, 99, 235, 0.2); }
+  50% { box-shadow: 0 0 24px rgba(37, 99, 235, 0.45); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-glow {
+  animation: pulseGlow 2.5s infinite;
+}
+
+/* 
+===================================================================
+LIGHT THEME DEEP ELEVATIONS (Fintrix White & Blue Style)
+Elevates any card across all pages to crisp white, slate borders,
+deep navy typography, and electric blue #2563EB accents.
+===================================================================
+*/
+html:not(.dark) .bg-\[\#0D1527\] {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+}
+
+html:not(.dark) .bg-\[\#070B14\] {
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+}
+
+html:not(.dark) .bg-\[\#131F38\] {
+  background-color: #EFF6FF !important;
+}
+
+html:not(.dark) .bg-\[\#05080E\] {
+  background-color: #FFFFFF !important;
+}
+
+html:not(.dark) .border-\[\#1A2744\] {
+  border-color: #E2E8F0 !important;
+}
+
+/* Typography contrast adjustments in Light Theme */
+html:not(.dark) .bg-\[\#0D1527\] h1,
+html:not(.dark) .bg-\[\#0D1527\] h2,
+html:not(.dark) .bg-\[\#0D1527\] h3,
+html:not(.dark) .bg-\[\#0D1527\] h4,
+html:not(.dark) .bg-\[\#070B14\] h1,
+html:not(.dark) .bg-\[\#070B14\] h2,
+html:not(.dark) .bg-\[\#070B14\] h3,
+html:not(.dark) .bg-\[\#070B14\] h4 {
+  color: #0F172A !important;
+}
+
+html:not(.dark) .text-slate-100 {
+  color: #0F172A !important;
+}
+
+html:not(.dark) .text-slate-200 {
+  color: #1E293B !important;
+}
+
+html:not(.dark) .text-slate-300 {
+  color: #334155 !important;
+}
+
+html:not(.dark) .text-slate-400 {
+  color: #64748B !important;
+}
+
+html:not(.dark) .text-cyan-400 {
+  color: #2563EB !important;
+}
+
+html:not(.dark) .text-cyan-300 {
+  color: #1D4ED8 !important;
+}
+
+html:not(.dark) .border-cyan-500\/40,
+html:not(.dark) .border-cyan-500\/30,
+html:not(.dark) .border-cyan-500\/20 {
+  border-color: #BFDBFE !important;
+}
+
+html:not(.dark) .bg-cyan-500\/10,
+html:not(.dark) .bg-cyan-500\/20 {
+  background-color: #EFF6FF !important;
+}
+
+/*
+===================================================================
+DARK THEME OVERRIDES (when user toggles to dark)
+===================================================================
+*/
+html.dark body {
+  background-color: #070B14 !important;
+  color: #F1F5F9 !important;
+}
+
+html.dark .bg-white {
+  background-color: #0D1527 !important;
+  border-color: #1A2744 !important;
+}
+
+html.dark .bg-\[\#F8FAFC\] {
+  background-color: #070B14 !important;
+}
+
+html.dark .text-\[\#0F172A\],
+html.dark .text-slate-900 {
+  color: #F8FAFC !important;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600 {
+  color: #94A3B8 !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-blue-100 {
+  border-color: #1E2D4A !important;
+}
