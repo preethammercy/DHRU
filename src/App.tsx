@@ -29,6 +29,7 @@ import { WatchlistPage } from './pages/WatchlistPage';
 import { AskDhruPage } from './pages/AskDhruPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LivePredictionsModal } from './components/common/LivePredictionsModal';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Contexts
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -284,13 +285,15 @@ function AppContent() {
 
 export function App() {
   return (
-    <AuthProvider>
-      <MarketStreamProvider>
-        <TradingProvider>
-          <AppContent />
-        </TradingProvider>
-      </MarketStreamProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <MarketStreamProvider>
+          <TradingProvider>
+            <AppContent />
+          </TradingProvider>
+        </MarketStreamProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
