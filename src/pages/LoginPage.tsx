@@ -26,14 +26,26 @@ interface LoginPageProps {
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const { signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
+    setError(null);
     try {
       await signInWithGoogle();
       if (onLoginSuccess) onLoginSuccess();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error('[Login Error]', e);
+      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+        // User closed popup — not a real error
+        setError(null);
+      } else if (e.code === 'auth/unauthorized-domain') {
+        setError('This domain is not authorized in Firebase. Add localhost or your domain in Firebase Console → Authentication → Settings → Authorized domains.');
+      } else if (e.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your internet connection and try again.');
+      } else {
+        setError(e.message || 'Authentication failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -193,6 +205,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
               </button>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="w-full p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 font-medium animate-fade-in">
+                <p className="font-bold mb-1">⚠ Authentication Error</p>
+                <p>{error}</p>
+              </div>
+            )}
 
             {/* Bottom Disclaimer */}
             <div className="w-full pt-4 border-t border-slate-100 dark:border-slate-800/80 text-[10px] text-slate-500 font-mono">

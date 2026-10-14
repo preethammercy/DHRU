@@ -5,11 +5,13 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/common/Header';
 import { Navigation } from './components/common/Navigation';
+import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { UniversalSearchModal } from './components/common/UniversalSearchModal';
 import { MarketSelectorModal } from './components/common/MarketSelectorModal';
 import { MarketStatus } from './types';
 import { getMarketStatus } from './services/api';
 import { DhruLogo } from './components/common/DhruLogo';
+import { useScrollAnimation } from './hooks/useScrollAnimation';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
@@ -45,6 +47,9 @@ function AppContent() {
   const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
 
   const { user, loading, showMarketSelector, setShowMarketSelector, marketMode } = useAuth();
+
+  // Scroll entrance animation hook
+  useScrollAnimation(activeNav);
 
   // If user changes market mode, default selected symbol accordingly
   useEffect(() => {
@@ -117,7 +122,7 @@ function AppContent() {
       />
 
       {/* 3. Main Content Container */}
-      <main className={activeNav === 'terminal' ? "flex-1 w-full px-2 sm:px-4 py-4" : "flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6"}>
+      <main className={activeNav === 'terminal' ? "flex-1 w-full px-2 sm:px-4 py-4 pb-24 lg:pb-4" : "flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-8"}>
         {activeNav === 'terminal' && (
           <TradingTerminalPage
             initialSymbol={selectedSymbol}
@@ -246,7 +251,7 @@ function AppContent() {
       />
 
       {/* 5. Institutional Footer */}
-      <footer className="w-full bg-white dark:bg-[#05080E] border-t border-slate-200 dark:border-[#1A2744] py-8 text-xs text-slate-500">
+      <footer className="w-full bg-white dark:bg-[#05080E] border-t border-slate-200 dark:border-[#1A2744] py-8 pb-28 lg:pb-8 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
@@ -291,6 +296,18 @@ function AppContent() {
           </div>
         </div>
       </footer>
+
+      {/* 6. Native Mobile Bottom Navigation Bar (Fixed for < lg screens) */}
+      <MobileBottomNav
+        activeNav={activeNav}
+        onSelectNav={(page) => {
+          setActiveNav(page);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        marketMode={marketMode}
+        onOpenSearch={() => setSearchOpen(true)}
+        onOpenPredictions={() => setPredictionsModalOpen(true)}
+      />
     </div>
   );
 }

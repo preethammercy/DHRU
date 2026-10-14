@@ -122,7 +122,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             const parsed = JSON.parse(saved);
             if (parsed.isDemo) {
-              setUser(parsed);
+              // Purge legacy demo sessions
+              localStorage.removeItem('dhru_auth_user');
+              setUser(null);
             } else {
               setUser(null);
               localStorage.removeItem('dhru_auth_user');
@@ -141,39 +143,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signInWithGoogle = async () => {
-    if (auth && googleProvider) {
-      try {
-        const result = await signInWithPopup(auth, googleProvider);
-        const fbUser = result.user;
-        const dhruUser: DhruUser = {
-          uid: fbUser.uid,
-          displayName: fbUser.displayName || 'Google Trader',
-          email: fbUser.email || '',
-          photoURL: fbUser.photoURL || undefined
-        };
-        setUser(dhruUser);
-        localStorage.setItem('dhru_auth_user', JSON.stringify(dhruUser));
-        setShowMarketSelector(true);
-        return;
-      } catch (err: any) {
-        console.warn('[Firebase Google Auth] Popup rejected or failed:', err.message);
-        // If popup was closed by user or origin domain needs configuration in Firebase console
-        if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-          return;
-        }
-      }
+    if (!auth || !googleProvider) {
+      throw new Error('Firebase not initialized. Check your Firebase configuration.');
     }
 
-    // High-fidelity instant session fallback for seamless developer/local environment
-    const mockGoogleUser: DhruUser = {
-      uid: 'google_' + Math.random().toString(36).substring(2, 10),
-      displayName: 'Trader ' + Math.floor(Math.random() * 900 + 100),
-      email: 'investor.' + Math.floor(Math.random() * 900 + 100) + '@gmail.com',
-      photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      isDemo: true
+    const result = await signInWithPopup(auth, googleProvider);
+    const fbUser = result.user;
+    const dhruUser: DhruUser = {
+      uid: fbUser.uid,
+      displayName: fbUser.displayName || 'Google Trader',
+      email: fbUser.email || '',
+      photoURL: fbUser.photoURL || undefined
     };
-    setUser(mockGoogleUser);
-    localStorage.setItem('dhru_auth_user', JSON.stringify(mockGoogleUser));
+    setUser(dhruUser);
+    localStorage.setItem('dhru_auth_user', JSON.stringify(dhruUser));
     setShowMarketSelector(true);
   };
 

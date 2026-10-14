@@ -237,7 +237,7 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, on
           </div>
 
           {/* High / Low & Volume Cards */}
-          <div className="grid grid-cols-2 gap-3 text-xs font-mono border-l border-slate-200 dark:border-[#1A2744] pl-6">
+          <div className="grid grid-cols-2 gap-3 text-xs font-mono border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-[#1A2744] pt-3 sm:pt-0 sm:pl-6 w-full sm:w-auto">
             <div>
               <div className="text-slate-400 text-[10px]">PREV CLOSE</div>
               <div className="text-slate-800 dark:text-slate-200 font-semibold">{currencySymbol}{quote?.previousClose || 'N/A'}</div>

@@ -13,9 +13,22 @@
     @apply bg-[#F8FAFC] text-[#0F172A] antialiased selection:bg-blue-500/20 selection:text-blue-700;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
 
-  /* Smooth custom scrollbars */
+  /* Theme transition for key elements */
+  header,
+  nav,
+  footer,
+  main,
+  aside,
+  .theme-transition,
+  .zoom-card,
+  .shadow-card {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* Desktop custom scrollbars */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -30,11 +43,25 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #2563EB;
   }
+
+  html.dark ::-webkit-scrollbar-track {
+    background: #070B14;
+  }
+  html.dark ::-webkit-scrollbar-thumb {
+    background: #1E2D4A;
+  }
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background: #3B82F6;
+  }
 }
 
-/* Smooth zoom-in on hover and swipe transitions */
+/* 
+===================================================================
+CARD SHADOWS & HOVER EFFECTS
+===================================================================
+*/
 .zoom-card {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, background-color 0.3s ease;
 }
 
 .zoom-card:hover {
@@ -46,7 +73,32 @@
   transform: scale(0.99);
 }
 
-/* Horizontal swipe carousel smooth drag */
+/* Light theme card shadows */
+.shadow-card {
+  box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.shadow-card:hover,
+.shadow-card-hover {
+  box-shadow: 0 16px 32px -8px rgba(37, 99, 235, 0.14), 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+}
+
+/* Dark theme card shadows */
+html.dark .shadow-card {
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.35);
+}
+
+html.dark .shadow-card:hover,
+html.dark .shadow-card-hover {
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.7), 0 4px 16px -2px rgba(37, 99, 235, 0.18);
+}
+
+/* 
+===================================================================
+HORIZONTAL SWIPE CAROUSEL
+===================================================================
+*/
 .swipe-carousel {
   display: flex;
   overflow-x: auto;
@@ -60,23 +112,294 @@
   flex-shrink: 0;
 }
 
-/* Keyframe animations */
+/* 
+===================================================================
+KEYFRAME ANIMATIONS
+===================================================================
+*/
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 12px rgba(37, 99, 235, 0.2); }
-  50% { box-shadow: 0 0 24px rgba(37, 99, 235, 0.45); }
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(37, 99, 235, 0.45);
+  }
 }
 
+@keyframes scrollZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* 
+===================================================================
+ANIMATION & SCROLL-TRIGGERED UTILITIES
+===================================================================
+*/
+/* Scroll triggered base class for IntersectionObserver */
+.scroll-animate {
+  opacity: 0;
+  transform: translateY(20px) scale(0.96);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-animate.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Individual animation utility classes */
 .animate-fade-in {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-glow {
   animation: pulseGlow 2.5s infinite;
+}
+
+.animate-zoom-in {
+  animation: scrollZoomIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-left {
+  animation: slideInLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-right {
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-ticker {
+  display: flex;
+  width: max-content;
+  animation: ticker 25s linear infinite;
+}
+
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
+/* Staggered animation delays */
+.delay-100 {
+  transition-delay: 100ms;
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  transition-delay: 200ms;
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  transition-delay: 300ms;
+  animation-delay: 300ms;
+}
+
+.delay-400 {
+  transition-delay: 400ms;
+  animation-delay: 400ms;
+}
+
+.delay-500 {
+  transition-delay: 500ms;
+  animation-delay: 500ms;
+}
+
+/* 
+===================================================================
+SMOOTH PAGE TRANSITIONS
+===================================================================
+*/
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-transition-exit {
+  opacity: 1;
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* 
+===================================================================
+MOBILE & RESPONSIVE IMPROVEMENTS
+===================================================================
+*/
+/* Safe area padding utilities */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Mobile bottom nav safe area spacer */
+.mobile-bottom-nav-spacer {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Touch targets */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  /* Disable hover transforms on touch screens */
+  .zoom-card:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .zoom-card:active {
+    transform: scale(0.98) !important;
+  }
+
+  .shadow-card:hover,
+  .shadow-card-hover:hover {
+    transform: none !important;
+  }
+
+  /* Hide scrollbars on mobile */
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  * {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+
+  /* Minimum 44px touch targets on buttons & links */
+  button:not(.no-touch-target),
+  a.touch-friendly,
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* 

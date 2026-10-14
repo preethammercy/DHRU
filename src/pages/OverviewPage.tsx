@@ -102,7 +102,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
     <div className="space-y-8 animate-fade-in pb-12">
       
       {/* 1. Hero Vision Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] p-6 sm:p-8 shadow-card zoom-card">
+      <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] p-6 sm:p-8 shadow-card zoom-card scroll-animate">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -189,7 +189,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
       {/* 2. Key Benchmark Strips */}
       {isCrypto ? (
         /* CRYPTO MODE BENCHMARKS */
-        <div className="space-y-4">
+        <div className="space-y-4 scroll-animate delay-100">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <Coins className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -242,7 +242,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
         </div>
       ) : (
         /* INDIAN MODE BENCHMARKS */
-        <div className="space-y-4">
+        <div className="space-y-4 scroll-animate delay-100">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
@@ -269,7 +269,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
       )}
 
       {/* 3. Market Health & Breadth */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 scroll-animate delay-200">
         
         {/* Advance / Decline Market Breadth */}
         <div className="p-5 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] flex flex-col justify-between shadow-card zoom-card">
@@ -378,7 +378,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
       </div>
 
       {/* 4. Leading Gainers & Losers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 scroll-animate delay-300">
         
         {/* Gainers */}
         <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl p-5 shadow-card zoom-card space-y-3">
@@ -446,7 +446,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
       </div>
 
       {/* 5. News Feed */}
-      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl p-6 shadow-card space-y-4">
+      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl p-6 shadow-card space-y-4 scroll-animate delay-400">
         <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#1A2744]">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">

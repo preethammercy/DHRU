@@ -143,8 +143,8 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
     riskSettings
   } = useTrading();
 
-  // Panels visibility
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
+  // Panels visibility - responsive default (collapsed on mobile to prioritize chart)
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
   const [activeBottomTab, setActiveBottomTab] = useState<'positions' | 'holdings' | 'orders' | 'trades' | 'ai'>('positions');
   const [watchlistSearch, setWatchlistSearch] = useState('');
 
