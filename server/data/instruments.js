@@ -74,7 +74,16 @@ export const FOREX_INSTRUMENTS = [
   { symbol: 'GC=F', name: 'Gold Spot (XAU/USD)', pair: 'XAU/USD', category: 'Precious Metals', exchange: 'COMEX / London Bullion', description: 'International gold bullion benchmark per troy ounce' },
   { symbol: 'SI=F', name: 'Silver Spot (XAG/USD)', pair: 'XAG/USD', category: 'Precious Metals', exchange: 'COMEX', description: 'International spot silver benchmark' },
   { symbol: 'CL=F', name: 'Crude Oil (WTI)', pair: 'WTI/USD', category: 'Energy', exchange: 'NYMEX', description: 'West Texas Intermediate crude oil benchmark' },
-  { symbol: 'BZ=F', name: 'Brent Crude Oil', pair: 'BRENT/USD', category: 'Energy', exchange: 'ICE', description: 'North Sea Brent crude oil global benchmark' }
+  { symbol: 'BZ=F', name: 'Brent Crude Oil', pair: 'BRENT/USD', category: 'Energy', exchange: 'ICE', description: 'North Sea Brent crude oil global benchmark' },
+  // US / Global Equities & Mega-Caps
+  { symbol: 'AAPL', name: 'Apple Inc.', pair: 'AAPL/USD', category: 'US Mega-Cap Tech', exchange: 'NASDAQ', description: 'Global consumer electronics, iOS ecosystem, and computing leader' },
+  { symbol: 'NFLX', name: 'Netflix, Inc.', pair: 'NFLX/USD', category: 'US Streaming & Media', exchange: 'NASDAQ', description: 'Global streaming entertainment, video production, and content network' },
+  { symbol: 'NVDA', name: 'NVIDIA Corporation', pair: 'NVDA/USD', category: 'US AI & Semiconductors', exchange: 'NASDAQ', description: 'World leader in accelerated computing GPUs and AI data center hardware' },
+  { symbol: 'TSLA', name: 'Tesla, Inc.', pair: 'TSLA/USD', category: 'US EV & Clean Energy', exchange: 'NASDAQ', description: 'Autonomous electric vehicle, energy storage, and AI robotics pioneer' },
+  { symbol: 'MSFT', name: 'Microsoft Corporation', pair: 'MSFT/USD', category: 'US Cloud & Software', exchange: 'NASDAQ', description: 'Enterprise cloud computing, Azure AI, Windows, and productivity software' },
+  { symbol: 'GOOGL', name: 'Alphabet Inc. (Google)', pair: 'GOOGL/USD', category: 'US Search & AI', exchange: 'NASDAQ', description: 'Global search, Android OS, YouTube, Google Cloud, and AI intelligence' },
+  { symbol: 'AMZN', name: 'Amazon.com, Inc.', pair: 'AMZN/USD', category: 'US E-Commerce & Cloud', exchange: 'NASDAQ', description: 'Global e-commerce marketplace, AWS cloud infrastructure, and logistics' },
+  { symbol: 'META', name: 'Meta Platforms, Inc.', pair: 'META/USD', category: 'US Social Media & VR', exchange: 'NASDAQ', description: 'Instagram, WhatsApp, Facebook social platforms, and Llama AI models' }
 ];
 
 export const ETFS = [

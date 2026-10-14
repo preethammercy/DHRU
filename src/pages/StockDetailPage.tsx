@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { getStockDetails, getStockCandles, runAiAnalysis } from '../services/api';
 import { useWatchlist } from '../context/WatchlistContext';
 import { useLivePrice } from '../context/MarketStreamContext';
+import { useTrading } from '../context/TradingContext';
 import { TradingViewChart } from '../components/chart/TradingViewChart';
 import { TechnicalScorecard } from '../components/stock/TechnicalScorecard';
 import { GeminiReport } from '../components/stock/GeminiReport';
@@ -21,17 +22,23 @@ import {
   Sparkles,
   BarChart2,
   Layers,
-  HelpCircle
+  HelpCircle,
+  Zap,
+  CheckCircle2,
+  Wallet,
+  Coins
 } from 'lucide-react';
 
 interface Props {
   symbol: string;
   onBack: () => void;
   onAskDhru: (question: string) => void;
+  onTradeStock?: (symbol: string) => void;
 }
 
-export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) => {
+export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, onTradeStock }) => {
   const { isInWatchlist, addToWatchlist, removeFromWatchlist } = useWatchlist();
+  const { placeOrder, marginAvailable } = useTrading();
 
   const [stockData, setStockData] = useState<any>(null);
   const [candles, setCandles] = useState<any[]>([]);
@@ -40,6 +47,12 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
   const [activeInterval, setActiveInterval] = useState('1d');
   const [aiReport, setAiReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // Quick Trade State
+  const [quickSide, setQuickSide] = useState<'BUY' | 'SELL'>('BUY');
+  const [quickProduct, setQuickProduct] = useState<'MIS' | 'CNC'>('MIS');
+  const [quickQty, setQuickQty] = useState<number>(10);
+  const [tradeFeedback, setTradeFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Hook ALWAYS declared unconditionally at top level
   const quote = stockData?.quote;
@@ -85,6 +98,23 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
     }
   };
 
+  const handleQuickTrade = (side: 'BUY' | 'SELL') => {
+    const res = placeOrder({
+      symbol,
+      name: quote?.name || symbol,
+      side,
+      product: quickProduct,
+      orderType: 'MARKET',
+      quantity: quickQty,
+      price: displayPrice
+    });
+    setTradeFeedback({
+      type: res.success ? 'success' : 'error',
+      message: res.message
+    });
+    setTimeout(() => setTradeFeedback(null), 5000);
+  };
+
   if (loading && !stockData) {
     return (
       <div className="py-24 text-center space-y-4">
@@ -105,7 +135,7 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
   const displayChange = live.change !== 0 ? live.change : (quote?.change || 0);
   const displayChangePercent = live.changePercent !== 0 ? live.changePercent : (quote?.changePercent || 0);
   const isUp = displayChange >= 0;
-  const currencySymbol = (quote?.currency === 'USD' || symbol.includes('USD') || quote?.exchange === 'BINANCE/COINBASE' || quote?.exchange === 'FOREX/GLOBAL') ? '$' : '₹';
+  const currencySymbol = (quote?.currency === 'USD' || symbol.includes('USD') || quote?.exchange === 'BINANCE/COINBASE' || quote?.exchange === 'FOREX/GLOBAL' || ['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'].includes(symbol)) ? '$' : '₹';
 
   return (
     <div className="space-y-6 animate-fade-in pb-16">
@@ -121,13 +151,25 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
         </button>
 
         <div className="flex items-center gap-2">
+          {/* Direct Trade in Terminal Button */}
+          {onTradeStock && (
+            <button
+              onClick={() => onTradeStock(symbol)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+              title="Trade this instrument with live order matching"
+            >
+              <Zap className="w-3.5 h-3.5 fill-current" />
+              <span>⚡ Trade in Live Terminal</span>
+            </button>
+          )}
+
           {/* Ask DHRU AI Context Button */}
           <button
             onClick={() => onAskDhru(`Analyse ${quote?.name || symbol} using its latest available data`)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm hover:shadow-md transition-all cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Ask DHRU AI About This Stock
+            <span>Ask DHRU AI</span>
           </button>
 
           {/* Watchlist Toggle */}
@@ -226,6 +268,162 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
         activeTimeframe={activeRange}
         activeInterval={activeInterval}
       />
+
+      {/* Quick Trade Execution Ticket */}
+      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl p-5 shadow-card zoom-card space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 dark:border-[#1A2744] gap-2">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-blue-50 dark:bg-cyan-500/10 text-blue-600 dark:text-cyan-400">
+              <Zap className="w-4 h-4 fill-current" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Quick Order Execution Ticket</h3>
+              <p className="text-[11px] text-slate-500">Execute instant market orders directly on live quote without leaving this chart</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-[10px] text-slate-400 font-mono">AVAILABLE MARGIN</div>
+              <div className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                {currencySymbol}{marginAvailable.toLocaleString(currencySymbol === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            {onTradeStock && (
+              <button
+                onClick={() => onTradeStock(symbol)}
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-all cursor-pointer"
+              >
+                Full Terminal & Depth →
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Feedback Message */}
+        {tradeFeedback && (
+          <div className={`p-3 rounded-xl text-xs font-medium flex items-center justify-between ${
+            tradeFeedback.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+              : 'bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+          }`}>
+            <span>{tradeFeedback.message}</span>
+            <button
+              onClick={() => setTradeFeedback(null)}
+              className="text-[10px] font-bold underline ml-2 opacity-75 hover:opacity-100"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+          {/* Side Selector */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Direction</label>
+            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-[#070B14] rounded-xl border border-slate-200 dark:border-[#1A2744]">
+              <button
+                onClick={() => setQuickSide('BUY')}
+                className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  quickSide === 'BUY'
+                    ? 'bg-emerald-600 text-white shadow'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                BUY / LONG
+              </button>
+              <button
+                onClick={() => setQuickSide('SELL')}
+                className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  quickSide === 'SELL'
+                    ? 'bg-rose-600 text-white shadow'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                SELL / SHORT
+              </button>
+            </div>
+          </div>
+
+          {/* Product Type */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Product</label>
+            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-[#070B14] rounded-xl border border-slate-200 dark:border-[#1A2744]">
+              <button
+                onClick={() => setQuickProduct('MIS')}
+                className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  quickProduct === 'MIS'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+                title="Intraday with 5x leverage"
+              >
+                MIS (5x Intraday)
+              </button>
+              <button
+                onClick={() => setQuickProduct('CNC')}
+                className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  quickProduct === 'CNC'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+                title="Cash & Carry (Delivery 1x)"
+              >
+                CNC (Delivery)
+              </button>
+            </div>
+          </div>
+
+          {/* Quantity */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">Quantity</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={quickQty}
+                onChange={(e) => setQuickQty(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full px-3 py-1.5 text-sm font-mono font-bold bg-white dark:bg-[#070B14] border border-slate-200 dark:border-[#1A2744] rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+              />
+              <div className="flex items-center gap-1">
+                {[5, 10, 50, 100].map(amt => (
+                  <button
+                    key={amt}
+                    onClick={() => setQuickQty(amt)}
+                    className="px-2 py-1 text-[10px] font-mono rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+                  >
+                    {amt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Execution Button & Est Value */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[10px] font-mono text-slate-400">
+              <span>EST. VALUE</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {currencySymbol}{(displayPrice * quickQty).toLocaleString(currencySymbol === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <button
+              onClick={() => handleQuickTrade(quickSide)}
+              className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                quickSide === 'BUY'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
+                  : 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 fill-current" />
+              <span>
+                {quickSide} {quickQty} @ {currencySymbol}{displayPrice.toLocaleString(currencySymbol === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Technical Indicators Scorecard & Pivot Matrix */}
       <TechnicalScorecard

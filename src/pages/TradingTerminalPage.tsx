@@ -82,7 +82,16 @@ const GLOBAL_WATCHLIST_SYMBOLS = [
   { symbol: 'USDCHF=X', name: 'USD / CHF' },
   { symbol: 'NZDUSD=X', name: 'NZD / USD' },
   { symbol: 'GC=F', name: 'Gold Spot' },
-  { symbol: 'CL=F', name: 'Crude Oil (WTI)' }
+  { symbol: 'CL=F', name: 'Crude Oil (WTI)' },
+  // US / Global Equities
+  { symbol: 'AAPL', name: 'Apple Inc.' },
+  { symbol: 'NFLX', name: 'Netflix Inc.' },
+  { symbol: 'NVDA', name: 'NVIDIA Corp' },
+  { symbol: 'TSLA', name: 'Tesla Inc.' },
+  { symbol: 'MSFT', name: 'Microsoft Corp' },
+  { symbol: 'GOOGL', name: 'Alphabet Inc.' },
+  { symbol: 'AMZN', name: 'Amazon Inc.' },
+  { symbol: 'META', name: 'Meta Platforms' }
 ];
 
 export const TradingTerminalPage: React.FC<TerminalProps> = ({
@@ -90,19 +99,19 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
   onSelectStock
 }) => {
   const { marketMode } = useAuth();
-  const [activeSymbol, setActiveSymbol] = useState(() => marketMode === 'crypto' ? 'BTC-USD' : initialSymbol);
+  const [activeSymbol, setActiveSymbol] = useState(() => initialSymbol || (marketMode === 'crypto' ? 'BTC-USD' : 'RELIANCE.NS'));
   const [activeInterval, setActiveInterval] = useState('1d');
   const [activeRange, setActiveRange] = useState('1y');
 
+  // Immediately load selected instrument when user navigates to trade
   useEffect(() => {
-    if (marketMode === 'crypto' && !activeSymbol.includes('USD') && !activeSymbol.includes('=X') && !activeSymbol.includes('=F')) {
-      setActiveSymbol('BTC-USD');
-    } else if (marketMode === 'indian' && (activeSymbol.includes('USD') || activeSymbol.includes('=X'))) {
-      setActiveSymbol('RELIANCE.NS');
+    if (initialSymbol) {
+      setActiveSymbol(initialSymbol);
     }
-  }, [marketMode]);
+  }, [initialSymbol]);
 
-  const isGlobal = marketMode === 'crypto' || activeSymbol.includes('USD') || activeSymbol.includes('=X') || activeSymbol.includes('=F');
+  const US_STOCKS = ['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
+  const isGlobal = marketMode === 'crypto' || activeSymbol.includes('USD') || activeSymbol.includes('=X') || activeSymbol.includes('=F') || US_STOCKS.includes(activeSymbol);
   const isCrypto = isGlobal;
   const currency = isGlobal && !activeSymbol.includes('INR=X') && !activeSymbol.includes('IN=X') ? '$' : '₹';
   const watchlistToUse = isGlobal ? GLOBAL_WATCHLIST_SYMBOLS : DEFAULT_WATCHLIST_SYMBOLS;

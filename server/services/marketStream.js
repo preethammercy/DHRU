@@ -54,20 +54,61 @@ const activeSymbols = new Set([
   'NZDUSD=X',
   'GC=F',
   'SI=F',
-  'CL=F'
+  'CL=F',
+
+  // US Global Equities
+  'AAPL',
+  'NFLX',
+  'NVDA',
+  'TSLA',
+  'MSFT',
+  'GOOGL',
+  'AMZN',
+  'META'
 ]);
 
 // Latest cached quotes for streaming symbols
 const liveTickCache = new Map();
 
-// Helper to determine if an instrument is 24/7 or live
+const US_EQUITIES = new Set(['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META']);
+
+// Helper to determine if an instrument is currently in a live trading session
 export function isInstrumentLive(symbol) {
   if (!symbol) return true;
   const sym = symbol.toUpperCase();
-  if (sym.includes('-USD') || sym.includes('=X') || sym.includes('=F')) {
-    return true; // Crypto 24/7, Forex 24/5 & Commodities
+  if (sym.includes('-USD')) {
+    return true; // 24/7/365 Cryptocurrencies
+  }
+  if (sym.includes('=X') || sym.includes('=F')) {
+    // 24/5 Global Forex and Commodities (Mon-Fri)
+    const now = new Date();
+    const day = now.getUTCDay(); // 0 is Sun, 6 is Sat
+    return day >= 1 && day <= 5;
+  }
+  if (US_EQUITIES.has(sym)) {
+    return isUsMarketOpen();
   }
   return isIndianMarketOpen();
+}
+
+// Is US Stock Market (NYSE / NASDAQ) Currently Open?
+export function isUsMarketOpen() {
+  const now = new Date();
+  const nyFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+    weekday: 'short'
+  });
+  const parts = nyFormatter.formatToParts(now);
+  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+  const weekday = parts.find(p => p.type === 'weekday')?.value || 'Mon';
+  if (weekday === 'Sat' || weekday === 'Sun') return false;
+  const totalMins = hour * 60 + minute;
+  // 09:30 (570) to 16:00 (960) America/New_York
+  return totalMins >= 570 && totalMins <= 960;
 }
 
 // Is Indian Market Currently in Live Trading Session?

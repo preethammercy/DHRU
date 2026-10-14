@@ -70,6 +70,12 @@ function AppContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleTradeStock = (symbol: string) => {
+    setSelectedSymbol(symbol);
+    setActiveNav('terminal');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleAskDhruContext = (question: string) => {
     setAskDhruQuestion(question);
     setActiveNav('ask-dhru');
@@ -122,6 +128,7 @@ function AppContent() {
         {activeNav === 'overview' && (
           <OverviewPage
             onSelectStock={handleSelectStock}
+            onTradeStock={handleTradeStock}
             onNavigate={setActiveNav}
           />
         )}
@@ -129,12 +136,14 @@ function AppContent() {
         {activeNav === 'indices' && (
           <IndicesPage
             onSelectIndex={handleSelectStock}
+            onTradeIndex={handleTradeStock}
           />
         )}
 
         {activeNav === 'stocks' && (
           <StocksPage
             onSelectStock={handleSelectStock}
+            onTradeStock={handleTradeStock}
           />
         )}
 
@@ -143,6 +152,7 @@ function AppContent() {
             symbol={selectedSymbol}
             onBack={() => setActiveNav(marketMode === 'crypto' ? 'indices' : 'stocks')}
             onAskDhru={handleAskDhruContext}
+            onTradeStock={handleTradeStock}
           />
         )}
 
@@ -155,6 +165,7 @@ function AppContent() {
         {activeNav === 'commodities' && (
           <CommoditiesPage
             onSelectInstrument={handleSelectStock}
+            onTradeInstrument={handleTradeStock}
           />
         )}
 
@@ -209,6 +220,7 @@ function AppContent() {
         isOpen={searchOpen}
         onClose={() => setSearchOpen(false)}
         onSelectInstrument={handleSelectStock}
+        onTradeInstrument={handleTradeStock}
       />
 
       <MarketSelectorModal

@@ -12,13 +12,15 @@ import { TrendingUp, ArrowUpRight, ArrowDownRight, Search, Coins, Globe2 } from 
 
 interface Props {
   onSelectIndex: (symbol: string) => void;
+  onTradeIndex?: (symbol: string) => void;
 }
 
 const LiveAssetCard: React.FC<{
   item: any;
   isCrypto: boolean;
   onSelectIndex: (symbol: string) => void;
-}> = ({ item, isCrypto, onSelectIndex }) => {
+  onTradeIndex?: (symbol: string) => void;
+}> = ({ item, isCrypto, onSelectIndex, onTradeIndex }) => {
   const { ticks } = useMarketStream();
   const tick = ticks[item.symbol];
 
@@ -61,18 +63,32 @@ const LiveAssetCard: React.FC<{
         <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
           {price > 0 ? `${currency}${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: maxDecimals })}` : 'N/A'}
         </div>
-        <div className={`text-xs font-mono font-bold flex items-center ${
-          isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-        }`}>
-          {isUp ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
-          {isUp ? `+${changePercent.toFixed(2)}%` : `${changePercent.toFixed(2)}%`}
+        <div className="flex items-center gap-2">
+          {onTradeIndex && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTradeIndex(item.symbol);
+              }}
+              className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+              title="Trade in Live Terminal"
+            >
+              <span>⚡ Trade</span>
+            </button>
+          )}
+          <div className={`text-xs font-mono font-bold flex items-center ${
+            isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+          }`}>
+            {isUp ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
+            {isUp ? `+${changePercent.toFixed(2)}%` : `${changePercent.toFixed(2)}%`}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export const IndicesPage: React.FC<Props> = ({ onSelectIndex }) => {
+export const IndicesPage: React.FC<Props> = ({ onSelectIndex, onTradeIndex }) => {
   const { marketMode } = useAuth();
   const [indices, setIndices] = useState<any[]>([]);
   const [globalAssets, setGlobalAssets] = useState<any[]>([]);
@@ -216,6 +232,7 @@ export const IndicesPage: React.FC<Props> = ({ onSelectIndex }) => {
               item={item}
               isCrypto={isCrypto}
               onSelectIndex={onSelectIndex}
+              onTradeIndex={onTradeIndex}
             />
           ))}
         </div>

@@ -8,9 +8,10 @@ import { Coins, ArrowUpRight, ArrowDownRight, Compass, Shield, ExternalLink, Hel
 
 interface Props {
   onSelectInstrument: (symbol: string) => void;
+  onTradeInstrument?: (symbol: string) => void;
 }
 
-export const CommoditiesPage: React.FC<Props> = ({ onSelectInstrument }) => {
+export const CommoditiesPage: React.FC<Props> = ({ onSelectInstrument, onTradeInstrument }) => {
   const [items, setItems] = useState<any[]>([]);
   const [etfs, setEtfs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,9 +92,23 @@ export const CommoditiesPage: React.FC<Props> = ({ onSelectInstrument }) => {
                   <div className="text-lg font-bold font-mono text-white">
                     ${c.price.toLocaleString('en-IN')}
                   </div>
-                  <div className={`text-xs font-mono font-bold flex items-center ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {isUp ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
-                    {isUp ? `+${c.changePercent}%` : `${c.changePercent}%`}
+                  <div className="flex items-center gap-2">
+                    {onTradeInstrument && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onTradeInstrument(c.symbol);
+                        }}
+                        className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                        title="Trade in Live Terminal"
+                      >
+                        <span>⚡ Trade</span>
+                      </button>
+                    )}
+                    <div className={`text-xs font-mono font-bold flex items-center ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {isUp ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
+                      {isUp ? `+${c.changePercent}%` : `${c.changePercent}%`}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -135,9 +150,23 @@ export const CommoditiesPage: React.FC<Props> = ({ onSelectInstrument }) => {
                   <div className="text-lg font-bold font-mono text-white">
                     ₹{fx.price}
                   </div>
-                  <div className={`text-xs font-mono font-bold flex items-center ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {isUp ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
-                    {isUp ? `+${fx.changePercent}%` : `${fx.changePercent}%`}
+                  <div className="flex items-center gap-2">
+                    {onTradeInstrument && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onTradeInstrument(fx.symbol);
+                        }}
+                        className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                        title="Trade in Live Terminal"
+                      >
+                        <span>⚡ Trade</span>
+                      </button>
+                    )}
+                    <div className={`text-xs font-mono font-bold flex items-center ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {isUp ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
+                      {isUp ? `+${fx.changePercent}%` : `${fx.changePercent}%`}
+                    </div>
                   </div>
                 </div>
               </div>

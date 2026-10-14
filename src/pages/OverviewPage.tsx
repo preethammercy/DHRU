@@ -26,10 +26,11 @@ import {
 
 interface Props {
   onSelectStock: (symbol: string) => void;
+  onTradeStock?: (symbol: string) => void;
   onNavigate: (page: string) => void;
 }
 
-export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => {
+export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onNavigate }) => {
   const { marketMode, setShowMarketSelector } = useAuth();
 
   const [data, setData] = useState<any>(null);
@@ -405,6 +406,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
                 quote={s}
                 isCrypto={isCrypto}
                 onSelect={() => onSelectStock(s.symbol)}
+                onTrade={onTradeStock ? () => onTradeStock(s.symbol) : undefined}
               />
             ))}
           </div>
@@ -436,6 +438,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
                 quote={s}
                 isCrypto={isCrypto}
                 onSelect={() => onSelectStock(s.symbol)}
+                onTrade={onTradeStock ? () => onTradeStock(s.symbol) : undefined}
               />
             ))}
           </div>
@@ -554,7 +557,7 @@ const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote
 };
 
 // Subcomponent: Live Asset Row (Indian or Crypto)
-const LiveAssetRow: React.FC<{ quote: any; isCrypto: boolean; onSelect: () => void }> = ({ quote, isCrypto, onSelect }) => {
+const LiveAssetRow: React.FC<{ quote: any; isCrypto: boolean; onSelect: () => void; onTrade?: () => void }> = ({ quote, isCrypto, onSelect, onTrade }) => {
   const currency = isCrypto ? '$' : '₹';
   const price = quote.price || 0;
   const changePercent = quote.changePercent || 0;
@@ -563,22 +566,36 @@ const LiveAssetRow: React.FC<{ quote: any; isCrypto: boolean; onSelect: () => vo
   return (
     <div
       onClick={onSelect}
-      className="py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-[#131F38] px-2 rounded-xl cursor-pointer transition-colors"
+      className="py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-[#131F38] px-2 rounded-xl cursor-pointer transition-colors group"
     >
       <div>
-        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600">{quote.name}</div>
+        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 transition-colors">{quote.name}</div>
         <div className="text-[10px] font-mono text-slate-500">{quote.symbol}</div>
       </div>
-      <div className="text-right font-mono">
-        <div className="text-xs font-bold text-slate-900 dark:text-white">
-          {currency}{price.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      <div className="flex items-center gap-3">
+        <div className="text-right font-mono">
+          <div className="text-xs font-bold text-slate-900 dark:text-white">
+            {currency}{price.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div className={`text-[11px] font-semibold flex items-center justify-end ${
+            isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+          }`}>
+            {isUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+            {isUp ? '+' : ''}{changePercent.toFixed(2)}%
+          </div>
         </div>
-        <div className={`text-[11px] font-semibold flex items-center justify-end ${
-          isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-        }`}>
-          {isUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-          {isUp ? '+' : ''}{changePercent.toFixed(2)}%
-        </div>
+        {onTrade && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onTrade();
+            }}
+            className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+            title="Trade in Live Terminal"
+          >
+            <span>⚡ Trade</span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -523,12 +523,14 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const estValue = (orderType === 'MARKET' ? ltp : (price || ltp)) * quantity;
 
     // Risk Check: Max order value (currency aware)
-    const isUsd = symbol.includes('-USD') || symbol.includes('=X') || symbol.includes('=F');
+    const US_STOCKS = ['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
+    const isUsd = symbol.includes('-USD') || (symbol.includes('=X') && !symbol.includes('INR')) || symbol.includes('=F') || US_STOCKS.includes(symbol);
+    const currSym = isUsd ? '$' : '₹';
     const effectiveMaxOrderValue = isUsd ? Math.max(50000, riskSettings.maxOrderValue / 15) : riskSettings.maxOrderValue;
     if (estValue > effectiveMaxOrderValue) {
       return {
         success: false,
-        message: `Order value ${isUsd ? '$' : '₹'}${estValue.toLocaleString()} exceeds your configured max risk limit of ${isUsd ? '$' : '₹'}${Math.round(effectiveMaxOrderValue).toLocaleString()}`
+        message: `Order value ${currSym}${estValue.toLocaleString()} exceeds your configured max risk limit of ${currSym}${Math.round(effectiveMaxOrderValue).toLocaleString()}`
       };
     }
 
@@ -537,7 +539,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (side === 'BUY' && requiredMargin > cashBalance) {
       return {
         success: false,
-        message: `Insufficient margin. Required: ₹${requiredMargin.toFixed(2)}, Available: ₹${cashBalance.toFixed(2)}`
+        message: `Insufficient margin. Required: ${currSym}${requiredMargin.toFixed(2)}, Available: ${currSym}${cashBalance.toFixed(2)}`
       };
     }
 
@@ -565,13 +567,13 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setTradeHistory(prev => [newOrder, ...prev]);
       return {
         success: true,
-        message: `${side} order for ${quantity} shares of ${symbol} executed at ₹${ltp.toFixed(2)}`
+        message: `${side} order for ${quantity} units of ${symbol} executed at ${currSym}${ltp.toFixed(2)}`
       };
     } else {
       setOrders(prev => [newOrder, ...prev]);
       return {
         success: true,
-        message: `${orderType} ${side} order placed for ${quantity} shares at ₹${(price || ltp).toFixed(2)}`
+        message: `${orderType} ${side} order placed for ${quantity} units at ${currSym}${(price || ltp).toFixed(2)}`
       };
     }
   }, [ticks, cashBalance, riskSettings]);

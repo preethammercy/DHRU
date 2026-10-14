@@ -9,9 +9,10 @@ import { Search, Filter, ArrowUpRight, ArrowDownRight, Bookmark, ArrowRight, Che
 
 interface Props {
   onSelectStock: (symbol: string) => void;
+  onTradeStock?: (symbol: string) => void;
 }
 
-export const StocksPage: React.FC<Props> = ({ onSelectStock }) => {
+export const StocksPage: React.FC<Props> = ({ onSelectStock, onTradeStock }) => {
   const { isInWatchlist, addToWatchlist, removeFromWatchlist } = useWatchlist();
 
   const [stocks, setStocks] = useState<any[]>([]);
@@ -237,15 +238,29 @@ export const StocksPage: React.FC<Props> = ({ onSelectStock }) => {
 
                       {/* Action */}
                       <td className="p-4 text-center">
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            onSelectStock(s.symbol);
-                          }}
-                          className="px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/20 text-blue-600 dark:text-cyan-400 border border-blue-200 dark:border-cyan-500/30 text-xs font-semibold inline-flex items-center gap-1 transition-all cursor-pointer"
-                        >
-                          Analyze <ArrowRight className="w-3 h-3" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          {onTradeStock && (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                onTradeStock(s.symbol);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm inline-flex items-center gap-1 transition-all cursor-pointer"
+                              title="Trade in Live Terminal"
+                            >
+                              <span>⚡ Trade</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              onSelectStock(s.symbol);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/20 text-blue-600 dark:text-cyan-400 border border-blue-200 dark:border-cyan-500/30 text-xs font-semibold inline-flex items-center gap-1 transition-all cursor-pointer"
+                          >
+                            Analyze <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

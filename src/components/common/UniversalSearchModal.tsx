@@ -10,12 +10,14 @@ interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectInstrument: (symbol: string, type?: string) => void;
+  onTradeInstrument?: (symbol: string) => void;
 }
 
 export const UniversalSearchModal: React.FC<SearchModalProps> = ({
   isOpen,
   onClose,
   onSelectInstrument,
+  onTradeInstrument,
 }) => {
   const { marketMode } = useAuth();
   const [query, setQuery] = useState('');
@@ -79,11 +81,11 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
   const popularSearches = marketMode === 'crypto'
     ? [
         { label: 'Bitcoin (BTC)', sym: 'BTC-USD' },
+        { label: 'Apple Inc', sym: 'AAPL' },
+        { label: 'Netflix Inc', sym: 'NFLX' },
+        { label: 'NVIDIA Corp', sym: 'NVDA' },
         { label: 'Ethereum (ETH)', sym: 'ETH-USD' },
-        { label: 'Solana (SOL)', sym: 'SOL-USD' },
-        { label: 'XRP (Ripple)', sym: 'XRP-USD' },
-        { label: 'Sui Network', sym: 'SUI-USD' },
-        { label: 'Dogecoin (DOGE)', sym: 'DOGE-USD' },
+        { label: 'Tesla Inc', sym: 'TSLA' },
       ]
     : [
         { label: 'Reliance Industries', sym: 'RELIANCE.NS' },
@@ -233,6 +235,19 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                {onTradeInstrument && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTradeInstrument(item.symbol);
+                      onClose();
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                    title="Trade directly in Live Terminal"
+                  >
+                    <span>⚡ Trade</span>
+                  </button>
+                )}
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-blue-50 dark:bg-cyan-500/10 text-blue-600 dark:text-cyan-400 border border-blue-200 dark:border-cyan-500/20">
                   Analyze
                 </span>
