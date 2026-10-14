@@ -45,14 +45,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Web app's Firebase configuration provided by user
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDndRiIQDAtxXDOSlcVhNxCDfYblKiGf5o",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "dhru-3d8e4.firebaseapp.com",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://dhru-3d8e4-default-rtdb.firebaseio.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "dhru-3d8e4",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "dhru-3d8e4.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "846237860485",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:846237860485:web:9f904f8bf35471b4ab5fec",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-7E6C5EL4QK"
+  apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || "AIzaSyDndRiIQDAtxXDOSlcVhNxCDfYblKiGf5o",
+  authDomain: (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || "dhru-3d8e4.firebaseapp.com",
+  databaseURL: (import.meta as any).env?.VITE_FIREBASE_DATABASE_URL || "https://dhru-3d8e4-default-rtdb.firebaseio.com",
+  projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || "dhru-3d8e4",
+  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || "dhru-3d8e4.firebasestorage.app",
+  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "846237860485",
+  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID || "1:846237860485:web:9f904f8bf35471b4ab5fec",
+  measurementId: (import.meta as any).env?.VITE_FIREBASE_MEASUREMENT_ID || "G-7E6C5EL4QK"
 };
 
 // Initialize Firebase safely

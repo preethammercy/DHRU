@@ -103,6 +103,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
   }, [marketMode]);
 
   const isGlobal = marketMode === 'crypto' || activeSymbol.includes('USD') || activeSymbol.includes('=X') || activeSymbol.includes('=F');
+  const isCrypto = isGlobal;
   const currency = isGlobal && !activeSymbol.includes('INR=X') && !activeSymbol.includes('IN=X') ? '$' : '₹';
   const watchlistToUse = isGlobal ? GLOBAL_WATCHLIST_SYMBOLS : DEFAULT_WATCHLIST_SYMBOLS;
 

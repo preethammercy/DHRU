@@ -9,6 +9,7 @@ export interface CandleData {
   close: number;
   volume?: number;
 }
+export type Candle = CandleData;
 
 export interface IndicatorValue {
   time: number | string;

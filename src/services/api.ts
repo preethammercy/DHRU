@@ -153,6 +153,16 @@ export async function saveGeminiKey(apiKey: string) {
   return res.json();
 }
 
+export async function getSettingsStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/settings/status`);
+    if (!res.ok) return { configured: false, engine: 'Deterministic Mathematical Engine' };
+    return res.json();
+  } catch {
+    return { configured: false, engine: 'Deterministic Mathematical Engine' };
+  }
+}
+
 export async function getCryptoInstruments() {
   const res = await fetch(`${API_BASE}/crypto`);
   if (!res.ok) throw new Error('Failed to load crypto markets');

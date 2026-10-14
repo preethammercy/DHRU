@@ -339,7 +339,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const period = Number(ind.params.period || 20);
           const data = calculateWMA(cleanCandles, period);
           if (data.length > 0) {
-            const series = chart.addLineSeries({ color: ind.color, lineWidth: 1.5, title: 'WMA 20' });
+            const series = chart.addLineSeries({ color: ind.color, lineWidth: 2, title: 'WMA 20' });
             series.setData(data as any);
             overlaySeriesMap.current.set(ind.id, series);
           }
@@ -347,7 +347,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const period = Number(ind.params.period || 20);
           const data = calculateVWMA(cleanCandles, period);
           if (data.length > 0) {
-            const series = chart.addLineSeries({ color: ind.color, lineWidth: 1.5, title: 'VWMA 20' });
+            const series = chart.addLineSeries({ color: ind.color, lineWidth: 2, title: 'VWMA 20' });
             series.setData(data as any);
             overlaySeriesMap.current.set(ind.id, series);
           }
@@ -378,7 +378,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const bbData = calculateBollingerBands(cleanCandles, period, mult);
           if (bbData.length > 0) {
             const upper = chart.addLineSeries({ color: 'rgba(37, 99, 235, 0.7)', lineWidth: 1, lineStyle: LineStyle.Dotted });
-            const mid = chart.addLineSeries({ color: ind.color, lineWidth: 1.5 });
+            const mid = chart.addLineSeries({ color: ind.color, lineWidth: 2 });
             const lower = chart.addLineSeries({ color: 'rgba(37, 99, 235, 0.7)', lineWidth: 1, lineStyle: LineStyle.Dotted });
             upper.setData(bbData.map(v => ({ time: v.time, value: v.upper })) as any);
             mid.setData(bbData.map(v => ({ time: v.time, value: v.middle })) as any);
@@ -393,7 +393,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const kcData = calculateKeltnerChannels(cleanCandles, period, mult);
           if (kcData.length > 0) {
             const upper = chart.addLineSeries({ color: 'rgba(217, 119, 6, 0.6)', lineWidth: 1, lineStyle: LineStyle.Dotted });
-            const mid = chart.addLineSeries({ color: ind.color, lineWidth: 1.5 });
+            const mid = chart.addLineSeries({ color: ind.color, lineWidth: 2 });
             const lower = chart.addLineSeries({ color: 'rgba(217, 119, 6, 0.6)', lineWidth: 1, lineStyle: LineStyle.Dotted });
             upper.setData(kcData.map(v => ({ time: v.time, value: v.upper })) as any);
             mid.setData(kcData.map(v => ({ time: v.time, value: v.middle })) as any);
@@ -475,7 +475,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           if (fvgData.length > 0) {
             const series = chart.addLineSeries({
               color: ind.color,
-              lineWidth: 1.5,
+              lineWidth: 2,
               lineStyle: LineStyle.Dashed,
               title: 'FVG Imbalance',
             });
@@ -485,8 +485,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
         } else if (ind.id === 'ichimoku') {
           const { tenkan, kijun } = calculateIchimoku(cleanCandles);
           if (tenkan.length > 0) {
-            const tSeries = chart.addLineSeries({ color: '#10B981', lineWidth: 1.5, title: 'Tenkan (9)' });
-            const kSeries = chart.addLineSeries({ color: '#EF4444', lineWidth: 1.5, title: 'Kijun (26)' });
+            const tSeries = chart.addLineSeries({ color: '#10B981', lineWidth: 2, title: 'Tenkan (9)' });
+            const kSeries = chart.addLineSeries({ color: '#EF4444', lineWidth: 2, title: 'Kijun (26)' });
             tSeries.setData(tenkan as any);
             kSeries.setData(kijun as any);
             overlaySeriesMap.current.set(`${ind.id}_tenkan`, tSeries);
@@ -572,7 +572,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const rsiPeriod = Number(osc.params.period || 14);
           const rsiData = calculateRSI(cleanCandles, rsiPeriod);
           if (rsiData.length > 0) {
-            const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 1.5, title: 'RSI 14' });
+            const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'RSI 14' });
             series.setData(rsiData as any);
             series.createPriceLine({ price: 70, color: '#EF4444', lineWidth: 1, lineStyle: LineStyle.Dashed, title: 'Overbought (70)' });
             series.createPriceLine({ price: 30, color: '#10B981', lineWidth: 1, lineStyle: LineStyle.Dashed, title: 'Oversold (30)' });
@@ -584,8 +584,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const signal = Number(osc.params.signal || 9);
           const macdData = calculateMACD(cleanCandles, fast, slow, signal);
           if (macdData.length > 0) {
-            const macdSeries = oscChart.addLineSeries({ color: '#2563EB', lineWidth: 1.5, title: 'MACD' });
-            const sigSeries = oscChart.addLineSeries({ color: '#EF4444', lineWidth: 1.5, title: 'Signal' });
+            const macdSeries = oscChart.addLineSeries({ color: '#2563EB', lineWidth: 2, title: 'MACD' });
+            const sigSeries = oscChart.addLineSeries({ color: '#EF4444', lineWidth: 2, title: 'Signal' });
             macdSeries.setData(macdData.map(v => ({ time: v.time, value: v.macd })) as any);
             sigSeries.setData(macdData.map(v => ({ time: v.time, value: v.signal })) as any);
           }
@@ -595,8 +595,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const smoothD = Number(osc.params.smoothD || 3);
           const stochData = calculateStochastic(cleanCandles, period, smoothK, smoothD);
           if (stochData.length > 0) {
-            const kSeries = oscChart.addLineSeries({ color: '#0EA5E9', lineWidth: 1.5, title: '%K' });
-            const dSeries = oscChart.addLineSeries({ color: '#F59E0B', lineWidth: 1.5, title: '%D' });
+            const kSeries = oscChart.addLineSeries({ color: '#0EA5E9', lineWidth: 2, title: '%K' });
+            const dSeries = oscChart.addLineSeries({ color: '#F59E0B', lineWidth: 2, title: '%D' });
             kSeries.setData(stochData.map(v => ({ time: v.time, value: v.k })) as any);
             dSeries.setData(stochData.map(v => ({ time: v.time, value: v.d })) as any);
           }
@@ -604,7 +604,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const period = Number(osc.params.period || 20);
           const cciData = calculateCCI(cleanCandles, period);
           if (cciData.length > 0) {
-            const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 1.5, title: 'CCI 20' });
+            const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'CCI 20' });
             series.setData(cciData as any);
             series.createPriceLine({ price: 100, color: '#EF4444', lineWidth: 1, lineStyle: LineStyle.Dashed });
             series.createPriceLine({ price: -100, color: '#10B981', lineWidth: 1, lineStyle: LineStyle.Dashed });
@@ -620,21 +620,21 @@ export const TradingViewChart: React.FC<ChartProps> = ({
         } else if (osc.id === 'cmf') {
           const cmfData = calculateCMF(cleanCandles);
           if (cmfData.length > 0) {
-            const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 1.5, title: 'CMF (20)' });
+            const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'CMF (20)' });
             series.setData(cmfData as any);
             series.createPriceLine({ price: 0, color: '#64748B', lineWidth: 1, lineStyle: LineStyle.Dashed });
           }
         } else if (osc.id === 'aroon') {
           const aroonData = calculateAroon(cleanCandles);
           if (aroonData.length > 0) {
-            const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 1.5, title: 'Aroon Osc' });
+            const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'Aroon Osc' });
             series.setData(aroonData as any);
             series.createPriceLine({ price: 0, color: '#64748B', lineWidth: 1, lineStyle: LineStyle.Dashed });
           }
         } else if (osc.id === 'tsi') {
           const tsiData = calculateTSI(cleanCandles);
           if (tsiData.length > 0) {
-            const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 1.5, title: 'TSI' });
+            const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'TSI' });
             series.setData(tsiData as any);
             series.createPriceLine({ price: 0, color: '#64748B', lineWidth: 1, lineStyle: LineStyle.Dashed });
           }

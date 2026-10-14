@@ -16,7 +16,9 @@ import {
   LogIn,
   LogOut,
   ChevronDown,
-  Coins
+  Coins,
+  Zap,
+  User
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useWatchlist } from '../../context/WatchlistContext';
