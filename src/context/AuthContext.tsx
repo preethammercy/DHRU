@@ -20,6 +20,10 @@ export interface DhruUser {
   displayName: string;
   email: string;
   photoURL?: string;
+  phone?: string;
+  traderIdentity?: string;
+  kycStatus?: 'verified' | 'pending' | 'unverified';
+  baseCurrency?: 'INR' | 'USD';
   isDemo?: boolean;
 }
 
@@ -34,6 +38,7 @@ interface AuthContextType {
   setShowMarketSelector: (show: boolean) => void;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  updateUserProfile: (updates: Partial<DhruUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -172,6 +177,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setShowMarketSelector(true);
   };
 
+  const updateUserProfile = (updates: Partial<DhruUser>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const updated: DhruUser = {
+        ...prev,
+        ...updates
+      };
+      localStorage.setItem('dhru_auth_user', JSON.stringify(updated));
+      localStorage.setItem(`dhru_custom_profile_${updated.uid}`, JSON.stringify(updates));
+      return updated;
+    });
+  };
+
   const signOut = async () => {
     if (auth) {
       try {
@@ -194,7 +212,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         showMarketSelector,
         setShowMarketSelector,
         signInWithGoogle,
-        signOut
+        signOut,
+        updateUserProfile
       }}
     >
       {children}

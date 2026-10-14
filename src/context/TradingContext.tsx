@@ -117,91 +117,9 @@ interface TradingContextType {
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
-const INITIAL_HOLDINGS: Holding[] = [
-  {
-    symbol: 'RELIANCE.NS',
-    name: 'Reliance Industries Ltd',
-    quantity: 50,
-    averagePrice: 1140.00,
-    currentPrice: 1166.70,
-    investedValue: 57000,
-    currentValue: 58335,
-    totalPnl: 1335,
-    totalPnlPercent: 2.34,
-    dayPnl: 390,
-    dayPnlPercent: 0.67
-  },
-  {
-    symbol: 'TCS.NS',
-    name: 'Tata Consultancy Services',
-    quantity: 25,
-    averagePrice: 2240.50,
-    currentPrice: 2269.30,
-    investedValue: 56012.50,
-    currentValue: 56732.50,
-    totalPnl: 720,
-    totalPnlPercent: 1.28,
-    dayPnl: -145,
-    dayPnlPercent: -0.25
-  },
-  {
-    symbol: 'HDFCBANK.NS',
-    name: 'HDFC Bank Ltd',
-    quantity: 100,
-    averagePrice: 705.20,
-    currentPrice: 714.00,
-    investedValue: 70520,
-    currentValue: 71400,
-    totalPnl: 880,
-    totalPnlPercent: 1.25,
-    dayPnl: 420,
-    dayPnlPercent: 0.59
-  },
-  {
-    symbol: 'INFY.NS',
-    name: 'Infosys Ltd',
-    quantity: 60,
-    averagePrice: 1045.00,
-    currentPrice: 1062.10,
-    investedValue: 62700,
-    currentValue: 63726,
-    totalPnl: 1026,
-    totalPnlPercent: 1.64,
-    dayPnl: 280,
-    dayPnlPercent: 0.44
-  }
-];
-
-const INITIAL_POSITIONS: Position[] = [
-  {
-    id: 'pos_1',
-    symbol: 'RELIANCE.NS',
-    name: 'Reliance Industries Ltd',
-    product: 'MIS',
-    side: 'BUY',
-    quantity: 75,
-    averagePrice: 1162.40,
-    currentPrice: 1166.70,
-    pnl: 322.50,
-    pnlPercent: 0.37,
-    dayPnl: 322.50,
-    entryTime: new Date(Date.now() - 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  },
-  {
-    id: 'pos_2',
-    symbol: 'HDFCBANK.NS',
-    name: 'HDFC Bank Ltd',
-    product: 'MIS',
-    side: 'BUY',
-    quantity: 150,
-    averagePrice: 711.50,
-    currentPrice: 714.00,
-    pnl: 375.00,
-    pnlPercent: 0.35,
-    dayPnl: 375.00,
-    entryTime: new Date(Date.now() - 7200000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-];
+// Clean 0-trades starting portfolio for all traders
+const INITIAL_HOLDINGS: Holding[] = [];
+const INITIAL_POSITIONS: Position[] = [];
 
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { ticks } = useMarketStream();
@@ -224,12 +142,26 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [positions, setPositions] = useState<Position[]>(() => {
     const saved = localStorage.getItem(userKey('positions'));
-    return saved ? JSON.parse(saved) : INITIAL_POSITIONS;
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      // Clean any legacy mock positions (pos_1, pos_2)
+      return Array.isArray(parsed) ? parsed.filter((p: Position) => !p.id.startsWith('pos_')) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [holdings, setHoldings] = useState<Holding[]>(() => {
     const saved = localStorage.getItem(userKey('holdings'));
-    return saved ? JSON.parse(saved) : INITIAL_HOLDINGS;
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      // Clean legacy mock holdings
+      return Array.isArray(parsed) ? parsed.filter((h: Holding) => h.averagePrice !== 1140 && h.averagePrice !== 2240.50) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -272,10 +204,28 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setRealizedPnl(savedRealized ? Number(savedRealized) : 0);
 
     const savedPos = localStorage.getItem(userKey('positions'));
-    setPositions(savedPos ? JSON.parse(savedPos) : INITIAL_POSITIONS);
+    if (savedPos) {
+      try {
+        const parsed = JSON.parse(savedPos);
+        setPositions(Array.isArray(parsed) ? parsed.filter((p: Position) => !p.id.startsWith('pos_')) : []);
+      } catch {
+        setPositions([]);
+      }
+    } else {
+      setPositions([]);
+    }
 
     const savedHoldings = localStorage.getItem(userKey('holdings'));
-    setHoldings(savedHoldings ? JSON.parse(savedHoldings) : INITIAL_HOLDINGS);
+    if (savedHoldings) {
+      try {
+        const parsed = JSON.parse(savedHoldings);
+        setHoldings(Array.isArray(parsed) ? parsed.filter((h: Holding) => h.averagePrice !== 1140 && h.averagePrice !== 2240.50) : []);
+      } catch {
+        setHoldings([]);
+      }
+    } else {
+      setHoldings([]);
+    }
 
     const savedOrders = localStorage.getItem(userKey('orders'));
     setOrders(savedOrders ? JSON.parse(savedOrders) : []);
@@ -572,11 +522,13 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const ltp = currentQuote?.price || price || 1000;
     const estValue = (orderType === 'MARKET' ? ltp : (price || ltp)) * quantity;
 
-    // Risk Check: Max order value
-    if (estValue > riskSettings.maxOrderValue) {
+    // Risk Check: Max order value (currency aware)
+    const isUsd = symbol.includes('-USD') || symbol.includes('=X') || symbol.includes('=F');
+    const effectiveMaxOrderValue = isUsd ? Math.max(50000, riskSettings.maxOrderValue / 15) : riskSettings.maxOrderValue;
+    if (estValue > effectiveMaxOrderValue) {
       return {
         success: false,
-        message: `Order value ₹${estValue.toLocaleString()} exceeds your configured max risk limit of ₹${riskSettings.maxOrderValue.toLocaleString()}`
+        message: `Order value ${isUsd ? '$' : '₹'}${estValue.toLocaleString()} exceeds your configured max risk limit of ${isUsd ? '$' : '₹'}${Math.round(effectiveMaxOrderValue).toLocaleString()}`
       };
     }
 

@@ -5,18 +5,77 @@
 // White & Blue Fintrix fintech styling with zoom animations.
 
 import React, { useEffect, useState } from 'react';
-import { getAllIndices, getCryptoInstruments } from '../services/api';
+import { getAllIndices, getCryptoInstruments, getForexInstruments } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { TrendingUp, ArrowUpRight, ArrowDownRight, Search, Coins } from 'lucide-react';
+import { useMarketStream } from '../context/MarketStreamContext';
+import { TrendingUp, ArrowUpRight, ArrowDownRight, Search, Coins, Globe2 } from 'lucide-react';
 
 interface Props {
   onSelectIndex: (symbol: string) => void;
 }
 
+const LiveAssetCard: React.FC<{
+  item: any;
+  isCrypto: boolean;
+  onSelectIndex: (symbol: string) => void;
+}> = ({ item, isCrypto, onSelectIndex }) => {
+  const { ticks } = useMarketStream();
+  const tick = ticks[item.symbol];
+
+  const price = tick?.price || item.price || 0;
+  const changePercent = tick?.changePercent !== undefined ? tick.changePercent : (item.changePercent || 0);
+  const isUp = changePercent >= 0;
+  const flash = tick?.flash;
+
+  const isForex = item.symbol.includes('=X') || item.symbol.includes('=F');
+  const currency = isForex && item.symbol.includes('INR') ? '₹' : (isCrypto || isForex ? '$' : '₹');
+  const maxDecimals = price < 2 ? 4 : (price < 100 ? 3 : 2);
+
+  return (
+    <div
+      onClick={() => onSelectIndex(item.symbol)}
+      className={`p-5 rounded-2xl bg-white dark:bg-[#0D1527] border cursor-pointer transition-all shadow-card zoom-card group flex flex-col justify-between ${
+        flash === 'up'
+          ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)] bg-emerald-50/20'
+          : flash === 'down'
+          ? 'border-rose-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] bg-rose-50/20'
+          : 'border-slate-200 dark:border-[#1A2744] hover:border-blue-400 dark:hover:border-cyan-500/40'
+      }`}
+    >
+      <div>
+        <div className="flex items-center justify-between text-xs mb-1">
+          <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-[#070B14] dark:text-cyan-400 border border-blue-200 dark:border-[#1A2744] font-semibold">
+            {item.exchange || (isForex ? 'FOREX' : (isCrypto ? 'CRYPTO' : 'NSE'))} • {item.category}
+          </span>
+          <span className="text-[10px] font-mono text-slate-400">{item.symbol}</span>
+        </div>
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors mt-2">
+          {item.name}
+        </h3>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+          {item.description}
+        </p>
+      </div>
+
+      <div className="pt-4 mt-3 border-t border-slate-100 dark:border-[#1A2744]/70 flex items-center justify-between">
+        <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
+          {price > 0 ? `${currency}${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: maxDecimals })}` : 'N/A'}
+        </div>
+        <div className={`text-xs font-mono font-bold flex items-center ${
+          isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+        }`}>
+          {isUp ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
+          {isUp ? `+${changePercent.toFixed(2)}%` : `${changePercent.toFixed(2)}%`}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const IndicesPage: React.FC<Props> = ({ onSelectIndex }) => {
   const { marketMode } = useAuth();
   const [indices, setIndices] = useState<any[]>([]);
-  const [cryptoList, setCryptoList] = useState<any[]>([]);
+  const [globalAssets, setGlobalAssets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,16 +86,18 @@ export const IndicesPage: React.FC<Props> = ({ onSelectIndex }) => {
     setLoading(true);
     setCategoryFilter('All');
     if (isCrypto) {
-      getCryptoInstruments()
-        .then(data => {
-          const list = data?.crypto || data?.instruments || [];
-          setCryptoList(list);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error(err);
-          setLoading(false);
-        });
+      Promise.all([
+        getCryptoInstruments().catch(() => ({ crypto: [] })),
+        getForexInstruments().catch(() => ({ forex: [] }))
+      ]).then(([cData, fData]) => {
+        const cryptos = (cData?.crypto || cData?.instruments || []).map((c: any) => ({ ...c, assetType: 'crypto' }));
+        const forex = (fData?.forex || fData?.instruments || []).map((f: any) => ({ ...f, assetType: 'forex' }));
+        setGlobalAssets([...cryptos, ...forex]);
+        setLoading(false);
+      }).catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
     } else {
       getAllIndices()
         .then(data => {
@@ -51,19 +112,20 @@ export const IndicesPage: React.FC<Props> = ({ onSelectIndex }) => {
   }, [marketMode]);
 
   const categories = isCrypto
-    ? ['All', 'Layer 1', 'DeFi', 'Layer 2', 'AI & Compute', 'Meme']
+    ? ['All', 'Crypto Assets', 'Forex Majors & Crosses', 'Layer 1', 'DeFi', 'AI & Compute', 'Meme']
     : ['All', 'Broad Market', 'Sectoral', 'Midcap', 'Smallcap', 'Thematic'];
 
-  const items = isCrypto ? cryptoList : indices;
+  const items = isCrypto ? globalAssets : indices;
 
   const filtered = items.filter(item => {
     let matchesCategory = categoryFilter === 'All';
     if (!matchesCategory) {
       if (isCrypto) {
         const cat = (item.category || '').toLowerCase();
-        if (categoryFilter === 'Layer 1') matchesCategory = cat.includes('layer 1') || cat.includes('l1');
+        if (categoryFilter === 'Crypto Assets') matchesCategory = item.assetType === 'crypto';
+        else if (categoryFilter === 'Forex Majors & Crosses') matchesCategory = item.assetType === 'forex';
+        else if (categoryFilter === 'Layer 1') matchesCategory = cat.includes('layer 1') || cat.includes('l1');
         else if (categoryFilter === 'DeFi') matchesCategory = cat.includes('defi') || cat.includes('dex') || cat.includes('payments');
-        else if (categoryFilter === 'Layer 2') matchesCategory = cat.includes('layer 2') || cat.includes('l2') || cat.includes('rollup');
         else if (categoryFilter === 'AI & Compute') matchesCategory = cat.includes('ai') || cat.includes('compute') || cat.includes('oracle');
         else if (categoryFilter === 'Meme') matchesCategory = cat.includes('meme');
       } else {
@@ -148,44 +210,14 @@ export const IndicesPage: React.FC<Props> = ({ onSelectIndex }) => {
       {/* Items Grid */}
       {!loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map(item => {
-            const isUp = (item.changePercent || 0) >= 0;
-            const currency = isCrypto ? '$' : '₹';
-            return (
-              <div
-                key={item.symbol}
-                onClick={() => onSelectIndex(item.symbol)}
-                className="p-5 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-blue-400 dark:hover:border-cyan-500/40 hover:shadow-card-hover cursor-pointer transition-all shadow-card zoom-card group flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-[#070B14] dark:text-cyan-400 border border-blue-200 dark:border-[#1A2744] font-semibold">
-                      {item.exchange || (isCrypto ? 'CRYPTO' : 'NSE')} • {item.category}
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">{item.symbol}</span>
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors mt-2">
-                    {item.name}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                    {item.description}
-                  </p>
-                </div>
-
-                <div className="pt-4 mt-3 border-t border-slate-100 dark:border-[#1A2744]/70 flex items-center justify-between">
-                  <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
-                    {item.price > 0 ? `${currency}${item.price.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
-                  </div>
-                  <div className={`text-xs font-mono font-bold flex items-center ${
-                    isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                  }`}>
-                    {isUp ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
-                    {isUp ? `+${(item.changePercent || 0).toFixed(2)}%` : `${(item.changePercent || 0).toFixed(2)}%`}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {filtered.map(item => (
+            <LiveAssetCard
+              key={item.symbol}
+              item={item}
+              isCrypto={isCrypto}
+              onSelectIndex={onSelectIndex}
+            />
+          ))}
         </div>
       )}
     </div>

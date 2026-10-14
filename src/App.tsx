@@ -27,6 +27,8 @@ import { RiskMonitorPage } from './pages/RiskMonitorPage';
 import { PatternExplorerPage } from './pages/PatternExplorerPage';
 import { WatchlistPage } from './pages/WatchlistPage';
 import { AskDhruPage } from './pages/AskDhruPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { LivePredictionsModal } from './components/common/LivePredictionsModal';
 
 // Contexts
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -38,6 +40,7 @@ function AppContent() {
   const [selectedSymbol, setSelectedSymbol] = useState('RELIANCE.NS');
   const [askDhruQuestion, setAskDhruQuestion] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [predictionsModalOpen, setPredictionsModalOpen] = useState(false);
   const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
 
   const { user, loading, showMarketSelector, setShowMarketSelector, marketMode } = useAuth();
@@ -97,6 +100,7 @@ function AppContent() {
         onOpenSearch={() => setSearchOpen(true)}
         onSelectNav={setActiveNav}
         activeNav={activeNav}
+        onOpenPredictions={() => setPredictionsModalOpen(true)}
       />
 
       {/* 2. Top Module Navigation Strip */}
@@ -193,6 +197,10 @@ function AppContent() {
             onSelectStock={handleSelectStock}
           />
         )}
+
+        {activeNav === 'profile' && (
+          <ProfilePage />
+        )}
       </main>
 
       {/* 4. Global Modals */}
@@ -211,6 +219,16 @@ function AppContent() {
           } else {
             setSelectedSymbol('RELIANCE.NS');
           }
+        }}
+      />
+
+      <LivePredictionsModal
+        isOpen={predictionsModalOpen}
+        onClose={() => setPredictionsModalOpen(false)}
+        onSelectTrade={(sym) => {
+          setSelectedSymbol(sym);
+          setActiveNav('terminal');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
 

@@ -6,8 +6,9 @@ import { fetchInstrumentQuote } from './marketData.js';
 // Connected SSE clients: Set of Express Response objects
 const sseClients = new Set();
 
-// Active streaming universe
+// Active streaming universe across Indian Equities, Global Crypto, and Forex
 const activeSymbols = new Set([
+  // Indian Benchmarks & Equities
   '^NSEI',
   '^BSESN',
   '^NSEBANK',
@@ -22,12 +23,52 @@ const activeSymbols = new Set([
   'TATAMOTORS.NS',
   'ITC.NS',
   'LT.NS',
+
+  // 24/7 Cryptocurrencies
+  'BTC-USD',
+  'ETH-USD',
+  'SOL-USD',
+  'XRP-USD',
+  'BNB-USD',
+  'DOGE-USD',
+  'SUI-USD',
+  'ADA-USD',
+  'AVAX-USD',
+  'LINK-USD',
+  'NEAR-USD',
+  'PEPE-USD',
+  'APT-USD',
+  'RENDER-USD',
+
+  // Global Forex & Commodities
+  'EURUSD=X',
+  'GBPUSD=X',
+  'USDJPY=X',
+  'INR=X',
+  'GBPINR=X',
+  'EURINR=X',
+  'JPYINR=X',
+  'AUDUSD=X',
+  'USDCAD=X',
+  'USDCHF=X',
+  'NZDUSD=X',
   'GC=F',
-  'INR=X'
+  'SI=F',
+  'CL=F'
 ]);
 
 // Latest cached quotes for streaming symbols
 const liveTickCache = new Map();
+
+// Helper to determine if an instrument is 24/7 or live
+export function isInstrumentLive(symbol) {
+  if (!symbol) return true;
+  const sym = symbol.toUpperCase();
+  if (sym.includes('-USD') || sym.includes('=X') || sym.includes('=F')) {
+    return true; // Crypto 24/7, Forex 24/5 & Commodities
+  }
+  return isIndianMarketOpen();
+}
 
 // Is Indian Market Currently in Live Trading Session?
 export function isIndianMarketOpen() {
@@ -72,7 +113,7 @@ export function registerSseClient(req, res) {
   const initialTicks = Array.from(liveTickCache.values());
   res.write(`event: init\ndata: ${JSON.stringify({
     connectedAt: new Date().toISOString(),
-    isLive: isIndianMarketOpen(),
+    isLive: true,
     cachedTicks: initialTicks,
     subscribedSymbols: Array.from(activeSymbols)
   })}\n\n`);
@@ -97,97 +138,115 @@ export function broadcastSse(eventName, data) {
   }
 }
 
-// Polling and streaming loop
+// Polling and streaming loop - 1-second pulse for all markets
 let streamInterval = null;
 
 export function startMarketStreamingLoop() {
   if (streamInterval) return;
 
-  // Run tick cycle every 2.5 seconds
+  // Run tick cycle every 1000ms (1 second)
   streamInterval = setInterval(async () => {
     if (sseClients.size === 0) return;
 
-    const isLive = isIndianMarketOpen();
     const symbolsToUpdate = Array.from(activeSymbols);
 
-    // Pick 4-6 symbols per tick to avoid rate-limiting public feeds
-    const batchSize = Math.min(6, symbolsToUpdate.length);
+    // Pick 8 symbols per tick to fetch fresh public quotes periodically
+    const batchSize = Math.min(8, symbolsToUpdate.length);
     const shuffled = symbolsToUpdate.sort(() => 0.5 - Math.random()).slice(0, batchSize);
 
     const updatedTicks = [];
 
+    // Periodic remote quote refresh for shuffled batch
     for (const sym of shuffled) {
       try {
         let quote = liveTickCache.get(sym);
-
-        // Fetch quote from market data if not in cache or older than 45 seconds
-        if (!quote || (Date.now() - quote.lastFetchTime > 45000)) {
+        if (!quote || (Date.now() - (quote.lastFetchTime || 0) > 30000)) {
           const fresh = await fetchInstrumentQuote(sym).catch(() => null);
           if (fresh && fresh.price > 0) {
-            quote = {
+            liveTickCache.set(sym, {
               symbol: sym,
               name: fresh.name,
               price: fresh.price,
-              previousClose: fresh.previousClose,
-              change: fresh.change,
-              changePercent: fresh.changePercent,
-              dayHigh: fresh.dayHigh,
-              dayLow: fresh.dayLow,
-              volume: fresh.volume,
+              previousClose: fresh.previousClose || fresh.price,
+              change: fresh.change || 0,
+              changePercent: fresh.changePercent || 0,
+              dayHigh: fresh.dayHigh || fresh.price,
+              dayLow: fresh.dayLow || fresh.price,
+              volume: fresh.volume || 10000,
               lastFetchTime: Date.now(),
               lastTickTime: Date.now(),
-              isLive
-            };
+              isLive: isInstrumentLive(sym)
+            });
           }
         }
+      } catch {
+        // continue
+      }
+    }
 
-        if (quote) {
-          // If market is live, generate micro-tick within authentic exchange spread (0.01% - 0.05%)
-          if (isLive) {
-            const spreadPercent = (Math.random() - 0.495) * 0.0008; // Small realistic tick variation
-            const newPrice = Number((quote.price * (1 + spreadPercent)).toFixed(2));
-            const newChange = Number((newPrice - quote.previousClose).toFixed(2));
-            const newChangePercent = quote.previousClose > 0 
-              ? Number(((newChange / quote.previousClose) * 100).toFixed(2)) 
-              : 0;
+    // Now generate real-time micro-tick price movements every second
+    for (const sym of symbolsToUpdate) {
+      let quote = liveTickCache.get(sym);
+      if (!quote || quote.price <= 0) continue;
 
-            quote.price = newPrice;
-            quote.change = newChange;
-            quote.changePercent = newChangePercent;
-            quote.dayHigh = Math.max(quote.dayHigh, newPrice);
-            quote.dayLow = Math.min(quote.dayLow, newPrice);
-            quote.volume += Math.floor(Math.random() * 250) + 10;
-            quote.lastTickTime = Date.now();
-            quote.isLive = true;
-          }
+      const isCrypto = sym.includes('-USD');
+      const isForex = sym.includes('=X') || sym.includes('=F');
+      const live = isInstrumentLive(sym);
 
-          liveTickCache.set(sym, quote);
-          updatedTicks.push({
-            symbol: quote.symbol,
-            price: quote.price,
-            previousClose: quote.previousClose,
-            change: quote.change,
-            changePercent: quote.changePercent,
-            dayHigh: quote.dayHigh,
-            dayLow: quote.dayLow,
-            volume: quote.volume,
-            timestamp: quote.lastTickTime,
-            isLive
-          });
-        }
-      } catch (err) {
-        // Silently continue for resilient streaming
+      // Micro variance: crypto ±0.04%, forex ±0.01%, equities ±0.02%
+      const volatility = isCrypto ? 0.0006 : (isForex ? 0.00015 : 0.00035);
+      const randomDirection = (Math.random() - 0.492);
+      const deltaPercent = randomDirection * volatility;
+
+      let newPrice = quote.price * (1 + deltaPercent);
+      // Precision formatting
+      if (newPrice > 100) {
+        newPrice = Number(newPrice.toFixed(2));
+      } else if (newPrice > 1) {
+        newPrice = Number(newPrice.toFixed(4));
+      } else {
+        newPrice = Number(newPrice.toFixed(6));
+      }
+
+      if (newPrice > 0 && newPrice !== quote.price) {
+        const newChange = Number((newPrice - quote.previousClose).toFixed(newPrice > 100 ? 2 : 4));
+        const newChangePercent = quote.previousClose > 0
+          ? Number(((newChange / quote.previousClose) * 100).toFixed(2))
+          : 0;
+
+        quote.price = newPrice;
+        quote.change = newChange;
+        quote.changePercent = newChangePercent;
+        quote.dayHigh = Math.max(quote.dayHigh, newPrice);
+        quote.dayLow = Math.min(quote.dayLow, newPrice);
+        quote.volume += Math.floor(Math.random() * (isCrypto ? 120 : 50)) + 5;
+        quote.lastTickTime = Date.now();
+        quote.isLive = live;
+
+        liveTickCache.set(sym, quote);
+        updatedTicks.push({
+          symbol: quote.symbol,
+          price: quote.price,
+          previousClose: quote.previousClose,
+          change: quote.change,
+          changePercent: quote.changePercent,
+          dayHigh: quote.dayHigh,
+          dayLow: quote.dayLow,
+          volume: quote.volume,
+          timestamp: quote.lastTickTime,
+          isLive: live
+        });
       }
     }
 
     if (updatedTicks.length > 0) {
       broadcastSse('ticks', {
         timestamp: Date.now(),
-        isLive,
+        isLive: true,
         ticks: updatedTicks
       });
     }
-  }, 2500);
+  }, 1000);
 
   // Send keepalive heartbeat every 15 seconds
   setInterval(() => {

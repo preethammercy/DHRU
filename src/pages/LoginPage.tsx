@@ -192,25 +192,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <span>{loading ? 'Authenticating with Google...' : 'Continue with Google'}</span>
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
               </button>
-
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200 dark:border-slate-800" />
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase font-mono tracking-wider">
-                  <span className="bg-white dark:bg-[#070B14] px-3 text-slate-400">
-                    Instant Guest Access
-                  </span>
-                </div>
-              </div>
-
-              {/* Guest Access Button */}
-              <button
-                onClick={handleGoogleLogin}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
-              >
-                Launch Demo Terminal Session
-              </button>
             </div>
 
             {/* Bottom Disclaimer */}

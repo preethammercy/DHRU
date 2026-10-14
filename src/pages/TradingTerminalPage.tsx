@@ -53,7 +53,8 @@ const DEFAULT_WATCHLIST_SYMBOLS = [
   { symbol: 'INR=X', name: 'USD/INR' }
 ];
 
-const CRYPTO_WATCHLIST_SYMBOLS = [
+const GLOBAL_WATCHLIST_SYMBOLS = [
+  // Top Cryptocurrencies
   { symbol: 'BTC-USD', name: 'Bitcoin (BTC)' },
   { symbol: 'ETH-USD', name: 'Ethereum (ETH)' },
   { symbol: 'SOL-USD', name: 'Solana (SOL)' },
@@ -67,7 +68,21 @@ const CRYPTO_WATCHLIST_SYMBOLS = [
   { symbol: 'NEAR-USD', name: 'NEAR Protocol' },
   { symbol: 'PEPE-USD', name: 'Pepe' },
   { symbol: 'APT-USD', name: 'Aptos' },
-  { symbol: 'RENDER-USD', name: 'Render Network' }
+  { symbol: 'RENDER-USD', name: 'Render Network' },
+  // Major Forex & Commodities
+  { symbol: 'EURUSD=X', name: 'EUR / USD' },
+  { symbol: 'GBPUSD=X', name: 'GBP / USD (Cable)' },
+  { symbol: 'USDJPY=X', name: 'USD / JPY' },
+  { symbol: 'INR=X', name: 'USD / INR' },
+  { symbol: 'GBPINR=X', name: 'GBP / INR' },
+  { symbol: 'EURINR=X', name: 'EUR / INR' },
+  { symbol: 'JPYINR=X', name: 'JPY / INR (100)' },
+  { symbol: 'AUDUSD=X', name: 'AUD / USD' },
+  { symbol: 'USDCAD=X', name: 'USD / CAD' },
+  { symbol: 'USDCHF=X', name: 'USD / CHF' },
+  { symbol: 'NZDUSD=X', name: 'NZD / USD' },
+  { symbol: 'GC=F', name: 'Gold Spot' },
+  { symbol: 'CL=F', name: 'Crude Oil (WTI)' }
 ];
 
 export const TradingTerminalPage: React.FC<TerminalProps> = ({
@@ -80,16 +95,16 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
   const [activeRange, setActiveRange] = useState('1y');
 
   useEffect(() => {
-    if (marketMode === 'crypto' && !activeSymbol.includes('USD')) {
+    if (marketMode === 'crypto' && !activeSymbol.includes('USD') && !activeSymbol.includes('=X') && !activeSymbol.includes('=F')) {
       setActiveSymbol('BTC-USD');
-    } else if (marketMode === 'indian' && activeSymbol.includes('USD')) {
+    } else if (marketMode === 'indian' && (activeSymbol.includes('USD') || activeSymbol.includes('=X'))) {
       setActiveSymbol('RELIANCE.NS');
     }
   }, [marketMode]);
 
-  const isCrypto = marketMode === 'crypto' || activeSymbol.includes('USD');
-  const currency = isCrypto ? '$' : '₹';
-  const watchlistToUse = isCrypto ? CRYPTO_WATCHLIST_SYMBOLS : DEFAULT_WATCHLIST_SYMBOLS;
+  const isGlobal = marketMode === 'crypto' || activeSymbol.includes('USD') || activeSymbol.includes('=X') || activeSymbol.includes('=F');
+  const currency = isGlobal && !activeSymbol.includes('INR=X') && !activeSymbol.includes('IN=X') ? '$' : '₹';
+  const watchlistToUse = isGlobal ? GLOBAL_WATCHLIST_SYMBOLS : DEFAULT_WATCHLIST_SYMBOLS;
 
   // Market Stream & Live Quote
   const { isMarketLive, connectionStatus } = useMarketStream();
@@ -387,12 +402,14 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
             <div>
               <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Order Ticket</h3>
-              <p className="text-[11px] text-slate-500 font-mono">NSE • Continuous Trading</p>
+              <p className="text-[11px] text-slate-500 font-mono">
+                {isGlobal ? (activeSymbol.includes('=X') ? 'Global Interbank Forex' : 'Global 24/7 Crypto') : 'NSE • Continuous Trading'}
+              </p>
             </div>
             <div className="text-right">
               <span className="text-[10px] uppercase font-mono text-slate-400">LTP</span>
               <p className="font-mono font-bold text-sm text-slate-900 dark:text-white">
-                ₹{live.price > 0 ? live.price.toFixed(2) : (stockDetail?.quote?.price?.toFixed(2) ?? '0.00')}
+                {currency}{live.price > 0 ? live.price.toFixed(live.price > 100 ? 2 : 4) : (stockDetail?.quote?.price?.toFixed(2) ?? '0.00')}
               </p>
             </div>
           </div>
@@ -547,16 +564,16 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
             <div className="mt-2 p-2.5 rounded-lg bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-slate-800 space-y-1.5 text-[11px] font-mono">
               <div className="flex justify-between">
                 <span className="text-slate-500">Order Value:</span>
-                <span className="text-slate-800 dark:text-slate-200 font-semibold">₹{totalOrderValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                <span className="text-slate-800 dark:text-slate-200 font-semibold">{currency}{totalOrderValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Margin Required:</span>
-                <strong className="text-blue-600 dark:text-cyan-400 font-bold">₹{requiredMargin.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong>
+                <strong className="text-blue-600 dark:text-cyan-400 font-bold">{currency}{requiredMargin.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Margin Available:</span>
                 <span className={marginAvailable >= requiredMargin ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>
-                  ₹{marginAvailable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                  {currency}{marginAvailable.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -714,12 +731,16 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right font-semibold text-slate-800 dark:text-slate-200">{pos.quantity}</td>
-                        <td className="py-3 px-4 text-right">₹{pos.averagePrice.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-right">
+                          {pos.symbol.includes('USD') || pos.symbol.includes('=X') ? '$' : '₹'}
+                          {pos.averagePrice.toFixed(pos.averagePrice > 100 ? 2 : 4)}
+                        </td>
                         <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">
-                          ₹{pos.currentPrice.toFixed(2)}
+                          {pos.symbol.includes('USD') || pos.symbol.includes('=X') ? '$' : '₹'}
+                          {pos.currentPrice.toFixed(pos.currentPrice > 100 ? 2 : 4)}
                         </td>
                         <td className={`py-3 px-4 text-right font-bold ${isProfit ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {isProfit ? '+' : ''}₹{pos.pnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          {isProfit ? '+' : ''}{pos.symbol.includes('USD') || pos.symbol.includes('=X') ? '$' : '₹'}{pos.pnl.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
                         <td className={`py-3 px-4 text-right font-semibold ${isProfit ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {isProfit ? '+' : ''}{pos.pnlPercent.toFixed(2)}%

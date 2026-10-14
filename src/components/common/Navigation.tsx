@@ -15,7 +15,8 @@ import {
   ShieldAlert,
   CandlestickChart,
   Bookmark,
-  Sparkles
+  Sparkles,
+  User
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -29,15 +30,16 @@ export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }
 
   const navItems = marketMode === 'crypto'
     ? [
-        { id: 'overview', label: 'Crypto Overview', icon: LayoutDashboard },
+        { id: 'overview', label: 'Crypto & FX Overview', icon: LayoutDashboard },
         { id: 'terminal', label: 'Live Terminal', icon: CandlestickChart },
-        { id: 'indices', label: 'All Crypto Assets (22+)', icon: Coins },
+        { id: 'indices', label: 'Crypto & Forex Assets (38+)', icon: Coins },
         { id: 'sectors', label: 'Ecosystems & Heatmap', icon: PieChart },
         { id: 'news', label: 'Market News', icon: Newspaper },
         { id: 'ai-predictions', label: 'AI Predictions', icon: BrainCircuit },
         { id: 'risk-monitor', label: 'Risk Monitor', icon: ShieldAlert },
         { id: 'patterns', label: 'AI Pattern Scanner', icon: CandlestickChart },
         { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
+        { id: 'profile', label: 'My Profile', icon: User },
         { id: 'ask-dhru', label: 'Ask DHRU AI', icon: Sparkles },
       ]
     : [
@@ -53,6 +55,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }
         { id: 'risk-monitor', label: 'Risk Monitor', icon: ShieldAlert },
         { id: 'patterns', label: 'AI Pattern Scanner', icon: CandlestickChart },
         { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
+        { id: 'profile', label: 'My Profile', icon: User },
         { id: 'ask-dhru', label: 'Ask DHRU AI', icon: Sparkles },
       ];
 
