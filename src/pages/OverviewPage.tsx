@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { Quote, NewsItem, MarketStatus } from '../types';
 import { getMarketOverview, getNews, getFiiDiiData } from '../services/api';
+import { useLivePrice } from '../context/MarketStreamContext';
 import {
   TrendingUp,
   TrendingDown,
@@ -18,7 +19,8 @@ import {
   BarChart2,
   RefreshCw,
   Layers,
-  CheckCircle2
+  CheckCircle2,
+  CandlestickChart
 } from 'lucide-react';
 
 interface Props {
@@ -91,6 +93,17 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               DHRU.AI empowers Indian investors by explaining what is happening, why, what the risks are, and what historical evidence suggests could happen next.
             </p>
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button
+                onClick={() => onNavigate('terminal')}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer"
+              >
+                <CandlestickChart className="w-4 h-4" />
+                <span>Open Live Trading Terminal</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-1" />
+              </button>
+            </div>
           </div>
 
           {/* Market Status Card */}
@@ -114,41 +127,15 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
         </div>
       </div>
 
-      {/* 2. Key Benchmark Indices Strip */}
+      {/* 2. Key Benchmark Indices Strip (Live Updating) */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        {indices.slice(0, 4).map(idx => {
-          const isUp = idx.changePercent >= 0;
-          return (
-            <div
-              key={idx.symbol}
-              onClick={() => onSelectStock(idx.symbol)}
-              className="p-4 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-blue-400 dark:hover:border-cyan-500/40 hover:shadow-card-hover cursor-pointer transition-all shadow-card zoom-card group"
-            >
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span className="font-semibold text-slate-900 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors">
-                  {idx.name}
-                </span>
-                <span className="font-mono text-[10px] text-slate-400">{idx.exchange}</span>
-              </div>
-              <div className="mt-2 text-lg sm:text-2xl font-bold font-mono text-slate-900 dark:text-white">
-                {idx.price > 0 ? idx.price.toLocaleString('en-IN') : 'Loading...'}
-              </div>
-              <div className="mt-1 flex items-center gap-1.5 text-xs font-mono font-semibold">
-                {isUp ? (
-                  <span className="text-emerald-600 dark:text-emerald-400 flex items-center">
-                    <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-                    +{idx.change} (+{idx.changePercent}%)
-                  </span>
-                ) : (
-                  <span className="text-rose-600 dark:text-rose-400 flex items-center">
-                    <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
-                    {idx.change} ({idx.changePercent}%)
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {indices.slice(0, 4).map(idx => (
+          <LiveIndexCard
+            key={idx.symbol}
+            quote={idx}
+            onSelect={() => onSelectStock(idx.symbol)}
+          />
+        ))}
       </div>
 
       {/* 3. Market Health & Macro Strip (Breadth, FII/DII, Commodities) */}
@@ -268,23 +255,11 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
 
           <div className="divide-y divide-slate-100 dark:divide-[#1A2744]/60">
             {gainers.map(s => (
-              <div
+              <LiveStockRow
                 key={s.symbol}
-                onClick={() => onSelectStock(s.symbol)}
-                className="py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-[#131F38] px-2 rounded-xl cursor-pointer transition-colors"
-              >
-                <div>
-                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600">{s.name}</div>
-                  <div className="text-[10px] font-mono text-slate-500">{s.symbol}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs font-mono font-bold text-slate-900 dark:text-white">₹{s.price}</div>
-                  <div className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold flex items-center justify-end">
-                    <ArrowUpRight className="w-3 h-3" />
-                    +{s.changePercent}%
-                  </div>
-                </div>
-              </div>
+                quote={s}
+                onSelect={() => onSelectStock(s.symbol)}
+              />
             ))}
           </div>
         </div>
@@ -305,23 +280,11 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
 
           <div className="divide-y divide-slate-100 dark:divide-[#1A2744]/60">
             {losers.map(s => (
-              <div
+              <LiveStockRow
                 key={s.symbol}
-                onClick={() => onSelectStock(s.symbol)}
-                className="py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-[#131F38] px-2 rounded-xl cursor-pointer transition-colors"
-              >
-                <div>
-                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600">{s.name}</div>
-                  <div className="text-[10px] font-mono text-slate-500">{s.symbol}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs font-mono font-bold text-slate-900 dark:text-white">₹{s.price}</div>
-                  <div className="text-[11px] font-mono text-rose-600 dark:text-rose-400 font-semibold flex items-center justify-end">
-                    <ArrowDownRight className="w-3 h-3" />
-                    {s.changePercent}%
-                  </div>
-                </div>
-              </div>
+                quote={s}
+                onSelect={() => onSelectStock(s.symbol)}
+              />
             ))}
           </div>
         </div>
@@ -378,6 +341,88 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
               </div>
             </a>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Subcomponent: Live Index Card with Real-time Tick Flash
+const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote, onSelect }) => {
+  const live = useLivePrice(quote.symbol, quote);
+  const displayPrice = live.price > 0 ? live.price : quote.price;
+  const displayChange = live.change !== 0 ? live.change : quote.change;
+  const displayChangePercent = live.changePercent !== 0 ? live.changePercent : quote.changePercent;
+  const isUp = displayChange >= 0;
+
+  return (
+    <div
+      onClick={onSelect}
+      className="p-4 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-blue-400 dark:hover:border-cyan-500/40 hover:shadow-card-hover cursor-pointer transition-all shadow-card zoom-card group"
+    >
+      <div className="flex items-center justify-between text-xs text-slate-500">
+        <span className="font-semibold text-slate-900 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors">
+          {quote.name}
+        </span>
+        <span className="font-mono text-[10px] text-slate-400">{quote.exchange}</span>
+      </div>
+      <div className={`mt-2 text-lg sm:text-2xl font-bold font-mono transition-colors rounded px-1 -ml-1 ${
+        live.flash === 'up'
+          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+          : live.flash === 'down'
+          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+          : 'text-slate-900 dark:text-white'
+      }`}>
+        {displayPrice > 0 ? displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Loading...'}
+      </div>
+      <div className="mt-1 flex items-center gap-1.5 text-xs font-mono font-semibold">
+        {isUp ? (
+          <span className="text-emerald-600 dark:text-emerald-400 flex items-center">
+            <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
+            +{displayChange.toFixed(2)} (+{displayChangePercent.toFixed(2)}%)
+          </span>
+        ) : (
+          <span className="text-rose-600 dark:text-rose-400 flex items-center">
+            <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
+            {displayChange.toFixed(2)} ({displayChangePercent.toFixed(2)}%)
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Subcomponent: Live Stock Row for Gainers & Losers
+const LiveStockRow: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote, onSelect }) => {
+  const live = useLivePrice(quote.symbol, quote);
+  const displayPrice = live.price > 0 ? live.price : quote.price;
+  const displayChangePercent = live.changePercent !== 0 ? live.changePercent : quote.changePercent;
+  const isUp = displayChangePercent >= 0;
+
+  return (
+    <div
+      onClick={onSelect}
+      className="py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-[#131F38] px-2 rounded-xl cursor-pointer transition-colors"
+    >
+      <div>
+        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600">{quote.name}</div>
+        <div className="text-[10px] font-mono text-slate-500">{quote.symbol}</div>
+      </div>
+      <div className="text-right font-mono">
+        <div className={`text-xs font-bold transition-colors ${
+          live.flash === 'up'
+            ? 'text-emerald-500'
+            : live.flash === 'down'
+            ? 'text-rose-500'
+            : 'text-slate-900 dark:text-white'
+        }`}>
+          ₹{displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
+        <div className={`text-[11px] font-semibold flex items-center justify-end ${
+          isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+        }`}>
+          {isUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+          {isUp ? '+' : ''}{displayChangePercent.toFixed(2)}%
         </div>
       </div>
     </div>

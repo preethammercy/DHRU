@@ -159,6 +159,19 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
+          {/* Live Terminal Fast Button */}
+          <button
+            onClick={() => onSelectNav('terminal')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
+              activeNav === 'terminal'
+                ? 'bg-blue-600 text-white shadow-[0_4px_14px_rgba(37,99,235,0.3)] scale-[1.02]'
+                : 'bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-slate-700 dark:text-slate-200 hover:border-blue-400'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Terminal</span>
+          </button>
+
           {/* Ask DHRU AI Fast Button */}
           <button
             onClick={() => onSelectNav('ask-dhru')}
@@ -205,6 +218,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="grid grid-cols-2 gap-2 pb-2">
             {[
               { id: 'overview', label: 'Overview' },
+              { id: 'terminal', label: '⚡ Live Terminal' },
               { id: 'indices', label: 'All Indices' },
               { id: 'stocks', label: 'All Stocks' },
               { id: 'sectors', label: 'Sectors' },

@@ -12,6 +12,7 @@ import { DhruLogo } from './components/common/DhruLogo';
 
 // Pages
 import { OverviewPage } from './pages/OverviewPage';
+import { TradingTerminalPage } from './pages/TradingTerminalPage';
 import { IndicesPage } from './pages/IndicesPage';
 import { StocksPage } from './pages/StocksPage';
 import { StockDetailPage } from './pages/StockDetailPage';
@@ -27,6 +28,10 @@ import { BacktestingPage } from './pages/BacktestingPage';
 import { WatchlistPage } from './pages/WatchlistPage';
 import { AskDhruPage } from './pages/AskDhruPage';
 import { MethodologyPage } from './pages/MethodologyPage';
+
+// Contexts
+import { MarketStreamProvider } from './context/MarketStreamContext';
+import { TradingProvider } from './context/TradingContext';
 
 export function App() {
   const [activeNav, setActiveNav] = useState('overview');
@@ -57,32 +62,41 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 dark:bg-[#070B14] dark:text-[#F1F5F9] transition-colors">
-      
-      {/* 1. Global Header */}
-      <Header
-        marketStatus={marketStatus}
-        onOpenSearch={() => setSearchOpen(true)}
-        onSelectNav={setActiveNav}
-        activeNav={activeNav}
-      />
-
-      {/* 2. Top Module Navigation Strip */}
-      <Navigation
-        activeNav={activeNav}
-        onSelectNav={setActiveNav}
-      />
-
-      {/* 3. Main Content Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeNav === 'overview' && (
-          <OverviewPage
-            onSelectStock={handleSelectStock}
-            onNavigate={setActiveNav}
+    <MarketStreamProvider>
+      <TradingProvider>
+        <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 dark:bg-[#070B14] dark:text-[#F1F5F9] transition-colors">
+          
+          {/* 1. Global Header */}
+          <Header
+            marketStatus={marketStatus}
+            onOpenSearch={() => setSearchOpen(true)}
+            onSelectNav={setActiveNav}
+            activeNav={activeNav}
           />
-        )}
 
-        {activeNav === 'indices' && (
+          {/* 2. Top Module Navigation Strip */}
+          <Navigation
+            activeNav={activeNav}
+            onSelectNav={setActiveNav}
+          />
+
+          {/* 3. Main Content Container */}
+          <main className={activeNav === 'terminal' ? "flex-1 w-full px-2 sm:px-4 py-4" : "flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6"}>
+            {activeNav === 'terminal' && (
+              <TradingTerminalPage
+                initialSymbol={selectedSymbol}
+                onSelectStock={handleSelectStock}
+              />
+            )}
+
+            {activeNav === 'overview' && (
+              <OverviewPage
+                onSelectStock={handleSelectStock}
+                onNavigate={setActiveNav}
+              />
+            )}
+
+            {activeNav === 'indices' && (
           <IndicesPage
             onSelectIndex={handleSelectStock}
           />
@@ -195,6 +209,7 @@ export function App() {
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600 dark:text-slate-400">
+              <button onClick={() => setActiveNav('terminal')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer font-bold">⚡ Live Terminal</button>
               <button onClick={() => setActiveNav('overview')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Overview</button>
               <button onClick={() => setActiveNav('indices')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Indices</button>
               <button onClick={() => setActiveNav('stocks')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Stocks</button>
@@ -212,6 +227,8 @@ export function App() {
         </div>
       </footer>
     </div>
+  </TradingProvider>
+</MarketStreamProvider>
   );
 }
 

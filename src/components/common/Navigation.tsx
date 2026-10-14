@@ -28,6 +28,7 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }) => {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'terminal', label: 'Live Terminal', icon: CandlestickChart },
     { id: 'indices', label: 'All Indices', icon: TrendingUp },
     { id: 'stocks', label: 'All Stocks', icon: ListFilter },
     { id: 'sectors', label: 'Sectors', icon: PieChart },

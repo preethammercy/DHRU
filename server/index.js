@@ -18,6 +18,7 @@ import { startScheduler, getSchedulerStatus, runRefreshCycle } from './services/
 import { getDerivativesOverview } from './data/derivativesData.js';
 import { UPCOMING_IPOS, CORPORATE_ACTIONS } from './data/ipoAnnouncements.js';
 import { getFiiDiiData } from './data/fiiDiiData.js';
+import { registerSseClient, subscribeSymbolToStream, startMarketStreamingLoop } from './services/marketStream.js';
 
 dotenv.config();
 
@@ -90,6 +91,21 @@ function getIndianMarketStatus() {
     isWeekend
   };
 }
+
+// 0. Real-Time SSE Market Price Stream
+app.get('/api/stream', (req, res) => {
+  registerSseClient(req, res);
+});
+
+app.post('/api/stream/subscribe', (req, res) => {
+  const { symbol } = req.body || {};
+  if (symbol) {
+    subscribeSymbolToStream(symbol);
+    res.json({ subscribed: true, symbol });
+  } else {
+    res.status(400).json({ error: 'Symbol parameter required' });
+  }
+});
 
 // 1. Market Status
 app.get('/api/market/status', (req, res) => {
@@ -503,6 +519,7 @@ if (!process.env.VERCEL) {
     try {
       await loadNseDirectory();
       startScheduler();
+      startMarketStreamingLoop();
     } catch (e) {
       console.error('[Boot] Initialization warning:', e.message);
     }

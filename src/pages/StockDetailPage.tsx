@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { getStockDetails, getStockCandles, runAiAnalysis } from '../services/api';
 import { useWatchlist } from '../context/WatchlistContext';
+import { useLivePrice } from '../context/MarketStreamContext';
 import { TradingViewChart } from '../components/chart/TradingViewChart';
 import { TechnicalScorecard } from '../components/stock/TechnicalScorecard';
 import { GeminiReport } from '../components/stock/GeminiReport';
@@ -92,11 +93,16 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
   }
 
   const quote = stockData?.quote;
+  const live = useLivePrice(symbol, quote);
   const technicals = stockData?.technicals;
   const recentNews = stockData?.recentNews || [];
   const risk = stockData?.risk;
   const inWatch = isInWatchlist(symbol);
-  const isUp = quote?.changePercent >= 0;
+  
+  const displayPrice = live.price > 0 ? live.price : (quote?.price || 0);
+  const displayChange = live.change !== 0 ? live.change : (quote?.change || 0);
+  const displayChangePercent = live.changePercent !== 0 ? live.changePercent : (quote?.changePercent || 0);
+  const isUp = displayChange >= 0;
 
   return (
     <div className="space-y-6 animate-fade-in pb-16">
@@ -160,7 +166,7 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
             <span>•</span>
             <span className="flex items-center gap-1 text-slate-500">
               <Clock className="w-3 h-3 text-blue-600" />
-              {quote?.source} ({quote?.status})
+              {quote?.source} ({live.isMarketLive ? 'Real-Time Streaming' : quote?.status})
             </span>
           </div>
         </div>
@@ -168,14 +174,20 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
         {/* Live Price & Metric Stats */}
         <div className="flex flex-wrap items-center gap-6 lg:justify-end">
           <div>
-            <div className="text-3xl sm:text-4xl font-extrabold font-mono text-slate-900 dark:text-white">
-              ₹{quote?.price?.toLocaleString('en-IN') || '0.00'}
+            <div className={`text-3xl sm:text-4xl font-extrabold font-mono transition-colors rounded px-2 py-0.5 ${
+              live.flash === 'up'
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                : live.flash === 'down'
+                ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                : 'text-slate-900 dark:text-white'
+            }`}>
+              ₹{displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className={`mt-1 flex items-center font-mono font-bold text-sm ${
               isUp ? 'text-emerald-600' : 'text-rose-600'
             }`}>
               {isUp ? <ArrowUpRight className="w-4 h-4 mr-0.5" /> : <ArrowDownRight className="w-4 h-4 mr-0.5" />}
-              {isUp ? `+₹${quote?.change}` : `₹${quote?.change}`} ({isUp ? `+${quote?.changePercent}%` : `${quote?.changePercent}%`})
+              {isUp ? `+₹${displayChange.toFixed(2)}` : `₹${displayChange.toFixed(2)}`} ({isUp ? `+${displayChangePercent.toFixed(2)}%` : `${displayChangePercent.toFixed(2)}%`})
             </div>
           </div>
 
@@ -205,11 +217,11 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
       <TradingViewChart
         candles={candles}
         volumeData={volumeData}
-        technicals={technicals}
         symbol={symbol}
-        currentPrice={quote?.price || 0}
+        currentPrice={displayPrice}
         onTimeframeChange={handleTimeframeChange}
         activeTimeframe={activeRange}
+        activeInterval={activeInterval}
       />
 
       {/* Technical Indicators Scorecard & Pivot Matrix */}
