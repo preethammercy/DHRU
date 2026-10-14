@@ -193,6 +193,11 @@ export function startMarketStreamingLoop() {
       const isForex = sym.includes('=X') || sym.includes('=F');
       const live = isInstrumentLive(sym);
 
+      // Do NOT simulate price movements for instruments when their exchange is closed (e.g. Indian equities after 3:30 PM IST)
+      if (!live) {
+        continue;
+      }
+
       // Micro variance: crypto ±0.04%, forex ±0.01%, equities ±0.02%
       const volatility = isCrypto ? 0.0006 : (isForex ? 0.00015 : 0.00035);
       const randomDirection = (Math.random() - 0.492);
@@ -242,7 +247,7 @@ export function startMarketStreamingLoop() {
     if (updatedTicks.length > 0) {
       broadcastSse('ticks', {
         timestamp: Date.now(),
-        isLive: true,
+        isLive: isIndianMarketOpen(),
         ticks: updatedTicks
       });
     }

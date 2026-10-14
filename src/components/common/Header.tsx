@@ -155,7 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`} />
             </span>
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              {marketMode === 'crypto' ? 'Global 24/7' : marketStatus?.label || 'Live'}
+              {marketMode === 'crypto' ? 'Global 24/7' : marketStatus?.label || 'Market Closed'}
             </span>
           </div>
 

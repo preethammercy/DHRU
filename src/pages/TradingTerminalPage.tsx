@@ -245,14 +245,14 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
           <div className="flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                connectionStatus === 'connected' ? 'bg-emerald-400' : 'bg-amber-400'
+                isCrypto || isMarketLive ? 'bg-emerald-400' : 'bg-slate-400'
               }`} />
               <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                connectionStatus === 'connected' ? 'bg-emerald-500' : 'bg-amber-500'
+                isCrypto || isMarketLive ? 'bg-emerald-500' : 'bg-slate-500'
               }`} />
             </span>
             <span className="font-semibold text-slate-700 dark:text-slate-200">
-              {isCrypto ? 'CRYPTO 24/7' : (connectionStatus === 'connected' ? (isMarketLive ? 'NSE LIVE' : 'EXCHANGE CONNECTED') : 'RECONNECTING')}
+              {isCrypto ? 'CRYPTO 24/7' : (connectionStatus === 'connected' ? (isMarketLive ? 'NSE LIVE' : 'NSE CLOSED (Next: 09:15 AM)') : 'RECONNECTING')}
             </span>
           </div>
 

@@ -163,9 +163,13 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
           <div className="w-full md:w-auto p-4 rounded-2xl bg-slate-50 dark:bg-[#070B14]/80 border border-slate-200 dark:border-[#1A2744] shadow-sm space-y-2 shrink-0">
             <div className="flex items-center justify-between gap-4">
               <span className="text-xs text-slate-500 uppercase font-mono">Market Session</span>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                {isCrypto ? '24/7 Global Live' : status?.label || 'Live'}
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 ${
+                isCrypto || status?.status === 'Live'
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isCrypto || status?.status === 'Live' ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
+                {isCrypto ? '24/7 Global Live' : status?.label || 'Market Closed'}
               </span>
             </div>
             <div className="text-xl font-bold font-mono text-slate-900 dark:text-white flex items-center gap-2">

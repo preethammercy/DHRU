@@ -41,6 +41,10 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
   const [aiReport, setAiReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Hook ALWAYS declared unconditionally at top level
+  const quote = stockData?.quote;
+  const live = useLivePrice(symbol, quote);
+
   // Load quote details & initial candles
   useEffect(() => {
     let isMounted = true;
@@ -92,8 +96,6 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
     );
   }
 
-  const quote = stockData?.quote;
-  const live = useLivePrice(symbol, quote);
   const technicals = stockData?.technicals;
   const recentNews = stockData?.recentNews || [];
   const risk = stockData?.risk;
