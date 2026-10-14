@@ -12,6 +12,7 @@ import { getMarketStatus } from './services/api';
 import { DhruLogo } from './components/common/DhruLogo';
 
 // Pages
+import { LoginPage } from './pages/LoginPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { TradingTerminalPage } from './pages/TradingTerminalPage';
 import { IndicesPage } from './pages/IndicesPage';
@@ -39,11 +40,11 @@ function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
 
-  const { showMarketSelector, setShowMarketSelector, marketMode } = useAuth();
+  const { user, loading, showMarketSelector, setShowMarketSelector, marketMode } = useAuth();
 
   // If user changes market mode, default selected symbol accordingly
   useEffect(() => {
-    if (marketMode === 'crypto_forex') {
+    if (marketMode === 'crypto') {
       setSelectedSymbol('BTC-USD');
     } else {
       setSelectedSymbol('RELIANCE.NS');
@@ -70,6 +71,22 @@ function AppContent() {
     setActiveNav('ask-dhru');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] dark:bg-[#070B14]">
+        <div className="flex flex-col items-center gap-3">
+          <DhruLogo size={44} />
+          <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-mono text-slate-500">Connecting to DHRU.AI...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 dark:bg-[#070B14] dark:text-[#F1F5F9] transition-colors">
@@ -119,7 +136,7 @@ function AppContent() {
         {activeNav === 'stock-detail' && (
           <StockDetailPage
             symbol={selectedSymbol}
-            onBack={() => setActiveNav(marketMode === 'crypto_forex' ? 'indices' : 'stocks')}
+            onBack={() => setActiveNav(marketMode === 'crypto' ? 'indices' : 'stocks')}
             onAskDhru={handleAskDhruContext}
           />
         )}
@@ -189,7 +206,7 @@ function AppContent() {
         isOpen={showMarketSelector}
         onClose={() => setShowMarketSelector(false)}
         onSelectMode={(mode) => {
-          if (mode === 'crypto_forex') {
+          if (mode === 'crypto') {
             setSelectedSymbol('BTC-USD');
           } else {
             setSelectedSymbol('RELIANCE.NS');
@@ -206,7 +223,7 @@ function AppContent() {
                 <DhruLogo size={22} />
                 <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">DHRU.AI</span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-semibold border border-blue-200 dark:border-blue-700/50">
-                  {marketMode === 'crypto_forex' ? 'GLOBAL CRYPTO & FX' : 'INDIA EDITION'}
+                  {marketMode === 'crypto' ? 'GLOBAL CRYPTO DESK' : 'INDIA EDITION'}
                 </span>
               </div>
               <p className="text-slate-500 dark:text-slate-400 mt-1">
@@ -217,11 +234,21 @@ function AppContent() {
             <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600 dark:text-slate-400">
               <button onClick={() => setActiveNav('terminal')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer font-bold">⚡ Live Terminal</button>
               <button onClick={() => setActiveNav('overview')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Overview</button>
-              <button onClick={() => setActiveNav('indices')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Indices & Crypto</button>
-              <button onClick={() => setActiveNav('stocks')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Stocks & FX</button>
-              <button onClick={() => setActiveNav('patterns')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">AI Pattern Scanner</button>
-              <button onClick={() => setActiveNav('sectors')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Sectors</button>
-              <button onClick={() => setActiveNav('risk-monitor')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Risk Monitor</button>
+              {marketMode === 'crypto' ? (
+                <>
+                  <button onClick={() => setActiveNav('indices')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Crypto Assets</button>
+                  <button onClick={() => setActiveNav('patterns')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">AI Pattern Vision</button>
+                  <button onClick={() => setActiveNav('risk-monitor')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Volatility & Risk</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setActiveNav('indices')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">NSE / BSE Indices</button>
+                  <button onClick={() => setActiveNav('stocks')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Equities</button>
+                  <button onClick={() => setActiveNav('sectors')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Sectors</button>
+                  <button onClick={() => setActiveNav('derivatives')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Derivatives</button>
+                  <button onClick={() => setActiveNav('commodities')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Commodities</button>
+                </>
+              )}
               <button onClick={() => setActiveNav('ask-dhru')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Ask DHRU AI</button>
               <button onClick={() => setShowMarketSelector(true)} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer font-bold text-blue-600 dark:text-cyan-400">🌐 Switch Market</button>
             </div>
@@ -229,7 +256,7 @@ function AppContent() {
 
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500 font-mono">
             <span>© 2026 DHRU.AI • Real-Time Exchange Data & DHRU Intelligence</span>
-            <span>Educational Financial Platform • Free ₹10,00,000 Virtual Capital Included</span>
+            <span>Educational Financial Platform • Free {marketMode === 'crypto' ? '$12,000' : '₹10,00,000'} Virtual Capital Included</span>
           </div>
         </div>
       </footer>

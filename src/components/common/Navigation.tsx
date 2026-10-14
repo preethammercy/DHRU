@@ -1,5 +1,6 @@
 // DHRU.AI - Desktop Navigation Tab Bar
 // Smooth horizontal tab strip styled in White & Blue Fintrix theme.
+// Strictly adapts to marketMode (Indian vs Crypto) with zero overlapping clutter.
 
 import React from 'react';
 import {
@@ -14,8 +15,7 @@ import {
   ShieldAlert,
   CandlestickChart,
   Bookmark,
-  Sparkles,
-  Globe2
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -27,21 +27,34 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }) => {
   const { marketMode } = useAuth();
 
-  const navItems = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'terminal', label: 'Live Terminal', icon: CandlestickChart },
-    { id: 'indices', label: marketMode === 'crypto_forex' ? 'Crypto Hub' : 'All Indices', icon: marketMode === 'crypto_forex' ? Globe2 : TrendingUp },
-    { id: 'stocks', label: marketMode === 'crypto_forex' ? 'Forex & Pairs' : 'All Stocks', icon: ListFilter },
-    { id: 'sectors', label: 'Sectors & Heatmap', icon: PieChart },
-    { id: 'commodities', label: 'Commodities & FX', icon: Coins },
-    { id: 'derivatives', label: 'Futures & Options', icon: Binary },
-    { id: 'news', label: 'Financial News', icon: Newspaper },
-    { id: 'ai-predictions', label: 'AI Predictions', icon: BrainCircuit },
-    { id: 'risk-monitor', label: 'Risk Monitor', icon: ShieldAlert },
-    { id: 'patterns', label: 'AI Pattern Scanner', icon: CandlestickChart },
-    { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
-    { id: 'ask-dhru', label: 'Ask DHRU AI', icon: Sparkles },
-  ];
+  const navItems = marketMode === 'crypto'
+    ? [
+        { id: 'overview', label: 'Crypto Overview', icon: LayoutDashboard },
+        { id: 'terminal', label: 'Live Terminal', icon: CandlestickChart },
+        { id: 'indices', label: 'All Crypto Assets (22+)', icon: Coins },
+        { id: 'sectors', label: 'Ecosystems & Heatmap', icon: PieChart },
+        { id: 'news', label: 'Market News', icon: Newspaper },
+        { id: 'ai-predictions', label: 'AI Predictions', icon: BrainCircuit },
+        { id: 'risk-monitor', label: 'Risk Monitor', icon: ShieldAlert },
+        { id: 'patterns', label: 'AI Pattern Scanner', icon: CandlestickChart },
+        { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
+        { id: 'ask-dhru', label: 'Ask DHRU AI', icon: Sparkles },
+      ]
+    : [
+        { id: 'overview', label: 'Indian Overview', icon: LayoutDashboard },
+        { id: 'terminal', label: 'Live Terminal', icon: CandlestickChart },
+        { id: 'indices', label: 'All Indices', icon: TrendingUp },
+        { id: 'stocks', label: 'All Stocks', icon: ListFilter },
+        { id: 'sectors', label: 'Sectors & Heatmap', icon: PieChart },
+        { id: 'commodities', label: 'Commodities & FX', icon: Coins },
+        { id: 'derivatives', label: 'Futures & Options', icon: Binary },
+        { id: 'news', label: 'Financial News', icon: Newspaper },
+        { id: 'ai-predictions', label: 'AI Predictions', icon: BrainCircuit },
+        { id: 'risk-monitor', label: 'Risk Monitor', icon: ShieldAlert },
+        { id: 'patterns', label: 'AI Pattern Scanner', icon: CandlestickChart },
+        { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
+        { id: 'ask-dhru', label: 'Ask DHRU AI', icon: Sparkles },
+      ];
 
   return (
     <nav className="hidden lg:block w-full bg-white dark:bg-[#0A101D] border-b border-slate-200/80 dark:border-[#1A2744] overflow-x-auto scrollbar-none shadow-2xs">
@@ -54,7 +67,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }
               <button
                 key={item.id}
                 onClick={() => onSelectNav(item.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap transform hover:scale-[1.02] active:scale-[0.98] ${
+                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-slate-800/40'

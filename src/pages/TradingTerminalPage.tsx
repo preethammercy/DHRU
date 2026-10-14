@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTrading, OrderSide, ProductType, OrderType } from '../context/TradingContext';
 import { useMarketStream, useLivePrice } from '../context/MarketStreamContext';
+import { useAuth } from '../context/AuthContext';
 import { TradingViewChart } from '../components/chart/TradingViewChart';
 import { getStockCandles, getStockDetails } from '../services/api';
 import { Candle, VolumeBar } from '../types';
@@ -26,7 +27,8 @@ import {
   Search,
   ExternalLink,
   Settings,
-  RefreshCw
+  RefreshCw,
+  Coins
 } from 'lucide-react';
 
 interface TerminalProps {
@@ -51,13 +53,43 @@ const DEFAULT_WATCHLIST_SYMBOLS = [
   { symbol: 'INR=X', name: 'USD/INR' }
 ];
 
+const CRYPTO_WATCHLIST_SYMBOLS = [
+  { symbol: 'BTC-USD', name: 'Bitcoin (BTC)' },
+  { symbol: 'ETH-USD', name: 'Ethereum (ETH)' },
+  { symbol: 'SOL-USD', name: 'Solana (SOL)' },
+  { symbol: 'XRP-USD', name: 'XRP (Ripple)' },
+  { symbol: 'BNB-USD', name: 'Binance Coin' },
+  { symbol: 'DOGE-USD', name: 'Dogecoin' },
+  { symbol: 'SUI-USD', name: 'Sui Network' },
+  { symbol: 'ADA-USD', name: 'Cardano' },
+  { symbol: 'AVAX-USD', name: 'Avalanche' },
+  { symbol: 'LINK-USD', name: 'Chainlink' },
+  { symbol: 'NEAR-USD', name: 'NEAR Protocol' },
+  { symbol: 'PEPE-USD', name: 'Pepe' },
+  { symbol: 'APT-USD', name: 'Aptos' },
+  { symbol: 'RENDER-USD', name: 'Render Network' }
+];
+
 export const TradingTerminalPage: React.FC<TerminalProps> = ({
   initialSymbol = 'RELIANCE.NS',
   onSelectStock
 }) => {
-  const [activeSymbol, setActiveSymbol] = useState(initialSymbol);
+  const { marketMode } = useAuth();
+  const [activeSymbol, setActiveSymbol] = useState(() => marketMode === 'crypto' ? 'BTC-USD' : initialSymbol);
   const [activeInterval, setActiveInterval] = useState('1d');
   const [activeRange, setActiveRange] = useState('1y');
+
+  useEffect(() => {
+    if (marketMode === 'crypto' && !activeSymbol.includes('USD')) {
+      setActiveSymbol('BTC-USD');
+    } else if (marketMode === 'indian' && activeSymbol.includes('USD')) {
+      setActiveSymbol('RELIANCE.NS');
+    }
+  }, [marketMode]);
+
+  const isCrypto = marketMode === 'crypto' || activeSymbol.includes('USD');
+  const currency = isCrypto ? '$' : '₹';
+  const watchlistToUse = isCrypto ? CRYPTO_WATCHLIST_SYMBOLS : DEFAULT_WATCHLIST_SYMBOLS;
 
   // Market Stream & Live Quote
   const { isMarketLive, connectionStatus } = useMarketStream();
@@ -181,7 +213,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
   const totalOrderValue = executionPrice * quantity;
   const requiredMargin = productType === 'MIS' ? totalOrderValue * 0.20 : totalOrderValue;
 
-  const filteredWatchlist = DEFAULT_WATCHLIST_SYMBOLS.filter(item =>
+  const filteredWatchlist = watchlistToUse.filter(item =>
     item.symbol.toLowerCase().includes(watchlistSearch.toLowerCase()) ||
     item.name.toLowerCase().includes(watchlistSearch.toLowerCase())
   );
@@ -204,7 +236,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
               }`} />
             </span>
             <span className="font-semibold text-slate-700 dark:text-slate-200">
-              {connectionStatus === 'connected' ? (isMarketLive ? 'NSE LIVE' : 'EXCHANGE CONNECTED') : 'RECONNECTING'}
+              {isCrypto ? 'CRYPTO 24/7' : (connectionStatus === 'connected' ? (isMarketLive ? 'NSE LIVE' : 'EXCHANGE CONNECTED') : 'RECONNECTING')}
             </span>
           </div>
 
@@ -225,7 +257,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
                 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
                 : 'text-slate-900 dark:text-white'
             }`}>
-              ₹{live.price > 0 ? live.price.toFixed(2) : (stockDetail?.quote?.price?.toFixed(2) ?? '---')}
+              {currency}{live.price > 0 ? live.price.toFixed(2) : (stockDetail?.quote?.price?.toFixed(2) ?? '---')}
             </span>
             <span className={`font-mono text-xs font-semibold flex items-center ${
               live.change >= 0 ? 'text-emerald-600' : 'text-rose-600'
@@ -236,26 +268,26 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
           </div>
         </div>
 
-        {/* Right: Groww / Angel One Financial Balance Bar */}
+        {/* Right: Balance Bar */}
         <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
           <div>
             <span className="text-slate-500">Avail. Margin:</span>{' '}
-            <strong className="text-slate-900 dark:text-white font-bold">₹{marginAvailable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong>
+            <strong className="text-slate-900 dark:text-white font-bold">{currency}{marginAvailable.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}</strong>
           </div>
           <div>
             <span className="text-slate-500">Margin Used:</span>{' '}
-            <span className="text-slate-700 dark:text-slate-300">₹{marginUsed.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+            <span className="text-slate-700 dark:text-slate-300">{currency}{marginUsed.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
           <div>
             <span className="text-slate-500">Day P&L:</span>{' '}
             <strong className={totalDayPnl >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
-              {totalDayPnl >= 0 ? '+' : ''}₹{totalDayPnl.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              {totalDayPnl >= 0 ? '+' : ''}{currency}{totalDayPnl.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}
             </strong>
           </div>
           <div>
             <span className="text-slate-500">Realized P&L:</span>{' '}
             <strong className={realizedPnl >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
-              {realizedPnl >= 0 ? '+' : ''}₹{realizedPnl.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              {realizedPnl >= 0 ? '+' : ''}{currency}{realizedPnl.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}
             </strong>
           </div>
 

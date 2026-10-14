@@ -41,7 +41,19 @@ export const CRYPTO_INSTRUMENTS = [
   { symbol: 'ADA-USD', name: 'Cardano', pair: 'ADA/USD', category: 'Proof-of-Stake L1', exchange: 'Global Crypto', icon: 'Layers', description: 'Peer-reviewed proof-of-stake blockchain platform' },
   { symbol: 'AVAX-USD', name: 'Avalanche', pair: 'AVAX/USD', category: 'Subnets / L1', exchange: 'Global Crypto', icon: 'Flame', description: 'Customizable multi-chain blockchain platform for scalable dApps' },
   { symbol: 'LINK-USD', name: 'Chainlink', pair: 'LINK/USD', category: 'Oracle / Infrastructure', exchange: 'Global Crypto', icon: 'Network', description: 'Decentralized oracle network bridging off-chain data to blockchains' },
-  { symbol: 'SUI-USD', name: 'Sui Network', pair: 'SUI/USD', category: 'Move VM L1', exchange: 'Global Crypto', icon: 'Boxes', description: 'Object-centric high-performance blockchain platform' }
+  { symbol: 'SUI-USD', name: 'Sui Network', pair: 'SUI/USD', category: 'Move VM L1', exchange: 'Global Crypto', icon: 'Boxes', description: 'Object-centric high-performance blockchain platform' },
+  { symbol: 'DOT-USD', name: 'Polkadot', pair: 'DOT/USD', category: 'Interoperability', exchange: 'Global Crypto', icon: 'Globe', description: 'Sharded protocol that connects multiple specialized blockchains into a unified network' },
+  { symbol: 'NEAR-USD', name: 'NEAR Protocol', pair: 'NEAR/USD', category: 'AI & Sharding L1', exchange: 'Global Crypto', icon: 'Cpu', description: 'High-throughput layer-one blockchain designed for usability and AI compute' },
+  { symbol: 'APT-USD', name: 'Aptos', pair: 'APT/USD', category: 'Move VM L1', exchange: 'Global Crypto', icon: 'Activity', description: 'Scalable layer 1 built with the Move smart contract language' },
+  { symbol: 'PEPE-USD', name: 'Pepe', pair: 'PEPE/USD', category: 'Meme Asset', exchange: 'Global Crypto', icon: 'Smile', description: 'Deflationary meme token celebrating Pepe the Frog with strong community liquidity' },
+  { symbol: 'SHIB-USD', name: 'Shiba Inu', pair: 'SHIB/USD', category: 'Meme / DeFi', exchange: 'Global Crypto', icon: 'Smile', description: 'Decentralized community building cryptocurrency ecosystem' },
+  { symbol: 'LTC-USD', name: 'Litecoin', pair: 'LTC/USD', category: 'Payments', exchange: 'Global Crypto', icon: 'Coins', description: 'Established peer-to-peer cryptocurrency with fast block times and low transaction fees' },
+  { symbol: 'UNI-USD', name: 'Uniswap', pair: 'UNI/USD', category: 'DeFi DEX', exchange: 'Global Crypto', icon: 'Repeat', description: 'Leading decentralized automated market maker exchange protocol' },
+  { symbol: 'ARB-USD', name: 'Arbitrum', pair: 'ARB/USD', category: 'Ethereum Layer 2', exchange: 'Global Crypto', icon: 'Layers', description: 'Optimistic rollup scaling technology for Ethereum with low gas costs' },
+  { symbol: 'OP-USD', name: 'Optimism', pair: 'OP/USD', category: 'Ethereum Layer 2', exchange: 'Global Crypto', icon: 'Zap', description: 'Low-cost and lightning-fast Ethereum Layer 2 blockchain architecture' },
+  { symbol: 'RENDER-USD', name: 'Render Network', pair: 'RENDER/USD', category: 'DePIN / AI Compute', exchange: 'Global Crypto', icon: 'Cpu', description: 'Distributed GPU-based rendering and AI decentralized computing provider' },
+  { symbol: 'ICP-USD', name: 'Internet Computer', pair: 'ICP/USD', category: 'Web3 Cloud', exchange: 'Global Crypto', icon: 'Globe', description: 'General-purpose blockchain hosting full-stack decentralized web services' },
+  { symbol: 'FET-USD', name: 'Artificial Superintelligence Alliance', pair: 'FET/USD', category: 'AI & Autonomous Agents', exchange: 'Global Crypto', icon: 'BrainCircuit', description: 'Autonomous agent and decentralized machine learning intelligence network' }
 ];
 
 export const FOREX_INSTRUMENTS = [

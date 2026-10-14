@@ -632,7 +632,7 @@ app.get('/api/crypto', async (req, res) => {
         lastUpdated: q?.lastUpdated || new Date().toISOString()
       };
     });
-    res.json({ crypto: enriched });
+    res.json({ crypto: enriched, instruments: enriched, count: enriched.length });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch crypto instruments', details: err.message });
   }
@@ -656,7 +656,7 @@ app.get('/api/forex', async (req, res) => {
         lastUpdated: q?.lastUpdated || new Date().toISOString()
       };
     });
-    res.json({ forex: enriched });
+    res.json({ forex: enriched, instruments: enriched, count: enriched.length });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch forex instruments', details: err.message });
   }

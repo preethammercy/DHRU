@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, TrendingUp, Building2, Coins, Compass, ArrowRight, Sparkles } from 'lucide-react';
 import { searchMarket } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -16,17 +17,19 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
   onClose,
   onSelectInstrument,
 }) => {
+  const { marketMode } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'All' | 'Stock' | 'Index' | 'Crypto' | 'Forex' | 'Commodity' | 'ETF'>('All');
+  const [activeFilter, setActiveFilter] = useState<string>('All');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
+      setActiveFilter(marketMode === 'crypto' ? 'Crypto' : 'All');
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [isOpen]);
+  }, [isOpen, marketMode]);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -38,7 +41,13 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
       setLoading(true);
       try {
         const data = await searchMarket(query.trim(), 25);
-        setResults(data.results || []);
+        let resList = data.results || [];
+        if (marketMode === 'crypto') {
+          resList = resList.filter((r: any) => r.type === 'Crypto' || r.symbol.includes('USD'));
+        } else {
+          resList = resList.filter((r: any) => r.type !== 'Crypto' && !r.symbol.includes('-USD'));
+        }
+        setResults(resList);
       } catch (e) {
         console.error('Search error:', e);
       } finally {
@@ -47,7 +56,7 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
     }, 180);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, marketMode]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -67,14 +76,23 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
     ? results
     : results.filter(r => r.type === activeFilter);
 
-  const popularSearches = [
-    { label: 'Reliance Industries', sym: 'RELIANCE.NS' },
-    { label: 'NIFTY 50', sym: '^NSEI' },
-    { label: 'Bitcoin (BTC)', sym: 'BTC-USD' },
-    { label: 'Ethereum (ETH)', sym: 'ETH-USD' },
-    { label: 'HDFC Bank', sym: 'HDFCBANK.NS' },
-    { label: 'Gold (MCX Proxy)', sym: 'GC=F' },
-  ];
+  const popularSearches = marketMode === 'crypto'
+    ? [
+        { label: 'Bitcoin (BTC)', sym: 'BTC-USD' },
+        { label: 'Ethereum (ETH)', sym: 'ETH-USD' },
+        { label: 'Solana (SOL)', sym: 'SOL-USD' },
+        { label: 'XRP (Ripple)', sym: 'XRP-USD' },
+        { label: 'Sui Network', sym: 'SUI-USD' },
+        { label: 'Dogecoin (DOGE)', sym: 'DOGE-USD' },
+      ]
+    : [
+        { label: 'Reliance Industries', sym: 'RELIANCE.NS' },
+        { label: 'NIFTY 50', sym: '^NSEI' },
+        { label: 'HDFC Bank', sym: 'HDFCBANK.NS' },
+        { label: 'Tata Consultancy Services', sym: 'TCS.NS' },
+        { label: 'Infosys Ltd', sym: 'INFY.NS' },
+        { label: 'Gold (MCX Proxy)', sym: 'GC=F' },
+      ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">

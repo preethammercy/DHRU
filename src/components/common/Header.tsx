@@ -12,11 +12,11 @@ import {
   Menu,
   X,
   Sparkles,
-  Globe2,
   Wallet,
   LogIn,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Coins
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useWatchlist } from '../../context/WatchlistContext';
@@ -59,6 +59,10 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   const formatMargin = (val: number) => {
+    if (marketMode === 'crypto') {
+      const usdVal = val / 83.33;
+      return `$${usdVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    }
     if (val >= 100000) {
       return `₹${(val / 100000).toFixed(2)}L`;
     }
@@ -86,22 +90,22 @@ export const Header: React.FC<HeaderProps> = ({
                   e.stopPropagation();
                   setShowMarketSelector(true);
                 }}
-                className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 transition-all ${
-                  marketMode === 'crypto_forex'
+                className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                  marketMode === 'crypto'
                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800'
                     : 'bg-blue-50 dark:bg-cyan-500/10 text-blue-700 dark:text-cyan-400 border border-blue-200 dark:border-cyan-500/20'
                 }`}
                 title="Click to switch trading markets"
               >
-                {marketMode === 'crypto_forex' ? (
+                {marketMode === 'crypto' ? (
                   <>
-                    <Globe2 className="w-2.5 h-2.5" />
-                    <span>CRYPTO & FX</span>
+                    <Coins className="w-2.5 h-2.5" />
+                    <span>CRYPTO DESK</span>
                   </>
                 ) : (
                   <>
                     <span>🇮🇳</span>
-                    <span>INDIA</span>
+                    <span>INDIA DESK</span>
                   </>
                 )}
                 <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
@@ -122,8 +126,8 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center gap-2.5">
               <Search className="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors" />
               <span>
-                {marketMode === 'crypto_forex'
-                  ? 'Search Bitcoin, Solana, EUR/USD, Gold, Oil...'
+                {marketMode === 'crypto'
+                  ? 'Search 20+ cryptos: Bitcoin, Ethereum, Solana, XRP, SUI...'
                   : 'Search 2,600+ NSE stocks, indices, sectors...'}
               </span>
             </div>
@@ -137,23 +141,21 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2 sm:gap-2.5">
           
           {/* Market Status Pill */}
-          {marketStatus && (
-            <div className="hidden xl:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0D1527] border border-slate-200/90 dark:border-[#1A2744] text-xs font-medium">
-              <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  marketStatus.status === 'Live' ? 'bg-emerald-400' : 'bg-slate-400'
-                }`} />
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                  marketStatus.status === 'Live' ? 'bg-emerald-500' : 'bg-slate-500'
-                }`} />
-              </span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {marketMode === 'crypto_forex' ? 'Global 24/7' : marketStatus.label}
-              </span>
-            </div>
-          )}
+          <div className="hidden xl:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0D1527] border border-slate-200/90 dark:border-[#1A2744] text-xs font-medium">
+            <span className="relative flex h-2 w-2">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                marketMode === 'crypto' || marketStatus?.status === 'Live' ? 'bg-emerald-400' : 'bg-slate-400'
+              }`} />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                marketMode === 'crypto' || marketStatus?.status === 'Live' ? 'bg-emerald-500' : 'bg-slate-500'
+              }`} />
+            </span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200">
+              {marketMode === 'crypto' ? 'Global 24/7' : marketStatus?.label || 'Live'}
+            </span>
+          </div>
 
-          {/* ₹10 Lakh Paper Capital Pill */}
+          {/* Virtual Paper Capital Pill */}
           <div 
             onClick={() => onSelectNav('terminal')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-400 cursor-pointer hover:scale-[1.02] transition-transform shadow-2xs"
@@ -169,7 +171,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Live Terminal Fast Button */}
           <button
             onClick={() => onSelectNav('terminal')}
-            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
               activeNav === 'terminal'
                 ? 'bg-blue-600 text-white shadow-[0_4px_14px_rgba(37,99,235,0.3)] scale-[1.02]'
                 : 'bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-slate-700 dark:text-slate-200 hover:border-blue-400'
@@ -182,7 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Ask DHRU AI Fast Button */}
           <button
             onClick={() => onSelectNav('ask-dhru')}
-            className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+            className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
               activeNav === 'ask-dhru'
                 ? 'bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-[0_4px_14px_rgba(37,99,235,0.3)] scale-[1.02]'
                 : 'bg-blue-50 dark:bg-[#0D1527] border border-blue-200 dark:border-[#1A2744] text-blue-700 dark:text-cyan-400 hover:bg-blue-100 hover:border-blue-300'
@@ -195,7 +197,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Watchlist Counter Button */}
           <button
             onClick={() => onSelectNav('watchlist')}
-            className={`relative p-2 rounded-xl border transition-all ${
+            className={`relative p-2 rounded-xl border transition-all cursor-pointer ${
               activeNav === 'watchlist'
                 ? 'bg-blue-50 dark:bg-cyan-500/15 border-blue-300 dark:border-cyan-500/40 text-blue-600 dark:text-cyan-400 shadow-xs'
                 : 'bg-white dark:bg-[#0D1527] border-slate-200 dark:border-[#1A2744] text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:border-blue-300'
@@ -213,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:border-slate-300 transition-colors"
+            className="p-2 rounded-xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:border-slate-300 transition-colors cursor-pointer"
             title={`Switch to ${theme === 'dark' ? 'White & Blue' : 'Dark'} theme`}
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
@@ -225,7 +227,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div>
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all text-xs font-semibold"
+                  className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all text-xs font-semibold cursor-pointer"
                 >
                   {user.photoURL ? (
                     <img
@@ -273,11 +275,11 @@ export const Header: React.FC<HeaderProps> = ({
                       <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                         <span>Allocated Margin:</span>
                         <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          ₹10,00,000
+                          {formatMargin(marginAvailable)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                        <span>Market Mode:</span>
+                        <span>Current Desk:</span>
                         <button
                           onClick={() => {
                             setShowMarketSelector(true);
@@ -285,7 +287,7 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className="text-blue-600 dark:text-cyan-400 font-bold hover:underline"
                         >
-                          {marketMode === 'crypto_forex' ? 'Crypto & Forex' : 'Indian NSE/BSE'}
+                          {marketMode === 'crypto' ? '🪙 Crypto Desk' : '🇮🇳 Indian NSE/BSE'}
                         </button>
                       </div>
                     </div>
@@ -296,10 +298,10 @@ export const Header: React.FC<HeaderProps> = ({
                           signOut();
                           setProfileDropdownOpen(false);
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                       >
                         <LogOut className="w-3.5 h-3.5" />
-                        <span>Sign Out of DHRU</span>
+                        <span>Sign Out</span>
                       </button>
                     </div>
                   </div>
@@ -308,7 +310,7 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <button
                 onClick={signInWithGoogle}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/25 transition-all hover:scale-[1.02]"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/25 transition-all hover:scale-[1.02] cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Sign in with Google</span>
@@ -320,7 +322,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-slate-600 lg:hidden"
+            className="p-2 rounded-xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-slate-600 lg:hidden cursor-pointer"
           >
             {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
@@ -331,42 +333,56 @@ export const Header: React.FC<HeaderProps> = ({
       {mobileMenuOpen && (
         <div className="lg:hidden bg-white dark:bg-[#070B14] border-b border-slate-200 dark:border-[#1A2744] px-4 py-3 space-y-2 text-sm shadow-xl">
           <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 mb-2">
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Current Market:</span>
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Current Desk:</span>
             <button
               onClick={() => {
                 setShowMarketSelector(true);
                 setMobileMenuOpen(false);
               }}
-              className="text-xs font-bold text-blue-600 dark:text-cyan-400 flex items-center gap-1"
+              className="text-xs font-bold text-blue-600 dark:text-cyan-400 flex items-center gap-1 cursor-pointer"
             >
-              {marketMode === 'crypto_forex' ? '🌐 Crypto & Forex' : '🇮🇳 Indian Markets'}
+              {marketMode === 'crypto' ? '🪙 Crypto Desk' : '🇮🇳 Indian Markets'}
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="grid grid-cols-2 gap-2 pb-2">
-            {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'terminal', label: '⚡ Live Terminal' },
-              { id: 'indices', label: marketMode === 'crypto_forex' ? 'Crypto Hub' : 'All Indices' },
-              { id: 'stocks', label: marketMode === 'crypto_forex' ? 'Forex & Pairs' : 'All Stocks' },
-              { id: 'sectors', label: 'Sectors' },
-              { id: 'commodities', label: 'Commodities & FX' },
-              { id: 'derivatives', label: 'Futures & Options' },
-              { id: 'news', label: 'Financial News' },
-              { id: 'ai-predictions', label: 'AI Predictions' },
-              { id: 'risk-monitor', label: 'Risk Monitor' },
-              { id: 'patterns', label: 'Candlestick Scanner' },
-              { id: 'watchlist', label: 'Watchlist' },
-              { id: 'ask-dhru', label: 'Ask DHRU AI' },
-            ].map(item => (
+            {(marketMode === 'crypto'
+              ? [
+                  { id: 'overview', label: 'Crypto Overview' },
+                  { id: 'terminal', label: '⚡ Crypto Terminal' },
+                  { id: 'indices', label: 'All Crypto Assets' },
+                  { id: 'sectors', label: 'Crypto Categories' },
+                  { id: 'news', label: 'Crypto News' },
+                  { id: 'ai-predictions', label: 'AI Predictions' },
+                  { id: 'risk-monitor', label: 'Risk Monitor' },
+                  { id: 'patterns', label: 'Pattern Scanner' },
+                  { id: 'watchlist', label: 'Watchlist' },
+                  { id: 'ask-dhru', label: 'Ask DHRU AI' },
+                ]
+              : [
+                  { id: 'overview', label: 'Indian Overview' },
+                  { id: 'terminal', label: '⚡ Live Terminal' },
+                  { id: 'indices', label: 'All Indices' },
+                  { id: 'stocks', label: 'All Stocks' },
+                  { id: 'sectors', label: 'Sectors & Heatmap' },
+                  { id: 'commodities', label: 'Commodities & FX' },
+                  { id: 'derivatives', label: 'Futures & Options' },
+                  { id: 'news', label: 'Financial News' },
+                  { id: 'ai-predictions', label: 'AI Predictions' },
+                  { id: 'risk-monitor', label: 'Risk Monitor' },
+                  { id: 'patterns', label: 'Pattern Scanner' },
+                  { id: 'watchlist', label: 'Watchlist' },
+                  { id: 'ask-dhru', label: 'Ask DHRU AI' },
+                ]
+            ).map(item => (
               <button
                 key={item.id}
                 onClick={() => {
                   onSelectNav(item.id);
                   setMobileMenuOpen(false);
                 }}
-                className={`text-left px-3 py-2 rounded-xl text-xs font-semibold ${
+                className={`text-left px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer ${
                   activeNav === item.id
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
