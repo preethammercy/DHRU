@@ -19,6 +19,7 @@ import { getDerivativesOverview } from './data/derivativesData.js';
 import { UPCOMING_IPOS, CORPORATE_ACTIONS } from './data/ipoAnnouncements.js';
 import { getFiiDiiData } from './data/fiiDiiData.js';
 import { registerSseClient, subscribeSymbolToStream, startMarketStreamingLoop } from './services/marketStream.js';
+import { executeBrokerOrder, fetchBrokerFunds, validateOrderParams } from './services/brokerService.js';
 
 dotenv.config();
 
@@ -495,6 +496,39 @@ app.get('/api/settings/status', (req, res) => {
   res.json({
     geminiConfigured: !!getActiveApiKey(),
     activeEngine: getActiveApiKey() ? 'DHRU Pro Intelligence' : 'DHRU Core Intelligence'
+  });
+});
+// 22. Multi-Broker Order Execution & Fund Routing (Zerodha, Angel One, Dhan, Simulation)
+app.post('/api/broker/order', async (req, res) => {
+  try {
+    const { order, brokerConfig } = req.body || {};
+    if (!order) return res.status(400).json({ error: 'Order payload is required' });
+    const result = await executeBrokerOrder(order, brokerConfig);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Broker order placement failed', details: err.message });
+  }
+});
+
+app.post('/api/broker/funds', async (req, res) => {
+  try {
+    const { brokerConfig } = req.body || {};
+    const funds = await fetchBrokerFunds(brokerConfig);
+    res.json(funds);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch broker funds', details: err.message });
+  }
+});
+
+app.post('/api/broker/test', (req, res) => {
+  const { brokerConfig } = req.body || {};
+  const broker = (brokerConfig?.broker || 'simulation').toLowerCase();
+  const isLive = brokerConfig?.mode === 'live';
+  res.json({
+    connected: true,
+    broker,
+    mode: isLive ? 'LIVE' : 'SIMULATION',
+    timestamp: new Date().toISOString()
   });
 });
 

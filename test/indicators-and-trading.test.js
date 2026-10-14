@@ -184,4 +184,42 @@ describe('4-Hour Intraday Candle Aggregation Engine', () => {
     assert.equal(aggClose, 105, '4H Close must equal last bar Close');
     assert.equal(aggVolume, 2200, '4H Volume must equal sum of volumes');
   });
+
+  test('Multi-Broker Payload Formatter (Zerodha, Angel One, DhanHQ)', async () => {
+    const { validateOrderParams, buildZerodhaPayload, buildAngelOnePayload, buildDhanPayload } = await import('../server/services/brokerService.js');
+
+    const params = {
+      symbol: 'RELIANCE.NS',
+      side: 'BUY',
+      product: 'MIS',
+      orderType: 'LIMIT',
+      quantity: 50,
+      price: 1250.50
+    };
+
+    const validated = validateOrderParams(params);
+    assert.equal(validated.symbol, 'RELIANCE', 'Symbol should strip .NS suffix for exchange');
+    assert.equal(validated.exchange, 'NSE', 'Should identify NSE exchange');
+    assert.equal(validated.quantity, 50);
+
+    // Zerodha
+    const zPayload = buildZerodhaPayload(validated, 'test_key', 'test_token');
+    assert.equal(zPayload.payload.tradingsymbol, 'RELIANCE');
+    assert.equal(zPayload.payload.transaction_type, 'BUY');
+    assert.equal(zPayload.payload.price, 1250.50);
+    assert.equal(zPayload.headers['X-Kite-Version'], '3');
+
+    // Angel One
+    const aPayload = buildAngelOnePayload(validated, 'jwt_token', 'private_key');
+    assert.equal(aPayload.payload.tradingsymbol, 'RELIANCE');
+    assert.equal(aPayload.payload.producttype, 'INTRADAY');
+    assert.equal(aPayload.payload.price, '1250.5');
+
+    // DhanHQ
+    const dPayload = buildDhanPayload(validated, '1000123456', 'dhan_token');
+    assert.equal(dPayload.payload.tradingSymbol, 'RELIANCE');
+    assert.equal(dPayload.payload.exchangeSegment, 'NSE_EQ');
+    assert.equal(dPayload.payload.productType, 'INTRADAY');
+    assert.equal(dPayload.payload.quantity, 50);
+  });
 });
