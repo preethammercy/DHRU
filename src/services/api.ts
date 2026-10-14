@@ -153,8 +153,24 @@ export async function saveGeminiKey(apiKey: string) {
   return res.json();
 }
 
-export async function getSettingsStatus() {
-  const res = await fetch(`${API_BASE}/settings/status`);
-  if (!res.ok) throw new Error('Failed to get settings');
+export async function getCryptoInstruments() {
+  const res = await fetch(`${API_BASE}/crypto`);
+  if (!res.ok) throw new Error('Failed to load crypto markets');
+  return res.json();
+}
+
+export async function getForexInstruments() {
+  const res = await fetch(`${API_BASE}/forex`);
+  if (!res.ok) throw new Error('Failed to load forex instruments');
+  return res.json();
+}
+
+export async function scanChartImage(imageBase64: string, mimeType = 'image/png') {
+  const res = await fetch(`${API_BASE}/ai/scan-image`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageBase64, mimeType })
+  });
+  if (!res.ok) throw new Error('Chart image scanning failed');
   return res.json();
 }

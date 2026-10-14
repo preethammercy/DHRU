@@ -78,7 +78,28 @@ export async function fetchInstrumentQuote(symbol) {
 }
 
 export async function fetchInstrumentCandles(symbol, range = '1mo', interval = '1d') {
-  const cacheKey = `${symbol}_${range}_${interval}`;
+  // Normalize parameters
+  let queryInterval = interval;
+  let queryRange = range;
+  const is4Hour = interval === '4h';
+
+  if (is4Hour) {
+    queryInterval = '60m';
+    queryRange = ['1d', '5d', '1mo', '3mo', '6mo'].includes(range) ? range : '6mo';
+  }
+
+  // Yahoo Finance range clamping per interval to prevent 400 Bad Request errors
+  if (queryInterval === '1m') {
+    if (!['1d', '5d', '7d'].includes(queryRange)) queryRange = '1d';
+  } else if (['2m', '5m'].includes(queryInterval)) {
+    if (!['1d', '5d', '1mo'].includes(queryRange)) queryRange = '5d';
+  } else if (['15m', '30m'].includes(queryInterval)) {
+    if (!['1d', '5d', '1mo'].includes(queryRange)) queryRange = '1mo';
+  } else if (['60m', '1h'].includes(queryInterval)) {
+    if (!['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y'].includes(queryRange)) queryRange = '3mo';
+  }
+
+  const cacheKey = `${symbol}_${queryRange}_${interval}`;
   const cached = candleCache.get(cacheKey);
   if (cached && (Date.now() - cached.cachedAt < CACHE_TTL_MS)) {
     return cached.data;
@@ -86,7 +107,7 @@ export async function fetchInstrumentCandles(symbol, range = '1mo', interval = '
 
   try {
     const encodedSym = encodeURIComponent(symbol);
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSym}?range=${range}&interval=${interval}`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSym}?range=${queryRange}&interval=${queryInterval}`;
 
     const res = await fetch(url, {
       headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
@@ -110,8 +131,7 @@ export async function fetchInstrumentCandles(symbol, range = '1mo', interval = '
     const closes = quotes.close || [];
     const volumes = quotes.volume || [];
 
-    const candles = [];
-    const volumeData = [];
+    let rawCandles = [];
 
     for (let i = 0; i < timestamps.length; i++) {
       const t = timestamps[i];
@@ -122,9 +142,8 @@ export async function fetchInstrumentCandles(symbol, range = '1mo', interval = '
       const v = volumes[i] ?? 0;
 
       // Filter out null / invalid points
-      if (o != null && h != null && l != null && c != null && !isNaN(c)) {
-        // TradingView lightweight-charts requires epoch in seconds (number) or date string
-        candles.push({
+      if (o != null && h != null && l != null && c != null && !isNaN(c) && !isNaN(o)) {
+        rawCandles.push({
           time: t,
           open: Number(o.toFixed(2)),
           high: Number(h.toFixed(2)),
@@ -132,20 +151,60 @@ export async function fetchInstrumentCandles(symbol, range = '1mo', interval = '
           close: Number(c.toFixed(2)),
           volume: v
         });
-
-        volumeData.push({
-          time: t,
-          value: v,
-          color: c >= o ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'
-        });
       }
     }
 
+    // De-duplicate timestamps and ensure strictly ascending sort
+    const seenTimes = new Set();
+    const sortedCandles = [];
+    rawCandles.sort((a, b) => a.time - b.time);
+    for (const c of rawCandles) {
+      if (!seenTimes.has(c.time)) {
+        seenTimes.add(c.time);
+        sortedCandles.push(c);
+      }
+    }
+
+    let candles = sortedCandles;
+
+    // Aggregate into 4-hour candles if requested
+    if (is4Hour && sortedCandles.length > 0) {
+      const aggCandles = [];
+      const blockSize = 4;
+      for (let i = 0; i < sortedCandles.length; i += blockSize) {
+        const chunk = sortedCandles.slice(i, i + blockSize);
+        if (chunk.length === 0) continue;
+        const open = chunk[0].open;
+        const high = Math.max(...chunk.map(b => b.high));
+        const low = Math.min(...chunk.map(b => b.low));
+        const close = chunk[chunk.length - 1].close;
+        const volume = chunk.reduce((sum, b) => sum + (b.volume || 0), 0);
+        aggCandles.push({
+          time: chunk[0].time,
+          open: Number(open.toFixed(2)),
+          high: Number(high.toFixed(2)),
+          low: Number(low.toFixed(2)),
+          close: Number(close.toFixed(2)),
+          volume
+        });
+      }
+      candles = aggCandles;
+    }
+
+    // Build volume data matching final candles
+    const volumeData = candles.map(c => ({
+      time: c.time,
+      value: c.volume || 0,
+      color: c.close >= c.open ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.45)'
+    }));
+
     const meta = result.meta || {};
+    const currency = symbol.includes('-USD') || symbol.endsWith('=X') && !symbol.includes('INR') ? 'USD' : (meta.currency || 'INR');
+
     const responseData = {
       symbol: meta.symbol || symbol,
-      currency: meta.currency || 'INR',
-      range,
+      currency,
+      range: queryRange,
       interval,
       candlesCount: candles.length,
       candles,
@@ -158,7 +217,7 @@ export async function fetchInstrumentCandles(symbol, range = '1mo', interval = '
         timezone: meta.timezone || 'IST'
       },
       lastUpdated: new Date().toISOString(),
-      source: 'NSE / Yahoo Finance Public OHLCV Feed'
+      source: 'NSE / Global Multi-Market OHLCV Feed'
     };
 
     candleCache.set(cacheKey, { data: responseData, cachedAt: Date.now() });

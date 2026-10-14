@@ -103,6 +103,7 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
   const displayChange = live.change !== 0 ? live.change : (quote?.change || 0);
   const displayChangePercent = live.changePercent !== 0 ? live.changePercent : (quote?.changePercent || 0);
   const isUp = displayChange >= 0;
+  const currencySymbol = (quote?.currency === 'USD' || symbol.includes('USD') || quote?.exchange === 'BINANCE/COINBASE' || quote?.exchange === 'FOREX/GLOBAL') ? '$' : '₹';
 
   return (
     <div className="space-y-6 animate-fade-in pb-16">
@@ -181,13 +182,13 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
                 ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
                 : 'text-slate-900 dark:text-white'
             }`}>
-              ₹{displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {currencySymbol}{displayPrice.toLocaleString(currencySymbol === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className={`mt-1 flex items-center font-mono font-bold text-sm ${
               isUp ? 'text-emerald-600' : 'text-rose-600'
             }`}>
               {isUp ? <ArrowUpRight className="w-4 h-4 mr-0.5" /> : <ArrowDownRight className="w-4 h-4 mr-0.5" />}
-              {isUp ? `+₹${displayChange.toFixed(2)}` : `₹${displayChange.toFixed(2)}`} ({isUp ? `+${displayChangePercent.toFixed(2)}%` : `${displayChangePercent.toFixed(2)}%`})
+              {isUp ? `+${currencySymbol}${displayChange.toFixed(2)}` : `${currencySymbol}${displayChange.toFixed(2)}`} ({isUp ? `+${displayChangePercent.toFixed(2)}%` : `${displayChangePercent.toFixed(2)}%`})
             </div>
           </div>
 
@@ -195,15 +196,15 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru }) 
           <div className="grid grid-cols-2 gap-3 text-xs font-mono border-l border-slate-200 dark:border-[#1A2744] pl-6">
             <div>
               <div className="text-slate-400 text-[10px]">PREV CLOSE</div>
-              <div className="text-slate-800 dark:text-slate-200 font-semibold">₹{quote?.previousClose || 'N/A'}</div>
+              <div className="text-slate-800 dark:text-slate-200 font-semibold">{currencySymbol}{quote?.previousClose || 'N/A'}</div>
             </div>
             <div>
               <div className="text-slate-400 text-[10px]">DAY RANGE</div>
-              <div className="text-slate-800 dark:text-slate-200 font-semibold">₹{quote?.dayLow} — ₹{quote?.dayHigh}</div>
+              <div className="text-slate-800 dark:text-slate-200 font-semibold">{currencySymbol}{quote?.dayLow} — {currencySymbol}{quote?.dayHigh}</div>
             </div>
             <div>
               <div className="text-slate-400 text-[10px]">52W HIGH / LOW</div>
-              <div className="text-slate-800 dark:text-slate-200 font-semibold">₹{quote?.fiftyTwoWeekHigh || '—'} / ₹{quote?.fiftyTwoWeekLow || '—'}</div>
+              <div className="text-slate-800 dark:text-slate-200 font-semibold">{currencySymbol}{quote?.fiftyTwoWeekHigh || '—'} / {currencySymbol}{quote?.fiftyTwoWeekLow || '—'}</div>
             </div>
             <div>
               <div className="text-slate-400 text-[10px]">VOLUME</div>

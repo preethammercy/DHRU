@@ -157,6 +157,19 @@ export interface ScenarioHorizons {
   methodologyNote: string;
 }
 
+export interface TradeSetup {
+  action: 'BUY' | 'SELL' | 'WAIT';
+  entryZone: string;
+  entryPrice: number;
+  stopLoss: number;
+  target1: number;
+  target2: number;
+  target3: number;
+  riskRewardRatio: string;
+  optimalTimeWindow: string;
+  exitCriteria: string;
+}
+
 export interface AiReport {
   direction: 'Bullish' | 'Bearish' | 'Sideways';
   trendStrength: 'Weak' | 'Moderate' | 'Strong';
@@ -172,6 +185,7 @@ export interface AiReport {
     fiveDays: string;
     oneMonth: string;
   };
+  tradeSetup?: TradeSetup;
   beginnerExplanation: string;
   confidenceRating: 'High' | 'Moderate' | 'Low';
   engine: string;

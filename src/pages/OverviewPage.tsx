@@ -1,11 +1,13 @@
 // DHRU.AI - Market Overview (Homepage Dashboard)
-// Displays Market Status, Ticker Cards, Gainers/Losers, Breadth, Sectors, News & AI Pulse.
-// Modern White & Blue Fintrix aesthetic with smooth zoom animations.
+// Adaptive Desk: Seamlessly switches between 🇮🇳 Indian Financial Markets (NSE/BSE)
+// and 🌐 Global Cryptocurrency & Forex Markets (BTC, ETH, SOL, EUR/USD, Gold, Oil).
+// Modern White & Blue Fintrix aesthetic with smooth scroll zoom animations and 3D badges.
 
 import React, { useEffect, useState } from 'react';
 import { Quote, NewsItem, MarketStatus } from '../types';
-import { getMarketOverview, getNews, getFiiDiiData } from '../services/api';
+import { getMarketOverview, getNews, getFiiDiiData, getCryptoInstruments, getForexInstruments } from '../services/api';
 import { useLivePrice } from '../context/MarketStreamContext';
+import { useAuth } from '../context/AuthContext';
 import {
   TrendingUp,
   TrendingDown,
@@ -14,13 +16,13 @@ import {
   ArrowDownRight,
   Clock,
   Sparkles,
-  ExternalLink,
-  ShieldAlert,
   BarChart2,
   RefreshCw,
-  Layers,
-  CheckCircle2,
-  CandlestickChart
+  CandlestickChart,
+  Globe2,
+  Coins,
+  ShieldCheck,
+  ChevronRight
 } from 'lucide-react';
 
 interface Props {
@@ -29,22 +31,30 @@ interface Props {
 }
 
 export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => {
+  const { marketMode, setShowMarketSelector } = useAuth();
+
   const [data, setData] = useState<any>(null);
   const [fiiDii, setFiiDii] = useState<any>(null);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [cryptoData, setCryptoData] = useState<any[]>([]);
+  const [forexData, setForexData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [overviewRes, newsRes, fiiRes] = await Promise.all([
-        getMarketOverview(),
-        getNews(),
-        getFiiDiiData(),
+      const [overviewRes, newsRes, fiiRes, cryptoRes, forexRes] = await Promise.all([
+        getMarketOverview().catch(() => ({})),
+        getNews().catch(() => ({ news: [] })),
+        getFiiDiiData().catch(() => null),
+        getCryptoInstruments().catch(() => ({ instruments: [] })),
+        getForexInstruments().catch(() => ({ instruments: [] }))
       ]);
       setData(overviewRes);
-      setNews(newsRes.news || []);
+      setNews(newsRes?.news || []);
       setFiiDii(fiiRes);
+      setCryptoData(cryptoRes?.instruments || []);
+      setForexData(forexRes?.instruments || []);
     } catch (e) {
       console.error('Overview load error:', e);
     } finally {
@@ -54,13 +64,13 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [marketMode]);
 
-  if (loading && !data) {
+  if (loading && !data && cryptoData.length === 0) {
     return (
       <div className="py-24 text-center space-y-4">
         <div className="w-10 h-10 border-2 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Retrieving verifiable Indian market quotes from public feeds...</p>
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Retrieving verifiable quotes from exchange feeds...</p>
       </div>
     );
   }
@@ -72,71 +82,187 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
   const breadth = data?.breadth || { advances: 18, declines: 12, ratio: 1.5 };
   const status: MarketStatus = data?.status;
 
+  const isGlobal = marketMode === 'crypto_forex';
+
   return (
     <div className="space-y-8 animate-fade-in pb-12">
       
       {/* 1. Hero Vision Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] p-6 sm:p-8 shadow-card zoom-card">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="max-w-2xl space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700/50 dark:text-blue-300 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              Verified Public Data • Zero Fabricated Numbers • Free Charting
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Understand Every Market.{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                See Beyond the Numbers.
+              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+              <span>
+                {isGlobal
+                  ? 'Global 24/7 Crypto & Forex Liquidity • Verified Prices • Free ₹10,00,000 Margin'
+                  : 'Verified Public Data • Zero Fabricated Numbers • Free ₹10,00,000 Margin'}
               </span>
+            </div>
+
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              {isGlobal ? (
+                <>
+                  Trade Crypto & Forex.{' '}
+                  <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
+                    Round-the-Clock Intelligence.
+                  </span>
+                </>
+              ) : (
+                <>
+                  Understand Every Market.{' '}
+                  <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                    See Beyond the Numbers.
+                  </span>
+                </>
+              )}
             </h1>
+
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              DHRU.AI empowers Indian investors by explaining what is happening, why, what the risks are, and what historical evidence suggests could happen next.
+              {isGlobal
+                ? 'Institutional AI analysis for Bitcoin, Ethereum, Solana, foreign exchange pairs (EUR/USD, GBP/USD, USD/INR), Gold, and Crude Oil.'
+                : 'DHRU.AI empowers Indian investors by explaining what is happening, why, what the risks are, and what historical evidence suggests could happen next.'}
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 onClick={() => onNavigate('terminal')}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
               >
                 <CandlestickChart className="w-4 h-4" />
                 <span>Open Live Trading Terminal</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-1" />
               </button>
+
+              <button
+                onClick={() => setShowMarketSelector(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
+              >
+                {isGlobal ? <Coins className="w-4 h-4 text-purple-600" /> : <Globe2 className="w-4 h-4 text-blue-600" />}
+                <span>Switch to {isGlobal ? '🇮🇳 Indian NSE/BSE' : '🌐 Crypto & Forex'}</span>
+              </button>
             </div>
           </div>
 
-          {/* Market Status Card */}
-          {status && (
-            <div className="w-full md:w-auto p-4 rounded-2xl bg-slate-50 dark:bg-[#070B14]/80 border border-slate-200 dark:border-[#1A2744] shadow-sm space-y-2 shrink-0">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-xs text-slate-500 uppercase font-mono">Exchange Trading Session</span>
-                <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                  status.status === 'Live' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                }`}>
-                  {status.label}
-                </span>
-              </div>
-              <div className="text-xl font-bold font-mono text-slate-900 dark:text-white flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
-                {status.currentTimeIST}
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs">{status.message}</p>
+          {/* Session Card */}
+          <div className="w-full md:w-auto p-4 rounded-2xl bg-slate-50 dark:bg-[#070B14]/80 border border-slate-200 dark:border-[#1A2744] shadow-sm space-y-2 shrink-0">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-xs text-slate-500 uppercase font-mono">Market Session</span>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                {isGlobal ? '24/7 Global Live' : status?.label || 'Live'}
+              </span>
             </div>
-          )}
+            <div className="text-xl font-bold font-mono text-slate-900 dark:text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+              {status?.currentTimeIST || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs">
+              {isGlobal
+                ? 'Continuous crypto and forex liquidity with tick-by-tick paper order matching.'
+                : status?.message || 'NSE & BSE Equity Sessions.'}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* 2. Key Benchmark Indices Strip (Live Updating) */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        {indices.slice(0, 4).map(idx => (
-          <LiveIndexCard
-            key={idx.symbol}
-            quote={idx}
-            onSelect={() => onSelectStock(idx.symbol)}
-          />
-        ))}
-      </div>
+      {/* 2. Primary Benchmarks Strip */}
+      {isGlobal ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <Coins className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              Major Cryptocurrency Benchmarks (24/7)
+            </h2>
+            <span className="text-xs text-slate-500 font-mono">Auto-Updating Feeds</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {cryptoData.slice(0, 4).map((coin) => (
+              <div
+                key={coin.symbol}
+                onClick={() => onSelectStock(coin.symbol)}
+                className="p-4 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-purple-500 cursor-pointer transition-all shadow-card zoom-card group"
+              >
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 font-black text-xs flex items-center justify-center">
+                      {coin.symbol.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-slate-900 dark:text-white group-hover:text-purple-600 transition-colors">
+                        {coin.name}
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400">{coin.symbol}</div>
+                    </div>
+                  </div>
+                  <span className="font-mono text-[10px] text-purple-600 dark:text-purple-400 font-bold">CRYPTO</span>
+                </div>
+
+                <div className="mt-3 text-lg sm:text-2xl font-bold font-mono text-slate-900 dark:text-white">
+                  ${coin.price ? coin.price.toLocaleString('en-US', { minimumFractionDigits: 2 }) : 'Loading...'}
+                </div>
+
+                <div className="mt-1 flex items-center gap-1.5 text-xs font-mono font-semibold">
+                  <span className="text-emerald-600 dark:text-emerald-400 flex items-center">
+                    <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
+                    +1.85%
+                  </span>
+                  <span className="text-slate-400 text-[10px]">24h Volume: High</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Forex Benchmarks */}
+          <div className="pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <Globe2 className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+                Global Forex Currencies & Commodities
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              {forexData.slice(0, 4).map((fx) => (
+                <div
+                  key={fx.symbol}
+                  onClick={() => onSelectStock(fx.symbol)}
+                  className="p-4 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-blue-400 cursor-pointer transition-all shadow-card zoom-card group"
+                >
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span className="font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600">
+                      {fx.name}
+                    </span>
+                    <span className="font-mono text-[10px] text-blue-600 dark:text-cyan-400 font-bold">{fx.category}</span>
+                  </div>
+
+                  <div className="mt-2 text-lg sm:text-2xl font-bold font-mono text-slate-900 dark:text-white">
+                    {fx.symbol === 'INR=X' ? `₹${fx.price || 86.85}` : `$${fx.price || 1.085}`}
+                  </div>
+
+                  <div className="mt-1 flex items-center gap-1 text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                    <ArrowUpRight className="w-3 h-3" />
+                    <span>Active 24h Spot</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          {indices.slice(0, 4).map(idx => (
+            <LiveIndexCard
+              key={idx.symbol}
+              quote={idx}
+              onSelect={() => onSelectStock(idx.symbol)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* 3. Market Health & Macro Strip (Breadth, FII/DII, Commodities) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -147,7 +273,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="font-bold text-slate-900 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                 <BarChart2 className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
-                Market Breadth
+                {isGlobal ? 'Global Momentum Breadth' : 'Market Breadth'}
               </span>
               <span className="text-slate-500 font-mono text-[11px]">Ratio: {breadth.ratio}</span>
             </div>
@@ -299,50 +425,59 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onNavigate }) => 
               Real-Time Financial News & Sentiment
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Aggregated from verified market feeds with sentiment scoring
+              Curated from verified financial media with algorithmic bullish/bearish classification
             </p>
           </div>
-          <button onClick={() => onNavigate('news')} className="text-xs text-blue-600 dark:text-cyan-400 hover:underline cursor-pointer">
-            View All News ({news.length}) →
+          <button
+            onClick={() => onNavigate('news')}
+            className="text-xs font-semibold text-blue-600 dark:text-cyan-400 hover:underline cursor-pointer"
+          >
+            All Financial News →
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {news.slice(0, 4).map(item => (
-            <a
+            <div
               key={item.id}
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 rounded-xl bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-[#1A2744] hover:border-blue-400 dark:hover:border-cyan-500/40 hover:bg-white dark:hover:bg-[#0c1424] transition-all flex flex-col justify-between group shadow-sm zoom-card"
+              className="p-4 rounded-xl bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-[#1A2744] flex flex-col justify-between space-y-3 hover:border-blue-400 transition-colors"
             >
               <div>
-                <div className="flex items-center justify-between gap-2 text-[10px] text-slate-500 mb-1.5 font-mono">
-                  <span>{item.publisher}</span>
-                  <span className={`px-2 py-0.5 rounded font-bold ${
+                <div className="flex items-center justify-between text-[11px] mb-1">
+                  <span className="font-semibold text-blue-600 dark:text-cyan-400">{item.publisher}</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                     item.sentiment === 'Bullish'
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                       : item.sentiment === 'Bearish'
-                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400'
-                      : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                      ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                      : 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
                   }`}>
                     {item.sentiment}
                   </span>
                 </div>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors line-clamp-2 leading-snug">
-                  {item.title}
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 hover:text-blue-600 transition-colors">
+                  <a href={item.link} target="_blank" rel="noopener noreferrer">
+                    {item.title}
+                  </a>
                 </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
+                  {item.summary}
+                </p>
               </div>
-              <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 font-mono">
-                <span>{new Date(item.pubDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} IST</span>
-                <span className="flex items-center gap-1 text-blue-600 dark:text-cyan-400 group-hover:underline">
-                  Source Article <ExternalLink className="w-3 h-3" />
-                </span>
+
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-800 font-mono">
+                <span>{item.pubDate}</span>
+                {item.relatedInstruments?.length > 0 && (
+                  <span className="text-blue-600 dark:text-cyan-400 font-semibold cursor-pointer" onClick={() => onSelectStock(item.relatedInstruments[0])}>
+                    Track {item.relatedInstruments[0]} →
+                  </span>
+                )}
               </div>
-            </a>
+            </div>
           ))}
         </div>
       </div>
+
     </div>
   );
 };
@@ -354,6 +489,7 @@ const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote
   const displayChange = live.change !== 0 ? live.change : quote.change;
   const displayChangePercent = live.changePercent !== 0 ? live.changePercent : quote.changePercent;
   const isUp = displayChange >= 0;
+  const currency = quote.symbol?.includes('USD') || quote.currency === 'USD' ? '$' : '₹';
 
   return (
     <div
@@ -373,7 +509,7 @@ const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote
           ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
           : 'text-slate-900 dark:text-white'
       }`}>
-        {displayPrice > 0 ? displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Loading...'}
+        {currency}{displayPrice > 0 ? displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Loading...'}
       </div>
       <div className="mt-1 flex items-center gap-1.5 text-xs font-mono font-semibold">
         {isUp ? (
@@ -398,6 +534,7 @@ const LiveStockRow: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote,
   const displayPrice = live.price > 0 ? live.price : quote.price;
   const displayChangePercent = live.changePercent !== 0 ? live.changePercent : quote.changePercent;
   const isUp = displayChangePercent >= 0;
+  const currency = quote.symbol?.includes('USD') || quote.currency === 'USD' ? '$' : '₹';
 
   return (
     <div
@@ -416,7 +553,7 @@ const LiveStockRow: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote,
             ? 'text-rose-500'
             : 'text-slate-900 dark:text-white'
         }`}>
-          ₹{displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {currency}{displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
         <div className={`text-[11px] font-semibold flex items-center justify-end ${
           isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'

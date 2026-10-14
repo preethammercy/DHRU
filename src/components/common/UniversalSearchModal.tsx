@@ -19,7 +19,7 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'All' | 'Stock' | 'Index' | 'Commodity' | 'ETF'>('All');
+  const [activeFilter, setActiveFilter] = useState<'All' | 'Stock' | 'Index' | 'Crypto' | 'Forex' | 'Commodity' | 'ETF'>('All');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -69,11 +69,11 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
 
   const popularSearches = [
     { label: 'Reliance Industries', sym: 'RELIANCE.NS' },
-    { label: 'TCS', sym: 'TCS.NS' },
     { label: 'NIFTY 50', sym: '^NSEI' },
+    { label: 'Bitcoin (BTC)', sym: 'BTC-USD' },
+    { label: 'Ethereum (ETH)', sym: 'ETH-USD' },
     { label: 'HDFC Bank', sym: 'HDFCBANK.NS' },
     { label: 'Gold (MCX Proxy)', sym: 'GC=F' },
-    { label: 'USD/INR', sym: 'INR=X' },
   ];
 
   return (
@@ -110,18 +110,18 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
         </div>
 
         {/* Filters Strip */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-slate-200 dark:border-[#1A2744] bg-white dark:bg-[#0A101D] text-xs">
-          {(['All', 'Stock', 'Index', 'Commodity', 'ETF'] as const).map(f => (
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-slate-200 dark:border-[#1A2744] bg-white dark:bg-[#0A101D] text-xs overflow-x-auto scrollbar-none">
+          {(['All', 'Stock', 'Index', 'Crypto', 'Forex', 'Commodity', 'ETF'] as const).map(f => (
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className={`px-3 py-1 rounded-xl transition-all ${
+              className={`px-3 py-1 rounded-xl transition-all whitespace-nowrap ${
                 activeFilter === f
                   ? 'bg-blue-50 dark:bg-cyan-500/20 text-blue-700 dark:text-cyan-400 font-bold border border-blue-200 dark:border-cyan-500/30'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/40'
               }`}
             >
-              {f === 'Stock' ? 'Stocks (NSE/BSE)' : f}
+              {f === 'Stock' ? 'Stocks' : f}
             </button>
           ))}
         </div>
@@ -185,6 +185,10 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
                 <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-[#070B14] border border-slate-200 dark:border-[#1A2744] flex items-center justify-center shrink-0">
                   {item.type === 'Index' ? (
                     <TrendingUp className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+                  ) : item.type === 'Crypto' ? (
+                    <span className="text-sm">🪙</span>
+                  ) : item.type === 'Forex' ? (
+                    <span className="text-sm">💱</span>
                   ) : item.type === 'Commodity' ? (
                     <Coins className="w-4 h-4 text-amber-500" />
                   ) : item.type === 'ETF' ? (

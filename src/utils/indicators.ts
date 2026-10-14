@@ -819,3 +819,275 @@ export function calculateADX(candles: CandleData[], period: number = 14): ADXVal
 
   return results;
 }
+
+// ==========================================
+// ⭐ PREMIUM INSTITUTIONAL & QUANT INDICATORS
+// ==========================================
+
+export interface OrderBlockResult {
+  time: number | string;
+  type: 'BULLISH_OB' | 'BEARISH_OB';
+  high: number;
+  low: number;
+  price: number;
+  value: number;
+}
+
+/**
+ * Smart Money Concepts: Order Blocks Detector
+ * Identifies the last opposite-close candle before an impulsive displacement break
+ */
+export function calculateOrderBlocks(candles: Candle[], lookback = 20, threshold = 1.4): IndicatorValue[] {
+  if (!candles || candles.length < 5) return [];
+  const results: IndicatorValue[] = [];
+
+  for (let i = 2; i < candles.length - 1; i++) {
+    const prevBar = candles[i];
+    const nextBar = candles[i + 1];
+    const prevRange = Math.abs(prevBar.high - prevBar.low);
+    const nextBody = Math.abs(nextBar.close - nextBar.open);
+
+    // Bullish OB: down candle followed by explosive displacement up
+    if (prevBar.close < prevBar.open && nextBar.close > nextBar.open && nextBody > prevRange * threshold) {
+      results.push({
+        time: nextBar.time,
+        value: Number(((prevBar.high + prevBar.low) / 2).toFixed(2))
+      });
+    }
+    // Bearish OB: up candle followed by explosive displacement down
+    else if (prevBar.close > prevBar.open && nextBar.close < nextBar.open && nextBody > prevRange * threshold) {
+      results.push({
+        time: nextBar.time,
+        value: Number(((prevBar.high + prevBar.low) / 2).toFixed(2))
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Fair Value Gaps (FVG / Liquidity Imbalance)
+ * 3-candle imbalance where Bar 1 High < Bar 3 Low (Bullish) or Bar 1 Low > Bar 3 High (Bearish)
+ */
+export function calculateFVG(candles: Candle[]): IndicatorValue[] {
+  if (!candles || candles.length < 3) return [];
+  const results: IndicatorValue[] = [];
+
+  for (let i = 2; i < candles.length; i++) {
+    const bar1 = candles[i - 2];
+    const bar3 = candles[i];
+
+    // Bullish FVG
+    if (bar3.low > bar1.high) {
+      const midpoint = (bar3.low + bar1.high) / 2;
+      results.push({
+        time: bar3.time,
+        value: Number(midpoint.toFixed(2))
+      });
+    }
+    // Bearish FVG
+    else if (bar3.high < bar1.low) {
+      const midpoint = (bar3.high + bar1.low) / 2;
+      results.push({
+        time: bar3.time,
+        value: Number(midpoint.toFixed(2))
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Ichimoku Kinko Hyo Cloud (Tenkan 9, Kijun 26)
+ */
+export function calculateIchimoku(candles: Candle[], tenkanPeriod = 9, kijunPeriod = 26): {
+  tenkan: IndicatorValue[];
+  kijun: IndicatorValue[];
+} {
+  const tenkan: IndicatorValue[] = [];
+  const kijun: IndicatorValue[] = [];
+
+  for (let i = 0; i < candles.length; i++) {
+    if (i >= tenkanPeriod - 1) {
+      const slice = candles.slice(i - tenkanPeriod + 1, i + 1);
+      const high = Math.max(...slice.map(c => c.high));
+      const low = Math.min(...slice.map(c => c.low));
+      tenkan.push({ time: candles[i].time, value: Number(((high + low) / 2).toFixed(2)) });
+    }
+    if (i >= kijunPeriod - 1) {
+      const slice = candles.slice(i - kijunPeriod + 1, i + 1);
+      const high = Math.max(...slice.map(c => c.high));
+      const low = Math.min(...slice.map(c => c.low));
+      kijun.push({ time: candles[i].time, value: Number(((high + low) / 2).toFixed(2)) });
+    }
+  }
+
+  return { tenkan, kijun };
+}
+
+/**
+ * ATR Volatility Trailing Stop
+ */
+export function calculateAtrTrailingStop(candles: Candle[], period = 14, multiplier = 2.5): IndicatorValue[] {
+  const atrValues = calculateATR(candles, period);
+  if (atrValues.length === 0) return [];
+
+  const results: IndicatorValue[] = [];
+  let trailingStop = candles[period].close - (atrValues[0].value * multiplier);
+
+  for (let i = period; i < candles.length; i++) {
+    const close = candles[i].close;
+    const atr = atrValues[i - period]?.value || atrValues[atrValues.length - 1].value;
+    const stopDistance = atr * multiplier;
+
+    if (close > trailingStop) {
+      trailingStop = Math.max(trailingStop, close - stopDistance);
+    } else {
+      trailingStop = Math.min(trailingStop, close + stopDistance);
+    }
+
+    results.push({
+      time: candles[i].time,
+      value: Number(trailingStop.toFixed(2))
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Chaikin Money Flow (CMF 20)
+ * CMF = Sum(MFV, 20) / Sum(Volume, 20)
+ */
+export function calculateCMF(candles: Candle[], period = 20): IndicatorValue[] {
+  if (!candles || candles.length < period) return [];
+
+  const mfvList: number[] = [];
+  const volList: number[] = [];
+
+  for (const c of candles) {
+    const range = c.high - c.low;
+    const mfm = range > 0 ? ((c.close - c.low) - (c.high - c.close)) / range : 0;
+    const mfv = mfm * (c.volume || 1);
+    mfvList.push(mfv);
+    volList.push(c.volume || 1);
+  }
+
+  const results: IndicatorValue[] = [];
+
+  for (let i = period - 1; i < candles.length; i++) {
+    let sumMfv = 0;
+    let sumVol = 0;
+    for (let j = 0; j < period; j++) {
+      sumMfv += mfvList[i - j];
+      sumVol += volList[i - j];
+    }
+    const cmf = sumVol > 0 ? sumMfv / sumVol : 0;
+    results.push({
+      time: candles[i].time,
+      value: Number(cmf.toFixed(3))
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Aroon Oscillator (25)
+ * Aroon Up = ((25 - periods since 25-high) / 25) * 100
+ * Aroon Down = ((25 - periods since 25-low) / 25) * 100
+ * Aroon Osc = Aroon Up - Aroon Down
+ */
+export function calculateAroon(candles: Candle[], period = 25): IndicatorValue[] {
+  if (!candles || candles.length < period) return [];
+  const results: IndicatorValue[] = [];
+
+  for (let i = period - 1; i < candles.length; i++) {
+    const slice = candles.slice(i - period + 1, i + 1);
+    let maxHigh = -Infinity;
+    let maxHighIdx = 0;
+    let minLow = Infinity;
+    let minLowIdx = 0;
+
+    for (let j = 0; j < slice.length; j++) {
+      if (slice[j].high > maxHigh) {
+        maxHigh = slice[j].high;
+        maxHighIdx = j;
+      }
+      if (slice[j].low < minLow) {
+        minLow = slice[j].low;
+        minLowIdx = j;
+      }
+    }
+
+    const periodsSinceHigh = (period - 1) - maxHighIdx;
+    const periodsSinceLow = (period - 1) - minLowIdx;
+
+    const aroonUp = ((period - periodsSinceHigh) / period) * 100;
+    const aroonDown = ((period - periodsSinceLow) / period) * 100;
+    const aroonOsc = aroonUp - aroonDown;
+
+    results.push({
+      time: candles[i].time,
+      value: Number(aroonOsc.toFixed(2))
+    });
+  }
+
+  return results;
+}
+
+/**
+ * True Strength Index (TSI 13, 25)
+ */
+export function calculateTSI(candles: Candle[], longPeriod = 25, shortPeriod = 13): IndicatorValue[] {
+  if (!candles || candles.length < longPeriod + shortPeriod) return [];
+
+  const momentum: number[] = [];
+  const absMomentum: number[] = [];
+
+  for (let i = 1; i < candles.length; i++) {
+    const diff = candles[i].close - candles[i - 1].close;
+    momentum.push(diff);
+    absMomentum.push(Math.abs(diff));
+  }
+
+  // Double smoothing helper
+  function doubleSmooth(data: number[], p1: number, p2: number): number[] {
+    const ema1: number[] = [];
+    const k1 = 2 / (p1 + 1);
+    let prev = data[0];
+    ema1.push(prev);
+    for (let i = 1; i < data.length; i++) {
+      prev = data[i] * k1 + prev * (1 - k1);
+      ema1.push(prev);
+    }
+
+    const ema2: number[] = [];
+    const k2 = 2 / (p2 + 1);
+    prev = ema1[0];
+    ema2.push(prev);
+    for (let i = 1; i < ema1.length; i++) {
+      prev = ema1[i] * k2 + prev * (1 - k2);
+      ema2.push(prev);
+    }
+    return ema2;
+  }
+
+  const smoothMom = doubleSmooth(momentum, longPeriod, shortPeriod);
+  const smoothAbsMom = doubleSmooth(absMomentum, longPeriod, shortPeriod);
+
+  const results: IndicatorValue[] = [];
+  const offset = candles.length - smoothMom.length;
+
+  for (let i = 0; i < smoothMom.length; i++) {
+    const val = smoothAbsMom[i] > 0 ? (smoothMom[i] / smoothAbsMom[i]) * 100 : 0;
+    results.push({
+      time: candles[i + offset].time,
+      value: Number(val.toFixed(2))
+    });
+  }
+
+  return results;
+}

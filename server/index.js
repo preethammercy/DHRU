@@ -4,14 +4,14 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { INDICES, COMMODITIES_FOREX, ETFS, CURATED_STOCKS, SECTORS } from './data/instruments.js';
+import { INDICES, COMMODITIES_FOREX, ETFS, CURATED_STOCKS, SECTORS, CRYPTO_INSTRUMENTS, FOREX_INSTRUMENTS } from './data/instruments.js';
 import { loadNseDirectory, searchInstruments, getFullStockDirectory, getDirectoryStatus } from './services/nseDirectory.js';
 import { fetchInstrumentQuote, fetchInstrumentCandles, batchFetchQuotes, getMarketOverview } from './services/marketData.js';
 import { computeTechnicalSummary } from './services/indicators.js';
 import { fetchAllMarketNews, fetchStockSpecificNews } from './services/newsService.js';
 import { evaluateMarketWideRisk, evaluateInstrumentRisk } from './services/riskEngine.js';
 import { runWalkForwardBacktest, generateScenarios } from './services/predictionEngine.js';
-import { generateStockAnalysisReport, askDhruAssistant, setApiKey, getActiveApiKey } from './services/geminiService.js';
+import { generateStockAnalysisReport, askDhruAssistant, analyzeChartScreenshot, setApiKey, getActiveApiKey } from './services/geminiService.js';
 import { startScheduler, getSchedulerStatus, runRefreshCycle } from './services/refreshScheduler.js';
 import { getDerivativesOverview } from './data/derivativesData.js';
 import { UPCOMING_IPOS, CORPORATE_ACTIONS } from './data/ipoAnnouncements.js';
@@ -28,7 +28,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Helper: Calculate current Indian Market Trading Status (IST: Asia/Kolkata)
 function getIndianMarketStatus() {
@@ -611,6 +612,66 @@ app.post('/api/broker/test', (req, res) => {
     mode: isLive ? 'LIVE' : 'SIMULATION',
     timestamp: new Date().toISOString()
   });
+});
+
+// 23. Crypto Market Explorer
+app.get('/api/crypto', async (req, res) => {
+  try {
+    const symbols = CRYPTO_INSTRUMENTS.map(c => c.symbol);
+    const quotes = await batchFetchQuotes(symbols);
+    const enriched = CRYPTO_INSTRUMENTS.map(item => {
+      const q = quotes.find(quote => quote.symbol === item.symbol);
+      return {
+        ...item,
+        price: q?.price || 0,
+        change: q?.change || 0,
+        changePercent: q?.changePercent || 0,
+        dayHigh: q?.dayHigh || 0,
+        dayLow: q?.dayLow || 0,
+        volume: q?.volume || 0,
+        lastUpdated: q?.lastUpdated || new Date().toISOString()
+      };
+    });
+    res.json({ crypto: enriched });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch crypto instruments', details: err.message });
+  }
+});
+
+// 24. Forex & Global Macro Commodities Explorer
+app.get('/api/forex', async (req, res) => {
+  try {
+    const symbols = FOREX_INSTRUMENTS.map(f => f.symbol);
+    const quotes = await batchFetchQuotes(symbols);
+    const enriched = FOREX_INSTRUMENTS.map(item => {
+      const q = quotes.find(quote => quote.symbol === item.symbol);
+      return {
+        ...item,
+        price: q?.price || 0,
+        change: q?.change || 0,
+        changePercent: q?.changePercent || 0,
+        dayHigh: q?.dayHigh || 0,
+        dayLow: q?.dayLow || 0,
+        volume: q?.volume || 0,
+        lastUpdated: q?.lastUpdated || new Date().toISOString()
+      };
+    });
+    res.json({ forex: enriched });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch forex instruments', details: err.message });
+  }
+});
+
+// 25. AI Chart Screenshot Vision Scanner
+app.post('/api/ai/scan-image', async (req, res) => {
+  try {
+    const { imageBase64, mimeType } = req.body || {};
+    if (!imageBase64) return res.status(400).json({ error: 'Image data is required' });
+    const analysis = await analyzeChartScreenshot({ imageBase64, mimeType });
+    res.json(analysis);
+  } catch (err) {
+    res.status(500).json({ error: 'Chart vision analysis failed', details: err.message });
+  }
 });
 
 // Serve frontend in production if built

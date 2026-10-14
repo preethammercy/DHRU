@@ -1,10 +1,26 @@
 // DHRU.AI - Deep Market Intelligence Report Component
-// Displays Direction, Trend Strength, Positive/Negative Catalysts, Support/Resistance,
+// Features Actionable Trade Setup (Entry Zone, Stop Loss, Target 1/2/3, RRR, Timing, Exit Rules),
+// Direction, Trend Strength, Positive/Negative Catalysts, Support/Resistance,
 // 3 Multi-Horizon Probabilistic Scenarios, and a Beginner's Plain English Breakdown.
 
 import React, { useState } from 'react';
 import { AiReport } from '../../types';
-import { Sparkles, BrainCircuit, ShieldAlert, ArrowUpRight, ArrowDownRight, Compass, HelpCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import {
+  Sparkles,
+  BrainCircuit,
+  ShieldAlert,
+  ArrowUpRight,
+  ArrowDownRight,
+  Compass,
+  HelpCircle,
+  CheckCircle,
+  RefreshCw,
+  Target,
+  Clock,
+  LogOut,
+  TrendingUp,
+  Sliders
+} from 'lucide-react';
 import { runAiAnalysis } from '../../services/api';
 
 interface Props {
@@ -34,7 +50,7 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
         <Sparkles className="w-8 h-8 text-blue-600 dark:text-cyan-400 mx-auto" />
         <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Deep Market Intelligence Report Available</h4>
         <p className="text-xs text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-          Generate a synthesis combining verified exchange quotes, calculated moving averages, and news sentiment.
+          Generate an institutional AI synthesis combining verified exchange quotes, calculated moving averages, and news sentiment.
         </p>
         <button
           onClick={handleRegenerate}
@@ -54,7 +70,7 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
           Synthesizing Intelligence with DHRU.AI...
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-          Processing real-time exchange candles, evaluating pivot points, and matching news sentiment.
+          Processing real-time exchange candles, evaluating Smart Money concepts, and calculating trade setup levels.
         </p>
       </div>
     );
@@ -64,6 +80,7 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
 
   const isBullish = report.direction === 'Bullish';
   const isBearish = report.direction === 'Bearish';
+  const trade = report.tradeSetup;
 
   return (
     <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl p-6 shadow-card space-y-6">
@@ -77,14 +94,14 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                Market Outlook & Multi-Horizon Scenarios
+                AI Market Outlook & Trade Setup
               </h3>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-slate-800 dark:text-cyan-300 border border-blue-200 dark:border-slate-700">
-                DHRU Pro Intelligence
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-slate-800 dark:text-cyan-300 border border-blue-200 dark:border-slate-700 font-semibold">
+                DHRU Institutional AI
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Verified mathematical indicators combined with news sentiment analysis
+              Verified mathematical indicators, Smart Money order blocks, and trade triggers
             </p>
           </div>
         </div>
@@ -98,6 +115,118 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
           Re-Analyze
         </button>
       </div>
+
+      {/* ACTIONABLE TRADE SETUP CARD (USER REQUIREMENT) */}
+      {trade && (
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-50/80 via-indigo-50/30 to-white dark:from-[#0B1528] dark:via-[#091020] dark:to-[#070B14] border-2 border-blue-200 dark:border-blue-900/60 shadow-lg space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-200/60 dark:border-blue-900/40 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-3 w-3 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600 dark:bg-cyan-400"></span>
+              </span>
+              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                Institutional Trade Execution Plan
+              </h4>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                trade.action === 'BUY'
+                  ? 'bg-emerald-600 text-white'
+                  : trade.action === 'SELL'
+                  ? 'bg-rose-600 text-white'
+                  : 'bg-amber-500 text-white'
+              }`}>
+                {trade.action} SETUP
+              </span>
+              <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                RRR {trade.riskRewardRatio}
+              </span>
+            </div>
+          </div>
+
+          {/* Grid of Exact Price Points */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            
+            {/* Entry Zone */}
+            <div className="p-3 rounded-xl bg-white dark:bg-[#0E1A33] border border-blue-200 dark:border-blue-800/50">
+              <div className="text-[10px] uppercase font-mono font-bold text-blue-600 dark:text-cyan-400 flex items-center gap-1">
+                <TrendingUp className="w-3.5 h-3.5" />
+                Optimal Entry Zone
+              </div>
+              <div className="text-sm font-black font-mono text-slate-900 dark:text-white mt-1">
+                {trade.entryZone}
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                Pivot: {trade.entryPrice}
+              </div>
+            </div>
+
+            {/* Stop Loss */}
+            <div className="p-3 rounded-xl bg-white dark:bg-[#0E1A33] border border-rose-200 dark:border-rose-900/50">
+              <div className="text-[10px] uppercase font-mono font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                Hard Stop Loss (SL)
+              </div>
+              <div className="text-sm font-black font-mono text-rose-600 dark:text-rose-400 mt-1">
+                {trade.stopLoss}
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                Strict Invalid Level
+              </div>
+            </div>
+
+            {/* Target 1 */}
+            <div className="p-3 rounded-xl bg-white dark:bg-[#0E1A33] border border-emerald-200 dark:border-emerald-900/50">
+              <div className="text-[10px] uppercase font-mono font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <Target className="w-3.5 h-3.5" />
+                Target 1 (Conservative)
+              </div>
+              <div className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+                {trade.target1}
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                Lock 50% Profit & Trail
+              </div>
+            </div>
+
+            {/* Target 2 & 3 */}
+            <div className="p-3 rounded-xl bg-white dark:bg-[#0E1A33] border border-indigo-200 dark:border-indigo-900/50">
+              <div className="text-[10px] uppercase font-mono font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                <Target className="w-3.5 h-3.5" />
+                Target 2 / Target 3
+              </div>
+              <div className="text-sm font-black font-mono text-indigo-600 dark:text-indigo-400 mt-1">
+                {trade.target2} / {trade.target3}
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                Extension Run
+              </div>
+            </div>
+
+          </div>
+
+          {/* Timing & Exit Instructions */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0A1224] border border-slate-200 dark:border-slate-800">
+              <Clock className="w-4 h-4 text-blue-600 dark:text-cyan-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-slate-800 dark:text-slate-200">When to Enter (Time Window):</span>
+                <p className="text-slate-600 dark:text-slate-400 text-[11px] mt-0.5">{trade.optimalTimeWindow}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#0A1224] border border-slate-200 dark:border-slate-800">
+              <LogOut className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-slate-800 dark:text-slate-200">When to Exit / Exit Criteria:</span>
+                <p className="text-slate-600 dark:text-slate-400 text-[11px] mt-0.5">{trade.exitCriteria}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Primary Direction & Trend Strength Strip */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -199,7 +328,7 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
           {/* Horizon 1: Next Session */}
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-[#1A2744] space-y-1.5">
             <div className="text-blue-600 dark:text-cyan-400 font-bold font-mono text-[11px] uppercase">
-              Horizon 1: Next Session (9:15 - 15:30 IST)
+              Horizon 1: Next Session
             </div>
             <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-mono text-[11px]">
               {report.scenarios?.nextSession}
@@ -241,7 +370,7 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
 
       {/* Regulatory Transparency Note */}
       <div className="text-[11px] text-slate-500 font-mono leading-relaxed pt-2 border-t border-slate-200 dark:border-[#1A2744]">
-        ⚠️ <strong>Important Disclosure:</strong> AI-generated analysis and probabilistic scenarios represent mathematical evaluations based on historical price distribution and publicly reported news. They do NOT constitute SEBI-registered investment advice or guaranteed future outcomes.
+        ⚠️ <strong>Important Disclosure:</strong> AI-generated analysis and trade setups represent algorithmic pattern recognition and quantitative probability distributions. Always adhere strictly to risk management rules. Not SEBI-registered investment advice.
       </div>
     </div>
   );

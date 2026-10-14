@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useMarketStream } from './MarketStreamContext';
+import { useAuth } from './AuthContext';
 
 export type ProductType = 'MIS' | 'CNC';
 export type OrderType = 'MARKET' | 'LIMIT' | 'SL' | 'SL-M';
@@ -204,44 +205,49 @@ const INITIAL_POSITIONS: Position[] = [
 
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { ticks } = useMarketStream();
+  const { user } = useAuth();
 
-  // Cash & margin state
+  const userKey = useCallback((key: string) => {
+    return user?.uid ? `dhru_user_${user.uid}_${key}` : `dhru_guest_${key}`;
+  }, [user?.uid]);
+
+  // Cash & margin state - ₹10,00,000 (10 Lakh INR) free starting capital per user
   const [cashBalance, setCashBalance] = useState<number>(() => {
-    const saved = localStorage.getItem('dhru_cash_balance');
-    return saved ? Number(saved) : 500000; // ₹5,00,000 starting margin
+    const saved = localStorage.getItem(userKey('cash_balance'));
+    return saved ? Number(saved) : 1000000;
   });
 
   const [realizedPnl, setRealizedPnl] = useState<number>(() => {
-    const saved = localStorage.getItem('dhru_realized_pnl');
-    return saved ? Number(saved) : 1850.00;
+    const saved = localStorage.getItem(userKey('realized_pnl'));
+    return saved ? Number(saved) : 0;
   });
 
   const [positions, setPositions] = useState<Position[]>(() => {
-    const saved = localStorage.getItem('dhru_positions');
+    const saved = localStorage.getItem(userKey('positions'));
     return saved ? JSON.parse(saved) : INITIAL_POSITIONS;
   });
 
   const [holdings, setHoldings] = useState<Holding[]>(() => {
-    const saved = localStorage.getItem('dhru_holdings');
+    const saved = localStorage.getItem(userKey('holdings'));
     return saved ? JSON.parse(saved) : INITIAL_HOLDINGS;
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('dhru_orders');
+    const saved = localStorage.getItem(userKey('orders'));
     return saved ? JSON.parse(saved) : [];
   });
 
   const [tradeHistory, setTradeHistory] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('dhru_trades');
+    const saved = localStorage.getItem(userKey('trades'));
     return saved ? JSON.parse(saved) : [];
   });
 
   const [brokerConfig, setBrokerConfig] = useState<BrokerConfig>(() => {
-    const saved = localStorage.getItem('dhru_broker_config');
+    const saved = localStorage.getItem(userKey('broker_config'));
     return saved ? JSON.parse(saved) : {
       broker: 'simulation',
       mode: 'simulation',
-      clientId: 'SIM-9824',
+      clientId: user?.displayName ? `TRADER-${user.displayName.replace(/\s+/g, '').toUpperCase()}` : 'SIM-9824',
       apiKey: '',
       connected: true,
       lastConnectedTime: new Date().toISOString()
@@ -249,25 +255,46 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [riskSettings, setRiskSettings] = useState<RiskSettings>(() => {
-    const saved = localStorage.getItem('dhru_risk_settings');
+    const saved = localStorage.getItem(userKey('risk_settings'));
     return saved ? JSON.parse(saved) : {
-      maxDailyLoss: 25000,
-      maxOrderValue: 200000,
+      maxDailyLoss: 50000,
+      maxOrderValue: 500000,
       requireConfirmation: true
     };
   });
 
-  // Sync state to localStorage
+  // Reload user-isolated portfolio whenever authenticated user switches
   useEffect(() => {
-    localStorage.setItem('dhru_cash_balance', String(cashBalance));
-    localStorage.setItem('dhru_realized_pnl', String(realizedPnl));
-    localStorage.setItem('dhru_positions', JSON.stringify(positions));
-    localStorage.setItem('dhru_holdings', JSON.stringify(holdings));
-    localStorage.setItem('dhru_orders', JSON.stringify(orders));
-    localStorage.setItem('dhru_trades', JSON.stringify(tradeHistory));
-    localStorage.setItem('dhru_broker_config', JSON.stringify(brokerConfig));
-    localStorage.setItem('dhru_risk_settings', JSON.stringify(riskSettings));
-  }, [cashBalance, realizedPnl, positions, holdings, orders, tradeHistory, brokerConfig, riskSettings]);
+    const savedBalance = localStorage.getItem(userKey('cash_balance'));
+    setCashBalance(savedBalance ? Number(savedBalance) : 1000000);
+
+    const savedRealized = localStorage.getItem(userKey('realized_pnl'));
+    setRealizedPnl(savedRealized ? Number(savedRealized) : 0);
+
+    const savedPos = localStorage.getItem(userKey('positions'));
+    setPositions(savedPos ? JSON.parse(savedPos) : INITIAL_POSITIONS);
+
+    const savedHoldings = localStorage.getItem(userKey('holdings'));
+    setHoldings(savedHoldings ? JSON.parse(savedHoldings) : INITIAL_HOLDINGS);
+
+    const savedOrders = localStorage.getItem(userKey('orders'));
+    setOrders(savedOrders ? JSON.parse(savedOrders) : []);
+
+    const savedTrades = localStorage.getItem(userKey('trades'));
+    setTradeHistory(savedTrades ? JSON.parse(savedTrades) : []);
+  }, [userKey]);
+
+  // Sync state to user-specific localStorage key
+  useEffect(() => {
+    localStorage.setItem(userKey('cash_balance'), String(cashBalance));
+    localStorage.setItem(userKey('realized_pnl'), String(realizedPnl));
+    localStorage.setItem(userKey('positions'), JSON.stringify(positions));
+    localStorage.setItem(userKey('holdings'), JSON.stringify(holdings));
+    localStorage.setItem(userKey('orders'), JSON.stringify(orders));
+    localStorage.setItem(userKey('trades'), JSON.stringify(tradeHistory));
+    localStorage.setItem(userKey('broker_config'), JSON.stringify(brokerConfig));
+    localStorage.setItem(userKey('risk_settings'), JSON.stringify(riskSettings));
+  }, [userKey, cashBalance, realizedPnl, positions, holdings, orders, tradeHistory, brokerConfig, riskSettings]);
 
   // Recalculate dynamic tick-by-tick P&L when prices stream in
   useEffect(() => {

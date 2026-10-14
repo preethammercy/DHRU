@@ -2,7 +2,7 @@
 // Ingests official NSE archives EQUITY_L.csv (2,600+ listed equities)
 // Combines with curated sector and market cap classifications.
 
-import { CURATED_STOCKS, INDICES, COMMODITIES_FOREX, ETFS, SECTORS } from '../data/instruments.js';
+import { CURATED_STOCKS, INDICES, COMMODITIES_FOREX, ETFS, SECTORS, CRYPTO_INSTRUMENTS, FOREX_INSTRUMENTS } from '../data/instruments.js';
 
 let fullStockDirectory = [];
 let directoryLoaded = false;
@@ -182,6 +182,34 @@ export function searchInstruments(query, limit = 20) {
         exchange: etf.exchange,
         category: 'ETF',
         relevance: etf.symbol.toUpperCase().includes(q) ? 90 : 60
+      });
+    }
+  }
+
+  // 3b. Search Crypto Instruments
+  for (const crypto of (CRYPTO_INSTRUMENTS || [])) {
+    if (crypto.symbol.toUpperCase().includes(q) || crypto.name.toUpperCase().includes(q)) {
+      results.push({
+        symbol: crypto.symbol,
+        name: crypto.name,
+        type: 'Crypto',
+        exchange: 'BINANCE/COINBASE',
+        category: 'Crypto',
+        relevance: crypto.symbol.toUpperCase().includes(q) ? 98 : 68
+      });
+    }
+  }
+
+  // 3c. Search Forex Instruments
+  for (const fx of (FOREX_INSTRUMENTS || [])) {
+    if (fx.symbol.toUpperCase().includes(q) || fx.name.toUpperCase().includes(q) || fx.category.toUpperCase().includes(q)) {
+      results.push({
+        symbol: fx.symbol,
+        name: fx.name,
+        type: 'Forex',
+        exchange: 'FOREX/GLOBAL',
+        category: fx.category || 'Currency',
+        relevance: fx.symbol.toUpperCase().includes(q) ? 95 : 65
       });
     }
   }

@@ -9,16 +9,15 @@ import {
   PieChart,
   Coins,
   Binary,
-  CalendarDays,
   Newspaper,
   BrainCircuit,
   ShieldAlert,
   CandlestickChart,
-  History,
   Bookmark,
   Sparkles,
-  Info
+  Globe2
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface NavigationProps {
   activeNav: string;
@@ -26,23 +25,22 @@ interface NavigationProps {
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }) => {
+  const { marketMode } = useAuth();
+
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'terminal', label: 'Live Terminal', icon: CandlestickChart },
-    { id: 'indices', label: 'All Indices', icon: TrendingUp },
-    { id: 'stocks', label: 'All Stocks', icon: ListFilter },
-    { id: 'sectors', label: 'Sectors', icon: PieChart },
+    { id: 'indices', label: marketMode === 'crypto_forex' ? 'Crypto Hub' : 'All Indices', icon: marketMode === 'crypto_forex' ? Globe2 : TrendingUp },
+    { id: 'stocks', label: marketMode === 'crypto_forex' ? 'Forex & Pairs' : 'All Stocks', icon: ListFilter },
+    { id: 'sectors', label: 'Sectors & Heatmap', icon: PieChart },
     { id: 'commodities', label: 'Commodities & FX', icon: Coins },
     { id: 'derivatives', label: 'Futures & Options', icon: Binary },
-    { id: 'ipo-actions', label: 'IPO & Actions', icon: CalendarDays },
     { id: 'news', label: 'Financial News', icon: Newspaper },
     { id: 'ai-predictions', label: 'AI Predictions', icon: BrainCircuit },
     { id: 'risk-monitor', label: 'Risk Monitor', icon: ShieldAlert },
-    { id: 'patterns', label: 'Patterns Scanner', icon: CandlestickChart },
-    { id: 'backtesting', label: 'Backtesting Studio', icon: History },
+    { id: 'patterns', label: 'AI Pattern Scanner', icon: CandlestickChart },
     { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
     { id: 'ask-dhru', label: 'Ask DHRU AI', icon: Sparkles },
-    { id: 'methodology', label: 'Methodology & Sources', icon: Info },
   ];
 
   return (
@@ -56,7 +54,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }
               <button
                 key={item.id}
                 onClick={() => onSelectNav(item.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap transform hover:scale-[1.03] active:scale-[0.98] ${
+                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all whitespace-nowrap transform hover:scale-[1.02] active:scale-[0.98] ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-slate-800/40'

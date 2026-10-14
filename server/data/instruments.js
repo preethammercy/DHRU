@@ -31,6 +31,35 @@ export const COMMODITIES_FOREX = [
   { symbol: 'GBPINR=X', name: 'GBP / INR', type: 'Forex', unit: '₹ per £', exchange: 'Forex', category: 'Currency', description: 'British Pound to Indian Rupee currency pair' },
 ];
 
+export const CRYPTO_INSTRUMENTS = [
+  { symbol: 'BTC-USD', name: 'Bitcoin', pair: 'BTC/USD', category: 'Layer 1 / Store of Value', exchange: 'Global Crypto', icon: 'Bitcoin', description: 'Decentralized digital currency and global benchmark crypto asset' },
+  { symbol: 'ETH-USD', name: 'Ethereum', pair: 'ETH/USD', category: 'Smart Contracts', exchange: 'Global Crypto', icon: 'Coins', description: 'Leading smart contract and decentralized application platform' },
+  { symbol: 'SOL-USD', name: 'Solana', pair: 'SOL/USD', category: 'High-Throughput L1', exchange: 'Global Crypto', icon: 'Zap', description: 'Ultra-fast Layer-1 blockchain for decentralized finance and web3' },
+  { symbol: 'XRP-USD', name: 'XRP (Ripple)', pair: 'XRP/USD', category: 'Payments', exchange: 'Global Crypto', icon: 'Repeat', description: 'Institutional real-time gross settlement and remittance network' },
+  { symbol: 'BNB-USD', name: 'Binance Coin', pair: 'BNB/USD', category: 'Exchange / Ecosystem', exchange: 'Global Crypto', icon: 'Shield', description: 'Utility and gas token powering the BNB Chain ecosystem' },
+  { symbol: 'DOGE-USD', name: 'Dogecoin', pair: 'DOGE/USD', category: 'Meme / Payment', exchange: 'Global Crypto', icon: 'Smile', description: 'Widely recognized peer-to-peer digital payment currency' },
+  { symbol: 'ADA-USD', name: 'Cardano', pair: 'ADA/USD', category: 'Proof-of-Stake L1', exchange: 'Global Crypto', icon: 'Layers', description: 'Peer-reviewed proof-of-stake blockchain platform' },
+  { symbol: 'AVAX-USD', name: 'Avalanche', pair: 'AVAX/USD', category: 'Subnets / L1', exchange: 'Global Crypto', icon: 'Flame', description: 'Customizable multi-chain blockchain platform for scalable dApps' },
+  { symbol: 'LINK-USD', name: 'Chainlink', pair: 'LINK/USD', category: 'Oracle / Infrastructure', exchange: 'Global Crypto', icon: 'Network', description: 'Decentralized oracle network bridging off-chain data to blockchains' },
+  { symbol: 'SUI-USD', name: 'Sui Network', pair: 'SUI/USD', category: 'Move VM L1', exchange: 'Global Crypto', icon: 'Boxes', description: 'Object-centric high-performance blockchain platform' }
+];
+
+export const FOREX_INSTRUMENTS = [
+  { symbol: 'EURUSD=X', name: 'EUR / USD', pair: 'EUR/USD', category: 'Major Forex', exchange: 'Interbank Forex', description: 'Euro to US Dollar - highest volume traded currency pair globally' },
+  { symbol: 'GBPUSD=X', name: 'GBP / USD (Cable)', pair: 'GBP/USD', category: 'Major Forex', exchange: 'Interbank Forex', description: 'British Pound Sterling to US Dollar' },
+  { symbol: 'USDJPY=X', name: 'USD / JPY (Gopher)', pair: 'USD/JPY', category: 'Major Forex', exchange: 'Interbank Forex', description: 'US Dollar to Japanese Yen - major Asian forex benchmark' },
+  { symbol: 'INR=X', name: 'USD / INR', pair: 'USD/INR', category: 'Exotic / Asia', exchange: 'RBI / Interbank', description: 'US Dollar to Indian Rupee reference exchange rate' },
+  { symbol: 'GBPINR=X', name: 'GBP / INR', pair: 'GBP/INR', category: 'Cross Currency', exchange: 'Forex', description: 'British Pound to Indian Rupee cross rate' },
+  { symbol: 'EURINR=X', name: 'EUR / INR', pair: 'EUR/INR', category: 'Cross Currency', exchange: 'Forex', description: 'Euro to Indian Rupee cross rate' },
+  { symbol: 'AUDUSD=X', name: 'AUD / USD (Aussie)', pair: 'AUD/USD', category: 'Commodity Currency', exchange: 'Interbank Forex', description: 'Australian Dollar to US Dollar' },
+  { symbol: 'USDCAD=X', name: 'USD / CAD (Loonie)', pair: 'USD/CAD', category: 'Commodity Currency', exchange: 'Interbank Forex', description: 'US Dollar to Canadian Dollar' },
+  { symbol: 'USDCHF=X', name: 'USD / CHF (Swissy)', pair: 'USD/CHF', category: 'Safe Haven Forex', exchange: 'Interbank Forex', description: 'US Dollar to Swiss Franc safe haven rate' },
+  { symbol: 'GC=F', name: 'Gold Spot (XAU/USD)', pair: 'XAU/USD', category: 'Precious Metals', exchange: 'COMEX / London Bullion', description: 'International gold bullion benchmark per troy ounce' },
+  { symbol: 'SI=F', name: 'Silver Spot (XAG/USD)', pair: 'XAG/USD', category: 'Precious Metals', exchange: 'COMEX', description: 'International spot silver benchmark' },
+  { symbol: 'CL=F', name: 'Crude Oil (WTI)', pair: 'WTI/USD', category: 'Energy', exchange: 'NYMEX', description: 'West Texas Intermediate crude oil benchmark' },
+  { symbol: 'BZ=F', name: 'Brent Crude Oil', pair: 'BRENT/USD', category: 'Energy', exchange: 'ICE', description: 'North Sea Brent crude oil global benchmark' }
+];
+
 export const ETFS = [
   { symbol: 'NIFTYBEES.NS', name: 'Nippon India ETF Nifty 50 BeES', exchange: 'NSE', underlying: 'NIFTY 50', expenseRatio: '0.04%', description: 'Highest liquidity passive ETF tracking NIFTY 50' },
   { symbol: 'BANKBEES.NS', name: 'Nippon India ETF Nifty Bank BeES', exchange: 'NSE', underlying: 'NIFTY Bank', expenseRatio: '0.19%', description: 'Direct exposure to top 12 Indian commercial banks' },

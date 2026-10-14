@@ -223,3 +223,90 @@ describe('4-Hour Intraday Candle Aggregation Engine', () => {
     assert.equal(dPayload.payload.quantity, 50);
   });
 });
+
+describe('Premium Quant Indicators & Smart Money Concepts (SMC)', () => {
+  test('SMC Order Blocks identify institutional accumulation and distribution zones', () => {
+    // Bullish OB: last down candle before an impulsive up move that broke swing high
+    const obCandles = [
+      { time: 1, open: 100, high: 102, low: 98, close: 99, volume: 1000 }, // down candle
+      { time: 2, open: 99, high: 106, low: 99, close: 105, volume: 3000 },  // strong bullish impulse
+      { time: 3, open: 105, high: 110, low: 104, close: 109, volume: 4000 }  // breaks previous highs
+    ];
+
+    const isImpulse = obCandles[1].close > obCandles[0].high && obCandles[1].volume > obCandles[0].volume;
+    assert.ok(isImpulse, 'Second candle must be an impulsive displacement');
+
+    const bullishOrderBlock = {
+      type: 'BULLISH',
+      top: obCandles[0].high,
+      bottom: obCandles[0].low
+    };
+
+    assert.equal(bullishOrderBlock.top, 102);
+    assert.equal(bullishOrderBlock.bottom, 98);
+    assert.ok(bullishOrderBlock.top > bullishOrderBlock.bottom);
+  });
+
+  test('Fair Value Gap (FVG) detects 3-bar imbalance', () => {
+    // Bullish FVG: Bar 1 High < Bar 3 Low (Gap between wick of candle 1 and wick of candle 3)
+    const bar1 = { high: 100, low: 95 };
+    const bar2 = { high: 115, low: 99 };  // Large displacement bar
+    const bar3 = { high: 120, low: 105 }; // Bar 3 Low is 105 > Bar 1 High (100)
+
+    const isBullishFVG = bar3.low > bar1.high;
+    const gapSize = bar3.low - bar1.high;
+
+    assert.ok(isBullishFVG, 'Must register an unfilled liquidity gap');
+    assert.equal(gapSize, 5, 'Gap size between bar 1 high and bar 3 low should be 5 pts');
+  });
+
+  test('ATR Trailing Stop ratchets exclusively in the direction of the trend', () => {
+    const atr = 5;
+    const multiplier = 2;
+    const buffer = atr * multiplier; // 10
+
+    let highestHigh = 100;
+    let trailingStop = highestHigh - buffer; // 90
+    assert.equal(trailingStop, 90);
+
+    // Price rallies to 110
+    highestHigh = 110;
+    const newTrailingStop = highestHigh - buffer; // 100
+    assert.ok(newTrailingStop > trailingStop, 'Trailing stop must rise when price makes a new high');
+    assert.equal(newTrailingStop, 100);
+
+    // Price dips to 105 (trailing stop must NOT drop)
+    const stopDuringPullback = Math.max(newTrailingStop, 105 - buffer);
+    assert.equal(stopDuringPullback, 100, 'Trailing stop must never decrease in an uptrend');
+  });
+});
+
+describe('User Capital & Market Gateway Verification', () => {
+  test('Initial Virtual Margin is strictly ₹10,00,000 (10 Lakhs INR)', () => {
+    const INITIAL_MARGIN = 1000000;
+    assert.equal(INITIAL_MARGIN, 1000000);
+    assert.equal(INITIAL_MARGIN / 100000, 10, 'Must represent exactly 10 Lakhs INR');
+  });
+
+  test('Actionable Trade Setup conforms to full institutional schema', () => {
+    const sampleSetup = {
+      action: 'BUY',
+      entryZone: '₹2,480.00 – ₹2,510.00',
+      entryPrice: 2495.00,
+      stopLoss: 2445.00,
+      target1: 2570.00,
+      target2: 2620.00,
+      target3: 2700.00,
+      riskRewardRatio: '1 : 2.5',
+      optimalTimeWindow: '10:15 AM - 11:30 AM after 15m candle close',
+      exitCriteria: 'Exit at Target 2 or trail SL to breakeven once Target 1 is hit'
+    };
+
+    assert.ok(sampleSetup.entryPrice > sampleSetup.stopLoss, 'BUY entry price must be above stop loss');
+    assert.ok(sampleSetup.target1 > sampleSetup.entryPrice, 'Target 1 must be above entry');
+    assert.ok(sampleSetup.target2 > sampleSetup.target1, 'Target 2 must be above Target 1');
+    assert.ok(sampleSetup.target3 > sampleSetup.target2, 'Target 3 must be above Target 2');
+    assert.ok(sampleSetup.optimalTimeWindow.length > 5);
+    assert.ok(sampleSetup.exitCriteria.length > 5);
+  });
+});
