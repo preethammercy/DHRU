@@ -2,6 +2,7 @@
 // Provides deterministic entry zones, invalidation stop losses, profit targets, entry times, and exit times.
 
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useMarketStream } from '../../context/MarketStreamContext';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -221,14 +222,18 @@ export const LivePredictionsModal: React.FC<LivePredictionsModalProps> = ({
   });
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const filteredSignals = PREDICTIVE_SIGNALS.filter(sig => {
     if (filter === 'all') return true;
     return sig.market === filter;
   });
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200"
+      style={{ zIndex: 99999 }}
+    >
       <div 
         className="relative w-full max-w-5xl bg-white dark:bg-[#0A101D] border border-slate-200 dark:border-[#1E293B] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
@@ -472,4 +477,6 @@ export const LivePredictionsModal: React.FC<LivePredictionsModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

@@ -711,6 +711,10 @@ MOBILE & RESPONSIVE IMPROVEMENTS
     box-shadow: none !important;
   }
 
+  .card-3d {
+    transform-style: flat !important;
+  }
+
   .zoom-card:active,
   .card-3d:active {
     transform: scale(0.98) !important;

@@ -2,6 +2,7 @@
 // Real-time instant search across 2,600+ equities, indices, commodities, ETFs, and sectors.
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, X, TrendingUp, Building2, Coins, Compass, ArrowRight, Sparkles } from 'lucide-react';
 import { searchMarket } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -96,10 +97,15 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
         { label: 'Gold (MCX Proxy)', sym: 'GC=F' },
       ];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+  if (typeof document === 'undefined') return null;
+
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[99999] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+      style={{ zIndex: 99999 }}
+    >
       <div
-        className="w-full max-w-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+        className="w-full max-w-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] relative z-10"
         onClick={e => e.stopPropagation()}
       >
         {/* Search Header Bar */}
@@ -265,4 +271,6 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

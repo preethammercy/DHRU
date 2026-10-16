@@ -2,7 +2,8 @@
 // Spacious, highly organized, native app-like drawer for mobile devices.
 // Features 3-line menu activation, categorized navigation, desk switcher, quick-access chips, and theme toggle.
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   LayoutDashboard,
@@ -61,6 +62,17 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
 
   const isCrypto = marketMode === 'crypto';
 
+  // Prevent background scrolling when mobile drawer is open
+  useEffect(() => {
+    if (isOpen && typeof document !== 'undefined') {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   const handleNavClick = (page: string) => {
     onSelectNav(page);
     onClose();
@@ -78,18 +90,35 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
   };
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
-    <div className="fixed inset-0 z-50 lg:hidden flex">
+  const drawerElement = (
+    <div
+      className="fixed inset-0 z-[999999] lg:hidden flex isolate"
+      style={{
+        zIndex: 999999,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100dvh'
+      }}
+    >
       {/* 1. Backdrop overlay */}
       <div
         className="fixed inset-0 bg-slate-900/70 dark:bg-black/85 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
         aria-hidden="true"
+        style={{ zIndex: 999999 }}
       />
 
       {/* 2. Off-canvas sliding drawer container */}
-      <div className="relative w-[86vw] max-w-[320px] bg-white dark:bg-[#070B14] text-slate-900 dark:text-slate-100 h-full shadow-2xl flex flex-col z-10 overflow-hidden transform transition-transform duration-300 ease-out border-r border-slate-200 dark:border-[#1A2744]">
+      <div
+        className="relative w-[86vw] max-w-[320px] bg-white dark:bg-[#070B14] text-slate-900 dark:text-slate-100 h-full h-[100dvh] shadow-2xl flex flex-col z-[1000000] overflow-hidden transform transition-transform duration-300 ease-out border-r border-slate-200 dark:border-[#1A2744]"
+        style={{ zIndex: 1000000 }}
+      >
         
         {/* Header with Logo, Version Badge, and Close Button */}
         <div className="p-4 border-b border-slate-200 dark:border-[#1A2744] flex items-center justify-between bg-slate-50/80 dark:bg-[#0D1527]/80">
@@ -392,4 +421,6 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(drawerElement, document.body);
 };

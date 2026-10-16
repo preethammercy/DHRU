@@ -3,6 +3,7 @@
 // Professional institutional FinTech design with 3D badges and smooth animations.
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth, MarketMode } from '../../context/AuthContext';
 import { ShieldCheck, CheckCircle2, ArrowRight, Zap, X, Coins } from 'lucide-react';
 
@@ -20,6 +21,7 @@ export const MarketSelectorModal: React.FC<MarketSelectorModalProps> = ({
   const { marketMode, setMarketMode, user } = useAuth();
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const handleSelect = (mode: MarketMode) => {
     setMarketMode(mode);
@@ -27,10 +29,13 @@ export const MarketSelectorModal: React.FC<MarketSelectorModalProps> = ({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200"
+      style={{ zIndex: 99999 }}
+    >
       <div 
-        className="relative w-full max-w-2xl bg-white dark:bg-[#0A101D] border border-slate-200 dark:border-[#1E293B] rounded-3xl shadow-2xl overflow-hidden transition-all transform scale-100"
+        className="relative w-full max-w-2xl bg-white dark:bg-[#0A101D] border border-slate-200 dark:border-[#1E293B] rounded-3xl shadow-2xl overflow-hidden transition-all transform scale-100 z-10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Glow */}
@@ -157,4 +162,6 @@ export const MarketSelectorModal: React.FC<MarketSelectorModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

@@ -12,6 +12,7 @@ import { MarketStatus } from './types';
 import { getMarketStatus } from './services/api';
 import { DhruLogo } from './components/common/DhruLogo';
 import { useScrollAnimation } from './hooks/useScrollAnimation';
+import { MobileSidebarDrawer } from './components/common/MobileSidebarDrawer';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
@@ -91,6 +92,7 @@ function AppContent() {
   const [askDhruQuestion, setAskDhruQuestion] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [predictionsModalOpen, setPredictionsModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
 
   const { user, loading, showMarketSelector, setShowMarketSelector, marketMode } = useAuth();
@@ -182,6 +184,7 @@ function AppContent() {
         onSelectNav={setActiveNav}
         activeNav={activeNav}
         onOpenPredictions={() => setPredictionsModalOpen(true)}
+        onOpenMobileMenu={() => setMobileMenuOpen(true)}
       />
 
       {/* 2. Top Module Navigation Strip */}
@@ -290,7 +293,16 @@ function AppContent() {
         )}
       </main>
 
-      {/* 4. Global Modals */}
+      {/* 4. Global Modals & Mobile Drawer */}
+      <MobileSidebarDrawer
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        activeNav={activeNav}
+        onSelectNav={setActiveNav}
+        onOpenSearch={() => setSearchOpen(true)}
+        onOpenPredictions={() => setPredictionsModalOpen(true)}
+      />
+
       <UniversalSearchModal
         isOpen={searchOpen}
         onClose={() => setSearchOpen(false)}
