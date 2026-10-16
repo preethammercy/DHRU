@@ -75,31 +75,31 @@ const US_EQUITIES = new Set(['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'A
 // Baseline quotes map so cache is primed even on serverless cold starts
 const BASELINE_DATA = {
   // Cryptos (24/7)
-  'BTC-USD': { name: 'Bitcoin USD', price: 68450.00, previousClose: 67200.00 },
-  'ETH-USD': { name: 'Ethereum USD', price: 3520.50, previousClose: 3460.00 },
-  'SOL-USD': { name: 'Solana USD', price: 155.80, previousClose: 149.20 },
-  'XRP-USD': { name: 'XRP USD', price: 0.5840, previousClose: 0.5690 },
-  'BNB-USD': { name: 'Binance Coin USD', price: 592.40, previousClose: 585.00 },
-  'DOGE-USD': { name: 'Dogecoin USD', price: 0.1245, previousClose: 0.1190 },
-  'SUI-USD': { name: 'Sui Network USD', price: 2.15, previousClose: 1.98 },
-  'ADA-USD': { name: 'Cardano USD', price: 0.3540, previousClose: 0.3470 },
-  'AVAX-USD': { name: 'Avalanche USD', price: 28.50, previousClose: 27.80 },
-  'LINK-USD': { name: 'Chainlink USD', price: 11.85, previousClose: 11.40 },
-  'NEAR-USD': { name: 'NEAR Protocol USD', price: 4.95, previousClose: 4.75 },
+  'BTC-USD': { name: 'Bitcoin USD', price: 80918.56, previousClose: 82132.23 },
+  'ETH-USD': { name: 'Ethereum USD', price: 2403.62, previousClose: 2439.85 },
+  'SOL-USD': { name: 'Solana USD', price: 103.33, previousClose: 105.33 },
+  'XRP-USD': { name: 'XRP USD', price: 1.2986, previousClose: 1.3332 },
+  'BNB-USD': { name: 'Binance Coin USD', price: 720.34, previousClose: 728.65 },
+  'DOGE-USD': { name: 'Dogecoin USD', price: 0.0798, previousClose: 0.0811 },
+  'SUI-USD': { name: 'Sui Network USD', price: 2.15, previousClose: 2.10 },
+  'ADA-USD': { name: 'Cardano USD', price: 0.2229, previousClose: 0.2297 },
+  'AVAX-USD': { name: 'Avalanche USD', price: 9.96, previousClose: 10.03 },
+  'LINK-USD': { name: 'Chainlink USD', price: 12.26, previousClose: 12.45 },
+  'NEAR-USD': { name: 'NEAR Protocol USD', price: 4.96, previousClose: 5.25 },
   'PEPE-USD': { name: 'Pepe USD', price: 0.0000098, previousClose: 0.0000094 },
   'APT-USD': { name: 'Aptos USD', price: 9.85, previousClose: 9.40 },
   'RENDER-USD': { name: 'Render Token USD', price: 5.75, previousClose: 5.50 },
 
   // Indian Indices
-  '^NSEI': { name: 'NIFTY 50', price: 24854.20, previousClose: 24780.00 },
-  '^BSESN': { name: 'BSE SENSEX', price: 81350.50, previousClose: 81120.00 },
-  '^NSEBANK': { name: 'BANK NIFTY', price: 51240.20, previousClose: 51050.00 },
+  '^NSEI': { name: 'NIFTY 50', price: 23146.15, previousClose: 22622.70 },
+  '^BSESN': { name: 'BSE SENSEX', price: 74729.27, previousClose: 72781.90 },
+  '^NSEBANK': { name: 'BANK NIFTY', price: 55844.00, previousClose: 55316.00 },
   '^CNXIT': { name: 'NIFTY IT', price: 41920.00, previousClose: 41650.00 },
 
   // Indian Top Equities
-  'RELIANCE.NS': { name: 'Reliance Industries Ltd.', price: 2942.50, previousClose: 2915.00 },
-  'TCS.NS': { name: 'Tata Consultancy Services', price: 4185.00, previousClose: 4150.00 },
-  'HDFCBANK.NS': { name: 'HDFC Bank Ltd.', price: 1675.25, previousClose: 1660.00 },
+  'RELIANCE.NS': { name: 'Reliance Industries Ltd.', price: 1211.20, previousClose: 1215.00 },
+  'TCS.NS': { name: 'Tata Consultancy Services', price: 2465.00, previousClose: 2350.00 },
+  'HDFCBANK.NS': { name: 'HDFC Bank Ltd.', price: 728.85, previousClose: 726.85 },
   'INFY.NS': { name: 'Infosys Ltd.', price: 1890.60, previousClose: 1872.00 },
   'ICICIBANK.NS': { name: 'ICICI Bank Ltd.', price: 1245.00, previousClose: 1232.00 },
   'SBIN.NS': { name: 'State Bank of India', price: 845.20, previousClose: 838.00 },
@@ -109,8 +109,8 @@ const BASELINE_DATA = {
   'LT.NS': { name: 'Larsen & Toubro Ltd.', price: 3580.00, previousClose: 3540.00 },
 
   // Forex & Global Macro
-  'EURUSD=X': { name: 'EUR / USD', price: 1.0875, previousClose: 1.0860 },
-  'GBPUSD=X': { name: 'GBP / USD', price: 1.3020, previousClose: 1.2995 },
+  'EURUSD=X': { name: 'EUR / USD', price: 1.1227, previousClose: 1.1221 },
+  'GBPUSD=X': { name: 'GBP / USD', price: 1.3315, previousClose: 1.3274 },
   'USDJPY=X': { name: 'USD / JPY', price: 149.85, previousClose: 150.10 },
   'INR=X': { name: 'USD / INR', price: 83.98, previousClose: 83.95 },
   'GBPINR=X': { name: 'GBP / INR', price: 109.35, previousClose: 109.10 },
@@ -120,15 +120,15 @@ const BASELINE_DATA = {
   'USDCAD=X': { name: 'USD / CAD', price: 1.3820, previousClose: 1.3835 },
   'USDCHF=X': { name: 'USD / CHF', price: 0.8650, previousClose: 0.8665 },
   'NZDUSD=X': { name: 'NZD / USD', price: 0.6050, previousClose: 0.6035 },
-  'GC=F': { name: 'Gold Futures (USD/oz)', price: 2720.50, previousClose: 2705.00 },
+  'GC=F': { name: 'Gold Futures (USD/oz)', price: 4181.20, previousClose: 4170.10 },
   'SI=F': { name: 'Silver Futures', price: 33.65, previousClose: 33.20 },
   'CL=F': { name: 'Crude Oil WTI', price: 71.40, previousClose: 70.80 },
 
   // US Global Equities
-  'AAPL': { name: 'Apple Inc.', price: 232.50, previousClose: 230.10 },
-  'NFLX': { name: 'Netflix Inc.', price: 710.20, previousClose: 702.50 },
-  'NVDA': { name: 'NVIDIA Corp.', price: 138.50, previousClose: 135.20 },
-  'TSLA': { name: 'Tesla Inc.', price: 220.80, previousClose: 217.40 },
+  'AAPL': { name: 'Apple Inc.', price: 343.29, previousClose: 342.00 },
+  'NFLX': { name: 'Netflix Inc.', price: 70.52, previousClose: 72.61 },
+  'NVDA': { name: 'NVIDIA Corp.', price: 215.54, previousClose: 217.23 },
+  'TSLA': { name: 'Tesla Inc.', price: 353.18, previousClose: 362.44 },
   'MSFT': { name: 'Microsoft Corp.', price: 418.60, previousClose: 415.00 },
   'GOOGL': { name: 'Alphabet Inc.', price: 165.40, previousClose: 164.00 },
   'AMZN': { name: 'Amazon.com Inc.', price: 188.20, previousClose: 186.50 },
@@ -156,6 +156,26 @@ export function ensureBaselineCache() {
       isLive: isInstrumentLive(sym)
     });
   }
+}
+
+// Ingest fresh quote directly into stream cache to eliminate discrepancies
+export function ingestFreshQuote(q) {
+  if (!q || !q.symbol || typeof q.price !== 'number' || q.price <= 0) return;
+  const existing = liveTickCache.get(q.symbol);
+  liveTickCache.set(q.symbol, {
+    symbol: q.symbol,
+    name: q.name || existing?.name || q.symbol,
+    price: q.price,
+    previousClose: q.previousClose || q.price,
+    change: q.change !== undefined ? q.change : (existing?.change || 0),
+    changePercent: q.changePercent !== undefined ? q.changePercent : (existing?.changePercent || 0),
+    dayHigh: q.dayHigh || Math.max(existing?.dayHigh || 0, q.price),
+    dayLow: q.dayLow || Math.min(existing?.dayLow || q.price, q.price),
+    volume: q.volume || existing?.volume || 100000,
+    lastFetchTime: Date.now(),
+    lastTickTime: Date.now(),
+    isLive: isInstrumentLive(q.symbol)
+  });
 }
 
 // REST Polling Endpoint Handler (Vercel Serverless Compatible)

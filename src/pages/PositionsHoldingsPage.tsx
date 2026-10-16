@@ -164,15 +164,15 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
         {/* Card 1: Total Portfolio Value */}
         <div className="p-4 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
-            <span>Portfolio Value</span>
+            <span>Portfolio Net Equity</span>
             <PieChart className="w-4 h-4 text-blue-500" />
           </div>
           <div className="mt-2">
             <span className="text-lg sm:text-2xl font-black font-mono text-slate-900 dark:text-white">
-              {formatCurrency(totalCurrentValue)}
+              {formatCurrency(totalCurrentValue + cashBalance + totalUnrealizedPnl)}
             </span>
-            <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-              Invested: <strong>{formatCurrency(totalInvested)}</strong>
+            <div className="text-[11px] text-slate-500 font-mono mt-0.5 truncate">
+              Cash: <strong>{formatCurrency(cashBalance)}</strong> {totalCurrentValue > 0 ? `• Holdings: ${formatCurrency(totalCurrentValue)}` : ''}
             </div>
           </div>
         </div>
@@ -202,7 +202,7 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
         {/* Card 3: Today's Day P&L */}
         <div className="p-4 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
-            <span>Today's P&L</span>
+            <span>Today's Total P&L</span>
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
           <div className="mt-2">
@@ -211,8 +211,11 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
             }`}>
               {totalDayPnl >= 0 ? '+' : ''}{formatCurrency(totalDayPnl)}
             </span>
-            <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-              Realized: <strong>{formatCurrency(realizedPnl)}</strong>
+            <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center justify-between">
+              <span>Realized:</span>
+              <strong className={realizedPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                {realizedPnl >= 0 ? '+' : ''}{formatCurrency(realizedPnl)}
+              </strong>
             </div>
           </div>
         </div>
@@ -762,44 +765,109 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-50 dark:bg-[#070B14] text-slate-500 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider font-mono">
-                      <tr>
-                        <th className="py-3 px-4">Execution Time</th>
-                        <th className="py-3 px-4">Instrument</th>
-                        <th className="py-3 px-4">Side</th>
-                        <th className="py-3 px-4">Product</th>
-                        <th className="py-3 px-4 text-right">Quantity</th>
-                        <th className="py-3 px-4 text-right">Executed Price</th>
-                        <th className="py-3 px-4 text-right">Total Turnover</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
-                      {filteredHistory.map(t => (
-                        <tr key={t.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                          <td className="py-3.5 px-4 text-slate-400">{t.executedAt || t.placedAt}</td>
-                          <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white font-sans">{t.symbol}</td>
-                          <td className="py-3.5 px-4">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                <>
+                  {/* Mobile Trade Cards (< md) */}
+                  <div className="grid grid-cols-1 gap-3 md:hidden">
+                    {filteredHistory.map(t => (
+                      <div
+                        key={t.id}
+                        className="p-4 rounded-2xl bg-slate-50/80 dark:bg-[#070B14] border border-slate-200/90 dark:border-slate-800 space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-sm text-slate-900 dark:text-white font-sans">{t.symbol}</span>
+                            <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
                               t.side === 'BUY'
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
                                 : 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300'
                             }`}>
-                              {t.side}
+                              {t.side} • {t.product}
                             </span>
-                          </td>
-                          <td className="py-3.5 px-4">{t.product}</td>
-                          <td className="py-3.5 px-4 text-right">{t.filledQuantity || t.quantity}</td>
-                          <td className="py-3.5 px-4 text-right font-bold">{formatCurrency(t.price)}</td>
-                          <td className="py-3.5 px-4 text-right font-semibold">
-                            {formatCurrency((t.filledQuantity || t.quantity) * t.price)}
-                          </td>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-mono">{t.executedAt || t.placedAt}</span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 py-2 px-3 rounded-xl bg-white dark:bg-[#0D1527] border border-slate-200/70 dark:border-slate-800/70 text-xs font-mono">
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase">Qty</span>
+                            <p className="font-bold text-slate-800 dark:text-slate-200">{t.filledQuantity || t.quantity}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase">Price</span>
+                            <p className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(t.price)}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase">Turnover</span>
+                            <p className="font-bold text-slate-900 dark:text-white">{formatCurrency((t.filledQuantity || t.quantity) * t.price)}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 text-xs">
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Trade P&L Result:</span>
+                          {t.pnl !== undefined ? (
+                            <span className={`font-mono font-black text-sm ${
+                              t.pnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                            }`}>
+                              {t.pnl >= 0 ? '+' : ''}{formatCurrency(t.pnl)}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 font-mono text-[11px]">Position Opened</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-slate-50 dark:bg-[#070B14] text-slate-500 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider font-mono">
+                        <tr>
+                          <th className="py-3 px-4">Execution Time</th>
+                          <th className="py-3 px-4">Instrument</th>
+                          <th className="py-3 px-4">Side</th>
+                          <th className="py-3 px-4">Product</th>
+                          <th className="py-3 px-4 text-right">Quantity</th>
+                          <th className="py-3 px-4 text-right">Executed Price</th>
+                          <th className="py-3 px-4 text-right">Total Turnover</th>
+                          <th className="py-3 px-4 text-right">Realized P&L</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
+                        {filteredHistory.map(t => (
+                          <tr key={t.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="py-3.5 px-4 text-slate-400">{t.executedAt || t.placedAt}</td>
+                            <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white font-sans">{t.symbol}</td>
+                            <td className="py-3.5 px-4">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                t.side === 'BUY'
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300'
+                              }`}>
+                                {t.side}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4">{t.product}</td>
+                            <td className="py-3.5 px-4 text-right">{t.filledQuantity || t.quantity}</td>
+                            <td className="py-3.5 px-4 text-right font-bold">{formatCurrency(t.price)}</td>
+                            <td className="py-3.5 px-4 text-right font-semibold">
+                              {formatCurrency((t.filledQuantity || t.quantity) * t.price)}
+                            </td>
+                            <td className="py-3.5 px-4 text-right font-mono font-bold">
+                              {t.pnl !== undefined ? (
+                                <span className={t.pnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                                  {t.pnl >= 0 ? '+' : ''}{formatCurrency(t.pnl)}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 text-[11px] font-sans font-normal">Entry / Placed</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           )}

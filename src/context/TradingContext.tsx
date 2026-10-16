@@ -54,6 +54,7 @@ export interface Order {
   placedAt: string;
   executedAt?: string;
   rejectionReason?: string;
+  pnl?: number;
 }
 
 export interface BrokerConfig {
@@ -383,7 +384,11 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
               // Position fully closed
               const closedQty = existing.quantity;
               const bookedDiff = existing.side === 'BUY' ? (execPrice - existing.averagePrice) : (existing.averagePrice - execPrice);
-              const bookedProfit = Number((bookedDiff * closedQty).toFixed(2));
+              let bookedProfit = Number((bookedDiff * closedQty).toFixed(2));
+              if (bookedProfit === 0 && existing.pnl !== 0 && existing.pnl !== undefined) {
+                bookedProfit = existing.pnl;
+              }
+              order.pnl = bookedProfit;
               setRealizedPnl(r => Number((r + bookedProfit).toFixed(2)));
               setCashBalance(c => Number((c + bookedProfit).toFixed(2)));
 
@@ -395,6 +400,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
               const remainingQty = existing.quantity - order.quantity;
               const bookedDiff = existing.side === 'BUY' ? (execPrice - existing.averagePrice) : (existing.averagePrice - execPrice);
               const bookedProfit = Number((bookedDiff * closedQty).toFixed(2));
+              order.pnl = bookedProfit;
               setRealizedPnl(r => Number((r + bookedProfit).toFixed(2)));
               setCashBalance(c => Number((c + bookedProfit).toFixed(2)));
 
@@ -475,7 +481,8 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             const remainingQty = h.quantity - sellQty;
             const saleProceeds = sellQty * execPrice;
             const costBasis = sellQty * h.averagePrice;
-            const profit = saleProceeds - costBasis;
+            const profit = Number((saleProceeds - costBasis).toFixed(2));
+            order.pnl = profit;
 
             setRealizedPnl(r => Number((r + profit).toFixed(2)));
             setCashBalance(c => Number((c + saleProceeds).toFixed(2)));
@@ -603,11 +610,17 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!pos) return;
 
     const tick = ticks[pos.symbol];
-    const exitPrice = tick?.price || pos.currentPrice;
+    const exitPrice = tick?.price || pos.currentPrice || pos.averagePrice;
+
+    const bookedDiff = pos.side === 'BUY' ? (exitPrice - pos.averagePrice) : (pos.averagePrice - exitPrice);
+    let bookedProfit = Number((bookedDiff * pos.quantity).toFixed(2));
+    if (bookedProfit === 0 && pos.pnl !== 0 && pos.pnl !== undefined) {
+      bookedProfit = pos.pnl;
+    }
 
     // Opposite order
     const closeOrder: Order = {
-      id: `SQ_${Date.now()}`,
+      id: `SQ_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       symbol: pos.symbol,
       name: pos.name,
       side: pos.side === 'BUY' ? 'SELL' : 'BUY',
@@ -618,11 +631,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       price: exitPrice,
       status: 'EXECUTED',
       placedAt: new Date().toLocaleTimeString(),
-      executedAt: new Date().toLocaleTimeString()
+      executedAt: new Date().toLocaleTimeString(),
+      pnl: bookedProfit
     };
-
-    const bookedDiff = pos.side === 'BUY' ? (exitPrice - pos.averagePrice) : (pos.averagePrice - exitPrice);
-    const bookedProfit = Number((bookedDiff * pos.quantity).toFixed(2));
 
     setRealizedPnl(r => Number((r + bookedProfit).toFixed(2)));
     setCashBalance(c => Number((c + bookedProfit).toFixed(2)));
@@ -633,10 +644,41 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Square off all open positions
   const squareOffAll = useCallback(() => {
+    if (positions.length === 0) return;
+    let totalBooked = 0;
+    const closeOrders: Order[] = [];
     for (const pos of positions) {
-      squareOffPosition(pos.id);
+      const tick = ticks[pos.symbol];
+      const exitPrice = tick?.price || pos.currentPrice || pos.averagePrice;
+      const bookedDiff = pos.side === 'BUY' ? (exitPrice - pos.averagePrice) : (pos.averagePrice - exitPrice);
+      let bookedProfit = Number((bookedDiff * pos.quantity).toFixed(2));
+      if (bookedProfit === 0 && pos.pnl !== 0 && pos.pnl !== undefined) {
+        bookedProfit = pos.pnl;
+      }
+      totalBooked += bookedProfit;
+      closeOrders.push({
+        id: `SQ_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        symbol: pos.symbol,
+        name: pos.name,
+        side: pos.side === 'BUY' ? 'SELL' : 'BUY',
+        product: pos.product,
+        orderType: 'MARKET',
+        quantity: pos.quantity,
+        filledQuantity: pos.quantity,
+        price: exitPrice,
+        status: 'EXECUTED',
+        placedAt: new Date().toLocaleTimeString(),
+        executedAt: new Date().toLocaleTimeString(),
+        pnl: bookedProfit
+      });
     }
-  }, [positions, squareOffPosition]);
+
+    setRealizedPnl(r => Number((r + totalBooked).toFixed(2)));
+    setCashBalance(c => Number((c + totalBooked).toFixed(2)));
+    setPositions([]);
+    setOrders(o => [...closeOrders, ...o]);
+    setTradeHistory(th => [...closeOrders, ...th]);
+  }, [positions, ticks]);
 
   const updateBrokerConfig = useCallback((newConfig: Partial<BrokerConfig>) => {
     setBrokerConfig(prev => ({ ...prev, ...newConfig }));
@@ -673,8 +715,8 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const totalDayPnl = useMemo(() => {
     const posDay = positions.reduce((sum, p) => sum + p.dayPnl, 0);
     const holdDay = holdings.reduce((sum, h) => sum + h.dayPnl, 0);
-    return Number((posDay + holdDay).toFixed(2));
-  }, [positions, holdings]);
+    return Number((posDay + holdDay + realizedPnl).toFixed(2));
+  }, [positions, holdings, realizedPnl]);
 
   const marginUsed = useMemo(() => {
     return positions.reduce((sum, p) => sum + (p.averagePrice * p.quantity * 0.2), 0);

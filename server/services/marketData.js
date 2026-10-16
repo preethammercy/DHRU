@@ -66,6 +66,8 @@ export async function fetchInstrumentQuote(symbol) {
     };
 
     quoteCache.set(symbol, { data, cachedAt: Date.now() });
+    // Keep streaming cache aligned with verified live quotes to prevent price glitching
+    import('./marketStream.js').then(m => m.ingestFreshQuote(data)).catch(() => {});
     return data;
   } catch (err) {
     console.error(`[MarketData] Error fetching quote for ${symbol}:`, err.message);

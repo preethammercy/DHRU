@@ -639,6 +639,11 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
                 {totalUnrealizedPnl >= 0 ? '+' : ''}{marketMode === 'crypto' ? '$' : '₹'}{totalUnrealizedPnl.toFixed(2)}
               </strong>
               <span>•</span>
+              <span>Realized P&L:</span>
+              <strong className={`font-bold ${realizedPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {realizedPnl >= 0 ? '+' : ''}{marketMode === 'crypto' ? '$' : '₹'}{realizedPnl.toFixed(2)}
+              </strong>
+              <span>•</span>
               <span>Available Margin: <strong>{marketMode === 'crypto' ? '$' : '₹'}{marginAvailable.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
             </p>
           </div>

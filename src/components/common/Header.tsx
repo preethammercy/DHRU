@@ -1,14 +1,13 @@
 // DHRU.AI - Main Header Component
 // Features 'D' Monogram Logo, White & Blue Fintrix theme, Live Market Status with IST clock,
 // Firebase Google Auth login, ₹10,00,000 Trading Capital indicator, Market Mode Toggle,
-// Universal Search bar, Theme toggle, and Watchlist counter.
+// Universal Search bar, and Theme toggle.
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Sun,
   Moon,
-  Bookmark,
   Menu,
   X,
   Sparkles,
@@ -21,7 +20,6 @@ import {
   User
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import { useWatchlist } from '../../context/WatchlistContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTrading } from '../../context/TradingContext';
 import { MarketStatus } from '../../types';
@@ -45,7 +43,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMobileMenu,
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const { watchlist } = useWatchlist();
   const { user, signInWithGoogle, signOut, marketMode, setShowMarketSelector } = useAuth();
   const { marginAvailable } = useTrading();
 
@@ -65,8 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const formatMargin = (val: number) => {
     if (marketMode === 'crypto') {
-      const usdVal = val / 83.33;
-      return `$${usdVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      return `$${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     }
     if (val >= 100000) {
       return `₹${(val / 100000).toFixed(2)}L`;
@@ -221,24 +217,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
             Ask DHRU
-          </button>
-
-          {/* Watchlist Counter Button */}
-          <button
-            onClick={() => onSelectNav('watchlist')}
-            className={`relative p-2 rounded-xl border transition-all cursor-pointer ${
-              activeNav === 'watchlist'
-                ? 'bg-blue-50 dark:bg-cyan-500/15 border-blue-300 dark:border-cyan-500/40 text-blue-600 dark:text-cyan-400 shadow-xs'
-                : 'bg-white dark:bg-[#0D1527] border-slate-200 dark:border-[#1A2744] text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:border-blue-300'
-            }`}
-            title="My Watchlist"
-          >
-            <Bookmark className="w-4 h-4" />
-            {watchlist.length > 0 && (
-              <span className="absolute -top-1 -right-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-blue-600 text-white shadow-xs">
-                {watchlist.length}
-              </span>
-            )}
           </button>
 
           {/* Theme Toggle */}

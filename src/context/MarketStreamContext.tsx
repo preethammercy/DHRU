@@ -24,6 +24,7 @@ interface MarketStreamContextType {
   isMarketLive: boolean;
   subscribeSymbol: (symbol: string) => void;
   getQuote: (symbol: string, fallback?: any) => LiveTick | null;
+  syncQuote: (quote: Partial<LiveTick> & { symbol: string; price: number }) => void;
 }
 
 const MarketStreamContext = createContext<MarketStreamContextType>({
@@ -32,28 +33,35 @@ const MarketStreamContext = createContext<MarketStreamContextType>({
   isMarketLive: false,
   subscribeSymbol: () => {},
   getQuote: () => null,
+  syncQuote: () => {},
 });
 
 // Seed quotes map so components have immediate data on first paint
 const INITIAL_SEEDS: Record<string, Partial<LiveTick>> = {
-  'BTC-USD': { price: 68450.00, previousClose: 67200.00, change: 1250.00, changePercent: 1.86, isLive: true },
-  'ETH-USD': { price: 3520.50, previousClose: 3460.00, change: 60.50, changePercent: 1.75, isLive: true },
-  'SOL-USD': { price: 155.80, previousClose: 149.20, change: 6.60, changePercent: 4.42, isLive: true },
-  'XRP-USD': { price: 0.5840, previousClose: 0.5690, change: 0.015, changePercent: 2.64, isLive: true },
-  'BNB-USD': { price: 592.40, previousClose: 585.00, change: 7.40, changePercent: 1.26, isLive: true },
-  'DOGE-USD': { price: 0.1245, previousClose: 0.1190, change: 0.0055, changePercent: 4.62, isLive: true },
-  'SUI-USD': { price: 2.15, previousClose: 1.98, change: 0.17, changePercent: 8.59, isLive: true },
-  '^NSEI': { price: 24854.20, previousClose: 24780.00, change: 74.20, changePercent: 0.30, isLive: false },
-  '^NSEBANK': { price: 51240.20, previousClose: 51050.00, change: 190.20, changePercent: 0.37, isLive: false },
-  '^BSESN': { price: 81350.50, previousClose: 81120.00, change: 230.50, changePercent: 0.28, isLive: false },
-  'RELIANCE.NS': { price: 2942.50, previousClose: 2915.00, change: 27.50, changePercent: 0.94, isLive: false },
-  'TCS.NS': { price: 4185.00, previousClose: 4150.00, change: 35.00, changePercent: 0.84, isLive: false },
-  'HDFCBANK.NS': { price: 1675.25, previousClose: 1660.00, change: 15.25, changePercent: 0.92, isLive: false },
-  'EURUSD=X': { price: 1.0875, previousClose: 1.0860, change: 0.0015, changePercent: 0.14, isLive: true },
-  'GBPUSD=X': { price: 1.3020, previousClose: 1.2995, change: 0.0025, changePercent: 0.19, isLive: true },
-  'AAPL': { price: 232.50, previousClose: 230.10, change: 2.40, changePercent: 1.04, isLive: false },
-  'NFLX': { price: 710.20, previousClose: 702.50, change: 7.70, changePercent: 1.10, isLive: false },
-  'NVDA': { price: 138.50, previousClose: 135.20, change: 3.30, changePercent: 2.44, isLive: false }
+  'BTC-USD': { price: 80918.56, previousClose: 82132.23, change: -1213.67, changePercent: -1.48, isLive: true },
+  'ETH-USD': { price: 2403.62, previousClose: 2439.85, change: -36.23, changePercent: -1.48, isLive: true },
+  'SOL-USD': { price: 103.33, previousClose: 105.33, change: -2.00, changePercent: -1.90, isLive: true },
+  'XRP-USD': { price: 1.2986, previousClose: 1.3332, change: -0.0346, changePercent: -2.25, isLive: true },
+  'BNB-USD': { price: 720.34, previousClose: 728.65, change: -8.31, changePercent: -1.14, isLive: true },
+  'DOGE-USD': { price: 0.0798, previousClose: 0.0811, change: -0.0013, changePercent: -1.60, isLive: true },
+  'SUI-USD': { price: 2.15, previousClose: 2.10, change: 0.05, changePercent: 2.38, isLive: true },
+  'ADA-USD': { price: 0.2229, previousClose: 0.2297, change: -0.0068, changePercent: -4.35, isLive: true },
+  'AVAX-USD': { price: 9.96, previousClose: 10.03, change: -0.07, changePercent: -0.70, isLive: true },
+  'LINK-USD': { price: 12.26, previousClose: 12.45, change: -0.19, changePercent: -1.53, isLive: true },
+  'NEAR-USD': { price: 4.96, previousClose: 5.25, change: -0.29, changePercent: -5.52, isLive: true },
+  '^NSEI': { price: 23146.15, previousClose: 22622.70, change: 523.45, changePercent: 2.31, isLive: false },
+  '^NSEBANK': { price: 55844.00, previousClose: 55316.00, change: 528.00, changePercent: 0.95, isLive: false },
+  '^BSESN': { price: 74729.27, previousClose: 72781.90, change: 1947.37, changePercent: 2.68, isLive: false },
+  'RELIANCE.NS': { price: 1211.20, previousClose: 1215.00, change: -3.80, changePercent: -0.31, isLive: false },
+  'TCS.NS': { price: 2465.00, previousClose: 2350.00, change: 115.00, changePercent: 4.89, isLive: false },
+  'HDFCBANK.NS': { price: 728.85, previousClose: 726.85, change: 2.00, changePercent: 0.28, isLive: false },
+  'EURUSD=X': { price: 1.1227, previousClose: 1.1221, change: 0.0006, changePercent: 0.05, isLive: true },
+  'GBPUSD=X': { price: 1.3315, previousClose: 1.3274, change: 0.0041, changePercent: 0.31, isLive: true },
+  'GC=F': { price: 4181.20, previousClose: 4170.10, change: 11.10, changePercent: 0.27, isLive: true },
+  'AAPL': { price: 343.29, previousClose: 342.00, change: 1.29, changePercent: 0.38, isLive: false },
+  'NFLX': { price: 70.52, previousClose: 72.61, change: -2.09, changePercent: -2.88, isLive: false },
+  'NVDA': { price: 215.54, previousClose: 217.23, change: -1.69, changePercent: -0.78, isLive: false },
+  'TSLA': { price: 353.18, previousClose: 362.44, change: -9.26, changePercent: -2.55, isLive: false }
 };
 
 export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -329,6 +337,33 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return null;
   }, [ticks, isMarketLive]);
 
+  const syncQuote = useCallback((quote: Partial<LiveTick> & { symbol: string; price: number }) => {
+    if (!quote || !quote.symbol || typeof quote.price !== 'number' || quote.price <= 0) return;
+    setTicks(prev => {
+      const existing = prev[quote.symbol];
+      // Sync if not present, or if existing price deviates by > 8% (indicating stale baseline seed), or if incoming has change data
+      if (!existing || existing.price <= 0 || Math.abs(existing.price - quote.price) / quote.price > 0.08) {
+        return {
+          ...prev,
+          [quote.symbol]: {
+            symbol: quote.symbol,
+            price: quote.price,
+            previousClose: quote.previousClose || quote.price,
+            change: quote.change ?? (existing?.change || 0),
+            changePercent: quote.changePercent ?? (existing?.changePercent || 0),
+            dayHigh: quote.dayHigh || Math.max(existing?.dayHigh || 0, quote.price),
+            dayLow: quote.dayLow || Math.min(existing?.dayLow || quote.price, quote.price),
+            volume: quote.volume || existing?.volume || 100000,
+            timestamp: Date.now(),
+            isLive: existing ? existing.isLive : true,
+            flash: null
+          }
+        };
+      }
+      return prev;
+    });
+  }, []);
+
   return (
     <MarketStreamContext.Provider
       value={{
@@ -337,6 +372,7 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isMarketLive,
         subscribeSymbol,
         getQuote,
+        syncQuote,
       }}
     >
       {children}
@@ -348,11 +384,26 @@ export const useMarketStream = () => useContext(MarketStreamContext);
 
 // Hook to get a reactive live quote for a specific symbol
 export function useLivePrice(symbol: string, initialQuote?: any) {
-  const { ticks, subscribeSymbol, isMarketLive, connectionStatus } = useMarketStream();
+  const { ticks, subscribeSymbol, isMarketLive, connectionStatus, syncQuote } = useMarketStream();
 
   useEffect(() => {
     if (symbol) subscribeSymbol(symbol);
   }, [symbol, subscribeSymbol]);
+
+  useEffect(() => {
+    if (symbol && initialQuote && typeof initialQuote.price === 'number' && initialQuote.price > 0) {
+      syncQuote({
+        symbol,
+        price: initialQuote.price,
+        previousClose: initialQuote.previousClose,
+        change: initialQuote.change,
+        changePercent: initialQuote.changePercent,
+        dayHigh: initialQuote.dayHigh,
+        dayLow: initialQuote.dayLow,
+        volume: initialQuote.volume
+      });
+    }
+  }, [symbol, initialQuote?.price, syncQuote]);
 
   const liveTick = ticks[symbol];
 
