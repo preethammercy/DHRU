@@ -34,6 +34,7 @@ import {
 interface TerminalProps {
   initialSymbol?: string;
   onSelectStock?: (symbol: string) => void;
+  onNavigate?: (page: string) => void;
 }
 
 const DEFAULT_WATCHLIST_SYMBOLS = [
@@ -96,7 +97,8 @@ const GLOBAL_WATCHLIST_SYMBOLS = [
 
 export const TradingTerminalPage: React.FC<TerminalProps> = ({
   initialSymbol = 'RELIANCE.NS',
-  onSelectStock
+  onSelectStock,
+  onNavigate
 }) => {
   const { marketMode } = useAuth();
   const [activeSymbol, setActiveSymbol] = useState(() => initialSymbol || (marketMode === 'crypto' ? 'BTC-USD' : 'RELIANCE.NS'));
@@ -145,7 +147,6 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
 
   // Panels visibility - responsive default (collapsed on mobile to prioritize chart)
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
-  const [activeBottomTab, setActiveBottomTab] = useState<'positions' | 'holdings' | 'orders' | 'trades' | 'ai'>('positions');
   const [watchlistSearch, setWatchlistSearch] = useState('');
 
   // Order Ticket Form State
@@ -617,394 +618,50 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
         </div>
       </div>
 
-      {/* 3. BOTTOM PANEL: Positions, Holdings, Orders, Trades & AI Forecasts */}
-      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
-        
-        {/* Navigation Tabs */}
-        <div className="flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-[#070B14]/60 text-xs">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setActiveBottomTab('positions')}
-              className={`py-3 px-3 font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
-                activeBottomTab === 'positions'
-                  ? 'border-blue-600 text-blue-600 dark:text-cyan-400'
-                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              <span>Positions</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-mono">
-                {positions.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveBottomTab('holdings')}
-              className={`py-3 px-3 font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
-                activeBottomTab === 'holdings'
-                  ? 'border-blue-600 text-blue-600 dark:text-cyan-400'
-                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              <span>Holdings</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-mono">
-                {holdings.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveBottomTab('orders')}
-              className={`py-3 px-3 font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
-                activeBottomTab === 'orders'
-                  ? 'border-blue-600 text-blue-600 dark:text-cyan-400'
-                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              <span>Open Orders</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-mono">
-                {orders.filter(o => o.status === 'PENDING').length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveBottomTab('trades')}
-              className={`py-3 px-3 font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
-                activeBottomTab === 'trades'
-                  ? 'border-blue-600 text-blue-600 dark:text-cyan-400'
-                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              <span>Trade Log</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-mono">
-                {tradeHistory.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveBottomTab('ai')}
-              className={`py-3 px-3 font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
-                activeBottomTab === 'ai'
-                  ? 'border-blue-600 text-blue-600 dark:text-cyan-400'
-                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              <span>AI Forecast Signals</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
-                PRO
-              </span>
-            </button>
+      {/* 3. Compact Positions & Portfolio Quick-Access Banner */}
+      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-cyan-400 shrink-0">
+            <Layers className="w-5 h-5" />
           </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-extrabold text-sm text-slate-900 dark:text-white">
+                Portfolio & Active Positions Desk
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-blue-800/60">
+                {positions.length} Active Positions • {holdings.length} Holdings
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap font-mono">
+              <span>Unrealized P&L:</span>
+              <strong className={`font-bold ${totalUnrealizedPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {totalUnrealizedPnl >= 0 ? '+' : ''}{marketMode === 'crypto' ? '$' : '₹'}{totalUnrealizedPnl.toFixed(2)}
+              </strong>
+              <span>•</span>
+              <span>Available Margin: <strong>{marketMode === 'crypto' ? '$' : '₹'}{marginAvailable.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
+            </p>
+          </div>
+        </div>
 
-          {/* Quick Actions (Square Off All) */}
-          {activeBottomTab === 'positions' && positions.length > 0 && (
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end shrink-0">
+          {positions.length > 0 && (
             <button
               onClick={squareOffAll}
-              className="text-xs font-semibold px-2.5 py-1 bg-rose-50 dark:bg-rose-950/60 text-rose-600 border border-rose-200 dark:border-rose-800 rounded-lg hover:bg-rose-100 cursor-pointer"
+              className="px-3 py-2 text-xs font-semibold rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-100 border border-rose-200 dark:border-rose-800 transition-colors cursor-pointer"
             >
               Square Off All
             </button>
           )}
+
+          <button
+            onClick={() => onNavigate?.('positions')}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs shadow-blue-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>Open Dedicated Positions & Holdings Desk</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
         </div>
-
-        {/* Tab 1: POSITIONS */}
-        {activeBottomTab === 'positions' && (
-          <div className="overflow-x-auto">
-            {positions.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-xs">
-                No active open positions. Place an Intraday (MIS) order to start live position tracking.
-              </div>
-            ) : (
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 dark:bg-[#070B14] text-slate-500 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider font-mono">
-                  <tr>
-                    <th className="py-2.5 px-4">Instrument</th>
-                    <th className="py-2.5 px-4">Product</th>
-                    <th className="py-2.5 px-4 text-right">Qty</th>
-                    <th className="py-2.5 px-4 text-right">Avg Price</th>
-                    <th className="py-2.5 px-4 text-right">LTP (Live)</th>
-                    <th className="py-2.5 px-4 text-right">P&L (Unrealized)</th>
-                    <th className="py-2.5 px-4 text-right">Change %</th>
-                    <th className="py-2.5 px-4 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
-                  {positions.map(pos => {
-                    const isProfit = pos.pnl >= 0;
-                    return (
-                      <tr key={pos.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-white font-sans">
-                          {pos.symbol}
-                          <span className="block text-[11px] font-normal text-slate-400 font-mono">{pos.name}</span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                            {pos.product} • {pos.side}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right font-semibold text-slate-800 dark:text-slate-200">{pos.quantity}</td>
-                        <td className="py-3 px-4 text-right">
-                          {pos.symbol.includes('USD') || pos.symbol.includes('=X') ? '$' : '₹'}
-                          {pos.averagePrice.toFixed(pos.averagePrice > 100 ? 2 : 4)}
-                        </td>
-                        <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">
-                          {pos.symbol.includes('USD') || pos.symbol.includes('=X') ? '$' : '₹'}
-                          {pos.currentPrice.toFixed(pos.currentPrice > 100 ? 2 : 4)}
-                        </td>
-                        <td className={`py-3 px-4 text-right font-bold ${isProfit ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {isProfit ? '+' : ''}{pos.symbol.includes('USD') || pos.symbol.includes('=X') ? '$' : '₹'}{pos.pnl.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className={`py-3 px-4 text-right font-semibold ${isProfit ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {isProfit ? '+' : ''}{pos.pnlPercent.toFixed(2)}%
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={() => squareOffPosition(pos.id)}
-                            className="px-2.5 py-1 text-[11px] rounded bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 cursor-pointer font-sans font-semibold"
-                          >
-                            Exit
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
-        {/* Tab 2: HOLDINGS */}
-        {activeBottomTab === 'holdings' && (
-          <div className="overflow-x-auto">
-            <div className="p-3 bg-slate-50 dark:bg-[#070B14] border-b border-slate-200 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
-              <div>
-                <span className="text-slate-500">Total Invested:</span>
-                <p className="font-bold text-slate-900 dark:text-white text-sm">₹{totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
-              </div>
-              <div>
-                <span className="text-slate-500">Current Value:</span>
-                <p className="font-bold text-slate-900 dark:text-white text-sm">₹{totalCurrentValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
-              </div>
-              <div>
-                <span className="text-slate-500">Total P&L:</span>
-                <p className={`font-bold text-sm ${totalUnrealizedPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {totalUnrealizedPnl >= 0 ? '+' : ''}₹{totalUnrealizedPnl.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <span className="text-slate-500">Today's P&L:</span>
-                <p className={`font-bold text-sm ${totalDayPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {totalDayPnl >= 0 ? '+' : ''}₹{totalDayPnl.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                </p>
-              </div>
-            </div>
-
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 dark:bg-[#070B14] text-slate-500 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider font-mono">
-                <tr>
-                  <th className="py-2.5 px-4">Instrument</th>
-                  <th className="py-2.5 px-4 text-right">Qty</th>
-                  <th className="py-2.5 px-4 text-right">Avg Cost</th>
-                  <th className="py-2.5 px-4 text-right">LTP (Live)</th>
-                  <th className="py-2.5 px-4 text-right">Cur. Value</th>
-                  <th className="py-2.5 px-4 text-right">Total P&L</th>
-                  <th className="py-2.5 px-4 text-right">Day P&L</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
-                {holdings.map(h => {
-                  const isProfit = h.totalPnl >= 0;
-                  return (
-                    <tr key={h.symbol} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white font-sans">
-                        {h.symbol}
-                        <span className="block text-[11px] font-normal text-slate-400 font-mono">{h.name}</span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-semibold">{h.quantity}</td>
-                      <td className="py-3 px-4 text-right">₹{h.averagePrice.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">₹{h.currentPrice.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-right font-semibold">₹{h.currentValue.toLocaleString('en-IN')}</td>
-                      <td className={`py-3 px-4 text-right font-bold ${isProfit ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {isProfit ? '+' : ''}₹{h.totalPnl.toLocaleString('en-IN')} ({h.totalPnlPercent.toFixed(2)}%)
-                      </td>
-                      <td className={`py-3 px-4 text-right ${h.dayPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {h.dayPnl >= 0 ? '+' : ''}₹{h.dayPnl.toFixed(2)} ({h.dayPnlPercent.toFixed(2)}%)
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Tab 3: OPEN ORDERS */}
-        {activeBottomTab === 'orders' && (
-          <div className="overflow-x-auto">
-            {orders.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-xs">
-                No orders placed in this session.
-              </div>
-            ) : (
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 dark:bg-[#070B14] text-slate-500 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider font-mono">
-                  <tr>
-                    <th className="py-2.5 px-4">Time</th>
-                    <th className="py-2.5 px-4">Type</th>
-                    <th className="py-2.5 px-4">Instrument</th>
-                    <th className="py-2.5 px-4">Product</th>
-                    <th className="py-2.5 px-4 text-right">Qty</th>
-                    <th className="py-2.5 px-4 text-right">Price</th>
-                    <th className="py-2.5 px-4">Status</th>
-                    <th className="py-2.5 px-4 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
-                  {orders.map(order => (
-                    <tr key={order.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="py-3 px-4 text-slate-400">{order.placedAt}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${
-                          order.side === 'BUY' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                        }`}>
-                          {order.side} {order.orderType}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white font-sans">{order.symbol}</td>
-                      <td className="py-3 px-4">{order.product}</td>
-                      <td className="py-3 px-4 text-right font-semibold">{order.quantity}</td>
-                      <td className="py-3 px-4 text-right font-bold">₹{order.price.toFixed(2)}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          order.status === 'EXECUTED' ? 'bg-emerald-100 text-emerald-700' :
-                          order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        {order.status === 'PENDING' && (
-                          <button
-                            onClick={() => cancelOrder(order.id)}
-                            className="px-2 py-1 text-[11px] bg-slate-100 text-slate-600 hover:bg-slate-200 rounded cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
-        {/* Tab 4: TRADE HISTORY */}
-        {activeBottomTab === 'trades' && (
-          <div className="overflow-x-auto">
-            {tradeHistory.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-xs">
-                No trades executed in this session.
-              </div>
-            ) : (
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 dark:bg-[#070B14] text-slate-500 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider font-mono">
-                  <tr>
-                    <th className="py-2.5 px-4">Executed Time</th>
-                    <th className="py-2.5 px-4">Order ID</th>
-                    <th className="py-2.5 px-4">Instrument</th>
-                    <th className="py-2.5 px-4">Side</th>
-                    <th className="py-2.5 px-4 text-right">Filled Qty</th>
-                    <th className="py-2.5 px-4 text-right">Exec Price</th>
-                    <th className="py-2.5 px-4 text-right">Total Turnover</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
-                  {tradeHistory.map(th => (
-                    <tr key={th.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30">
-                      <td className="py-2.5 px-4 text-slate-400">{th.executedAt || th.placedAt}</td>
-                      <td className="py-2.5 px-4 font-mono text-[11px] text-slate-500">{th.id}</td>
-                      <td className="py-2.5 px-4 font-bold text-slate-900 dark:text-white font-sans">{th.symbol}</td>
-                      <td className="py-2.5 px-4">
-                        <span className={th.side === 'BUY' ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
-                          {th.side}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-4 text-right font-semibold">{th.quantity}</td>
-                      <td className="py-2.5 px-4 text-right font-bold">₹{th.price.toFixed(2)}</td>
-                      <td className="py-2.5 px-4 text-right">₹{(th.price * th.quantity).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
-        {/* Tab 5: AI FORECAST SIGNALS */}
-        {activeBottomTab === 'ai' && (
-          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#070B14]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  Intraday Horizon (1-4 Hours)
-                </span>
-                <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                  72% CONFIDENCE
-                </span>
-              </div>
-              <p className="text-slate-600 dark:text-slate-300 mb-2 leading-relaxed">
-                Momentum indicators and volume profile signal upward continuation above the 20 EMA pivot.
-              </p>
-              <div className="space-y-1 font-mono text-[11px]">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Target 1:</span>
-                  <span className="text-emerald-600 font-bold">₹{((live.price || 1000) * 1.012).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Invalidation Level (SL):</span>
-                  <span className="text-rose-600 font-bold">₹{((live.price || 1000) * 0.992).toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#070B14]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <TrendingUp className="w-4 h-4 text-blue-500" />
-                  Swing Horizon (1-5 Days)
-                </span>
-                <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">
-                  68% CONFIDENCE
-                </span>
-              </div>
-              <p className="text-slate-600 dark:text-slate-300 mb-2 leading-relaxed">
-                Supertrend and ADX show steady trend development with support around 50 SMA.
-              </p>
-              <div className="space-y-1 font-mono text-[11px]">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Target 2:</span>
-                  <span className="text-emerald-600 font-bold">₹{((live.price || 1000) * 1.035).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Invalidation Level (SL):</span>
-                  <span className="text-rose-600 font-bold">₹{((live.price || 1000) * 0.978).toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 text-slate-700 dark:text-slate-300">
-              <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400 mb-1">
-                <AlertTriangle className="w-4 h-4" />
-                <span>Regulatory Notice</span>
-              </div>
-              <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
-                DHRU.AI provides probabilistic algorithmic analytics for research and educational purposes only. DHRU is not a SEBI registered investment advisor. Always employ strict stop-loss and risk management rules.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

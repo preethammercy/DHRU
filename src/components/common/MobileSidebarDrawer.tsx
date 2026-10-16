@@ -28,7 +28,8 @@ import {
   LogOut,
   LogIn,
   Eye,
-  Target
+  Target,
+  Briefcase
 } from 'lucide-react';
 import { DhruLogo } from './DhruLogo';
 import { useAuth } from '../../context/AuthContext';
@@ -57,7 +58,7 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
   const { user, signInWithGoogle, signOut, marketMode, setShowMarketSelector } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { watchlist } = useWatchlist();
-  const { marginAvailable } = useTrading();
+  const { marginAvailable, positions } = useTrading();
   const { isMarketLive } = useMarketStream();
 
   const isCrypto = marketMode === 'crypto';
@@ -187,6 +188,13 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
                 <CandlestickChart className="w-3 h-3 text-emerald-400" />
                 <span>Terminal</span>
               </button>
+              <button
+                onClick={() => handleNavClick('positions')}
+                className="px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-blue-800 text-[11px] font-bold shrink-0 flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+              >
+                <Briefcase className="w-3 h-3" />
+                <span>Positions ({positions.length})</span>
+              </button>
             </div>
           </div>
 
@@ -280,6 +288,7 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
             {[
               { id: 'overview', label: isCrypto ? 'Crypto & FX Overview' : 'Market Overview', icon: LayoutDashboard },
               { id: 'terminal', label: 'Live Trading Terminal', icon: CandlestickChart, isLive: true },
+              { id: 'positions', label: 'Positions & Portfolio', icon: Briefcase, count: positions.length },
               { id: 'watchlist', label: `My Watchlist (${watchlist.length})`, icon: Bookmark },
               { id: 'profile', label: 'Trader Profile & P&L', icon: User }
             ].map((item) => {
@@ -299,12 +308,21 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
                     <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                     <span>{item.label}</span>
                   </div>
-                  {item.isLive && (
-                    <span className="flex items-center gap-1 text-[10px] font-mono uppercase font-bold text-emerald-400">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      Live
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {item.count !== undefined && (
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                      }`}>
+                        {item.count}
+                      </span>
+                    )}
+                    {item.isLive && (
+                      <span className="flex items-center gap-1 text-[10px] font-mono uppercase font-bold text-emerald-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        Live
+                      </span>
+                    )}
+                  </div>
                 </button>
               );
             })}

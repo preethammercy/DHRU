@@ -31,6 +31,7 @@ import { PatternExplorerPage } from './pages/PatternExplorerPage';
 import { WatchlistPage } from './pages/WatchlistPage';
 import { AskDhruPage } from './pages/AskDhruPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { PositionsHoldingsPage } from './pages/PositionsHoldingsPage';
 import { LivePredictionsModal } from './components/common/LivePredictionsModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
@@ -66,6 +67,9 @@ const PATH_TO_NAV: Record<string, string> = {
   'patterns': 'patterns',
   'pattern-scanner': 'patterns',
   'watchlist': 'watchlist',
+  'positions': 'positions',
+  'holdings': 'positions',
+  'portfolio': 'positions',
   'profile': 'profile',
   'account': 'profile',
   'ask-dhru': 'ask-dhru',
@@ -199,6 +203,7 @@ function AppContent() {
           <TradingTerminalPage
             initialSymbol={selectedSymbol}
             onSelectStock={handleSelectStock}
+            onNavigate={setActiveNav}
           />
         )}
 
@@ -285,6 +290,14 @@ function AppContent() {
             currentSymbol={selectedSymbol}
             initialQuestion={askDhruQuestion}
             onSelectStock={handleSelectStock}
+          />
+        )}
+
+        {activeNav === 'positions' && (
+          <PositionsHoldingsPage
+            onSelectStock={handleSelectStock}
+            onTradeStock={handleTradeStock}
+            onNavigate={setActiveNav}
           />
         )}
 
