@@ -47,7 +47,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
     try {
       if (marketMode === 'crypto') {
         const [cryptoRes, forexRes, newsRes] = await Promise.all([
-          getCryptoInstruments().catch(() => ({ crypto: [] })),
+          getCryptoInstruments().catch(() => ({ crypto: [], instruments: [], count: 0 })),
           getForexInstruments().catch(() => ({ forex: [] })),
           getNews().catch(() => ({ news: [] }))
         ]);

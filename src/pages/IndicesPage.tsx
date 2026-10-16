@@ -103,7 +103,7 @@ export const IndicesPage: React.FC<Props> = ({ onSelectIndex, onTradeIndex }) =>
     setCategoryFilter('All');
     if (isCrypto) {
       Promise.all([
-        getCryptoInstruments().catch(() => ({ crypto: [] })),
+        getCryptoInstruments().catch(() => ({ crypto: [], instruments: [], count: 0 })),
         getForexInstruments().catch(() => ({ forex: [] }))
       ]).then(([cData, fData]) => {
         const cryptos = (cData?.crypto || cData?.instruments || []).map((c: any) => ({ ...c, assetType: 'crypto' }));

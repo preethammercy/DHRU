@@ -167,8 +167,20 @@ export const TradingViewChart: React.FC<ChartProps> = ({
     if (!candles || candles.length === 0) return [];
     const valid = candles.filter(c => c && c.time != null && !isNaN(c.close) && c.open != null);
     
+    // Normalize time to seconds if in milliseconds
+    const normalized = valid.map(c => {
+      let t = c.time;
+      if (typeof t === 'number' && t > 20000000000) {
+        t = Math.floor(t / 1000);
+      }
+      return {
+        ...c,
+        time: t
+      };
+    });
+
     // Sort ascending by time
-    valid.sort((a, b) => {
+    normalized.sort((a, b) => {
       const ta = typeof a.time === 'number' ? a.time : new Date(a.time).getTime() / 1000;
       const tb = typeof b.time === 'number' ? b.time : new Date(b.time).getTime() / 1000;
       return ta - tb;
@@ -177,7 +189,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
     // Remove duplicates
     const seen = new Set<string | number>();
     const deduped: Candle[] = [];
-    for (const c of valid) {
+    for (const c of normalized) {
       if (!seen.has(c.time)) {
         seen.add(c.time);
         deduped.push(c);
@@ -265,6 +277,15 @@ export const TradingViewChart: React.FC<ChartProps> = ({
 
     if (cleanCandles.length === 0) return;
 
+    // Determine dynamic price precision based on asset class
+    const isMicro = symbol.includes('PEPE') || symbol.includes('SHIB');
+    const isSmall = (currentPrice > 0 && currentPrice < 2) || ['XRP-USD', 'DOGE-USD', 'ADA-USD', 'SUI-USD', 'NEAR-USD'].includes(symbol);
+    const seriesPriceFormat = isMicro
+      ? { type: 'price' as const, precision: 8, minMove: 0.00000001 }
+      : isSmall
+      ? { type: 'price' as const, precision: 4, minMove: 0.0001 }
+      : { type: 'price' as const, precision: 2, minMove: 0.01 };
+
     // Create Main Candlestick / Line Series
     let mainSeries: ISeriesApi<any>;
     if (chartType === 'candlestick') {
@@ -275,6 +296,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
         borderDownColor: '#EF4444',
         wickUpColor: '#10B981',
         wickDownColor: '#EF4444',
+        priceFormat: seriesPriceFormat,
       });
       mainSeries.setData(cleanCandles as any);
     } else {
@@ -282,6 +304,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
         color: '#2563EB',
         lineWidth: 2,
         priceLineColor: '#2563EB',
+        priceFormat: seriesPriceFormat,
       });
       mainSeries.setData(cleanCandles.map(c => ({ time: c.time, value: c.close })) as any);
     }
