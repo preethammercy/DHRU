@@ -137,9 +137,64 @@ export const StocksPage: React.FC<Props> = ({ onSelectStock, onTradeStock }) => 
         </span>
       </div>
 
-      {/* Stocks Table */}
+      {/* Stocks Table & Mobile Cards */}
       <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
+        
+        {/* Mobile Compact 2-Col Card Grid (< md) */}
+        <div className="md:hidden mobile-compact-grid p-2.5">
+          {loading ? (
+            <div className="col-span-2 p-8 text-center text-slate-500">
+              <div className="w-6 h-6 border-2 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              Loading verified market prices...
+            </div>
+          ) : stocks.length === 0 ? (
+            <div className="col-span-2 p-8 text-center text-slate-500">
+              No listed companies found.
+            </div>
+          ) : (
+            stocks.map(s => {
+              const isUp = s.changePercent >= 0;
+              return (
+                <div
+                  key={s.symbol}
+                  onClick={() => onSelectStock(s.symbol)}
+                  className="stat-box mobile-stat-card pressable card-3d cursor-pointer"
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="stat-title truncate max-w-[85px]">
+                      {s.name}
+                    </span>
+                    <span className="text-[9px] font-mono font-bold text-slate-400">
+                      {s.ticker}
+                    </span>
+                  </div>
+                  <div className="my-1 text-base font-black font-mono tracking-tight text-slate-900 dark:text-white">
+                    {s.price > 0 ? `₹${s.price}` : 'N/A'}
+                  </div>
+                  <div className="flex items-center justify-between gap-1 pt-1 text-xs">
+                    <span className={`stat-desc font-mono font-bold ${isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      {isUp ? '+' : ''}{s.changePercent}%
+                    </span>
+                    {onTradeStock && (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          onTradeStock(s.symbol);
+                        }}
+                        className="px-2 py-0.5 rounded-lg bg-emerald-600 text-white text-[10px] font-bold active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer"
+                      >
+                        ⚡ Trade
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop / Tablet Full Table (>= md) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-[#070B14] border-b border-slate-200 dark:border-[#1A2744] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">

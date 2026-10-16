@@ -356,6 +356,209 @@ html.dark .card-3d:hover {
 
 /* 
 ===================================================================
+DAISYUI + MATERIAL PLUS UI + UI/UX PRO MAX DESIGN SYSTEM
+===================================================================
+*/
+
+/* DaisyUI Semantic Stat Component */
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 1rem;
+  padding: 0.875rem 1rem;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px -2px rgba(37, 99, 235, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+html.dark .stat-box {
+  background-color: #0d1527;
+  border-color: #1a2744;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+}
+
+.stat-box:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 12px 28px -6px rgba(37, 99, 235, 0.15);
+  transform: translateY(-2px);
+}
+
+html.dark .stat-box:hover {
+  border-color: #06b6d4;
+  box-shadow: 0 12px 28px -6px rgba(6, 182, 212, 0.2);
+}
+
+.stat-figure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+}
+
+.stat-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+html.dark .stat-title {
+  color: #94a3b8;
+}
+
+.stat-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  line-height: 1.2;
+}
+
+@media (min-width: 640px) {
+  .stat-value {
+    font-size: 1.45rem;
+  }
+}
+
+.stat-desc {
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Material 3 Plus Dynamic Elevation & State Layers */
+.m3-elevation-1 {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+}
+
+.m3-elevation-2 {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+}
+
+.m3-elevation-3 {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.12), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+}
+
+html.dark .m3-elevation-1 {
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.6);
+}
+
+html.dark .m3-elevation-2 {
+  box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.75);
+}
+
+html.dark .m3-elevation-3 {
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.85);
+}
+
+/* Material Plus Touch Feedback (Pressable State) */
+.pressable {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pressable:active {
+  transform: scale(0.96);
+  opacity: 0.92;
+}
+
+/* DaisyUI Glass Badges */
+.badge-glass-emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+html.dark .badge-glass-emerald {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.badge-glass-rose {
+  background: rgba(244, 63, 94, 0.12);
+  color: #e11d48;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+html.dark .badge-glass-rose {
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+.badge-glass-blue {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  backdrop-filter: blur(8px);
+}
+
+html.dark .badge-glass-blue {
+  color: #38bdf8;
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.35);
+}
+
+/* UI/UX Pro Max Fintech Glass Pill */
+.glass-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Mobile Compact Card Grid (2-column density on phones) */
+.mobile-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+@media (min-width: 640px) {
+  .mobile-compact-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.875rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mobile-compact-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* Mobile Compact Stat Card */
+.mobile-stat-card {
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .mobile-stat-card {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+}
+
+/* 
+===================================================================
 ANIMATION & SCROLL-TRIGGERED UTILITIES
 ===================================================================
 */

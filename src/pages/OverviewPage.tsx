@@ -114,21 +114,21 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
     <div className="space-y-8 animate-fade-in pb-12">
       
       {/* 1. Hero Vision Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] p-6 sm:p-8 shadow-card zoom-card">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] p-4 sm:p-8 shadow-card zoom-card">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="max-w-2xl space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700/50 dark:text-blue-300 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
-              <span>
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
+          <div className="max-w-2xl space-y-2.5 sm:space-y-3">
+            <div className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700/50 dark:text-blue-300 text-[11px] sm:text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400 shrink-0" />
+              <span className="truncate">
                 {isCrypto
-                  ? 'Global 24/7 Crypto & FX Desk • 48+ Assets • Real-Time Order Book • $12,000 Margin'
-                  : 'Verified NSE & BSE Quotes • Zero Fabricated Numbers • ₹10,00,000 Free Margin'}
+                  ? 'Global 24/7 Crypto & FX Desk • 48+ Assets • Real-Time Order Book'
+                  : 'Verified NSE & BSE Quotes • Zero Fabricated Numbers • ₹10L Margin'}
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
               {isCrypto ? (
                 <>
                   Global Crypto & FX Markets.{' '}
@@ -146,28 +146,28 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
               )}
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2 sm:line-clamp-none">
               {isCrypto
-                ? 'Institutional AI analysis, Smart Money Order Blocks, and real-time tick streaming for Bitcoin, Ethereum, Solana, XRP, EUR/USD, Gold, Crude Oil, and US Equities in $ USD.'
+                ? 'Institutional AI analysis, Smart Money Order Blocks, and real-time tick streaming for Bitcoin, Ethereum, Solana, XRP, EUR/USD, Gold, and US Equities in $ USD.'
                 : 'DHRU.AI empowers Indian investors by explaining what is happening, why, what the risks are, and what historical evidence suggests could happen next in ₹ INR.'}
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1">
               <button
                 onClick={() => onNavigate('terminal')}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
+                className="flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md hover:shadow-lg pressable transition-all cursor-pointer"
               >
                 <CandlestickChart className="w-4 h-4" />
-                <span>Open {isCrypto ? 'Crypto & FX' : 'Indian'} Live Terminal</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-1" />
+                <span>Open {isCrypto ? 'Crypto & FX' : 'Indian'} Terminal</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
               </button>
 
               <button
                 onClick={() => setShowMarketSelector(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs pressable transition-all cursor-pointer"
               >
                 {isCrypto ? <span>🇮🇳</span> : <Coins className="w-4 h-4 text-purple-600" />}
-                <span>Switch to {isCrypto ? 'Indian Markets (₹)' : 'Crypto & FX Desk ($)'}</span>
+                <span>Switch to {isCrypto ? 'Indian (₹)' : 'Crypto & FX ($)'}</span>
               </button>
             </div>
           </div>
@@ -245,12 +245,13 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="mobile-compact-grid">
             {cryptoSorted.slice(0, 4).map((coin) => (
               <LiveCryptoCard
                 key={coin.symbol}
                 coin={coin}
                 onSelect={() => onSelectStock(coin.symbol)}
+                onTrade={onTradeStock ? () => onTradeStock(coin.symbol) : undefined}
               />
             ))}
           </div>
@@ -271,12 +272,13 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="mobile-compact-grid">
             {indices.slice(0, 4).map(idx => (
               <LiveIndexCard
                 key={idx.symbol}
                 quote={idx}
                 onSelect={() => onSelectStock(idx.symbol)}
+                onTrade={onTradeStock ? () => onTradeStock(idx.symbol) : undefined}
               />
             ))}
           </div>
@@ -526,8 +528,8 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
   );
 };
 
-// Subcomponent: Live Index Card (Indian Mode)
-const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote, onSelect }) => {
+// Subcomponent: Live Index Card (Indian Mode) with DaisyUI Stat Ergonomics & Material Plus Touch
+const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void; onTrade?: () => void }> = ({ quote, onSelect, onTrade }) => {
   const live = useLivePrice(quote.symbol, quote);
   const displayPrice = live.price > 0 ? live.price : quote.price;
   const displayChange = live.change !== 0 ? live.change : quote.change;
@@ -537,15 +539,18 @@ const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote
   return (
     <div
       onClick={onSelect}
-      className="p-4 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-blue-400 dark:hover:border-cyan-500/40 hover:shadow-card-hover cursor-pointer transition-all shadow-card zoom-card group"
+      className="stat-box mobile-stat-card pressable card-3d cursor-pointer group"
     >
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <span className="font-semibold text-slate-900 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors">
+      <div className="flex items-center justify-between gap-1 mb-1">
+        <span className="stat-title truncate max-w-[95px] sm:max-w-none group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors">
           {quote.name}
         </span>
-        <span className="font-mono text-[10px] text-slate-400">{quote.exchange}</span>
+        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+          {quote.exchange || 'NSE'}
+        </span>
       </div>
-      <div className={`mt-2 text-lg sm:text-2xl font-bold font-mono transition-colors rounded px-1 -ml-1 ${
+
+      <div className={`my-1 text-base sm:text-2xl font-black font-mono tracking-tight transition-colors rounded px-1 -ml-1 ${
         live.flash === 'up'
           ? 'flash-up bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 ring-1 ring-emerald-500/40'
           : live.flash === 'down'
@@ -554,25 +559,34 @@ const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote
       }`}>
         ₹{displayPrice > 0 ? displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Loading...'}
       </div>
-      <div className="mt-1 flex items-center gap-1.5 text-xs font-mono font-semibold">
-        {isUp ? (
-          <span className="text-emerald-600 dark:text-emerald-400 flex items-center">
-            <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-            +{displayChange.toFixed(2)} (+{displayChangePercent.toFixed(2)}%)
-          </span>
-        ) : (
-          <span className="text-rose-600 dark:text-rose-400 flex items-center">
-            <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
-            {displayChange.toFixed(2)} ({displayChangePercent.toFixed(2)}%)
-          </span>
+
+      <div className="flex items-center justify-between gap-1 pt-1 text-xs">
+        <div className={`stat-desc font-mono font-bold ${
+          isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+        }`}>
+          {isUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+          <span>{isUp ? '+' : ''}{displayChangePercent.toFixed(2)}%</span>
+        </div>
+
+        {onTrade && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onTrade();
+            }}
+            className="px-2 py-0.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold shadow-xs active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer"
+            title="Trade in Live Terminal"
+          >
+            <span>Trade</span>
+          </button>
         )}
       </div>
     </div>
   );
 };
 
-// Subcomponent: Live Crypto & Forex Card (Crypto Mode)
-const LiveCryptoCard: React.FC<{ coin: any; onSelect: () => void }> = ({ coin, onSelect }) => {
+// Subcomponent: Live Crypto & Forex Card (Crypto Mode) with DaisyUI Stat Ergonomics & Material Plus Touch
+const LiveCryptoCard: React.FC<{ coin: any; onSelect: () => void; onTrade?: () => void }> = ({ coin, onSelect, onTrade }) => {
   const live = useLivePrice(coin.symbol, coin);
   const displayPrice = live.price > 0 ? live.price : (coin.price || 0);
   const displayChangePercent = live.changePercent !== 0 ? live.changePercent : (coin.changePercent || 0);
@@ -582,26 +596,23 @@ const LiveCryptoCard: React.FC<{ coin: any; onSelect: () => void }> = ({ coin, o
   return (
     <div
       onClick={onSelect}
-      className="p-4 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-purple-500/60 dark:hover:border-purple-500/50 hover:shadow-card-hover cursor-pointer transition-all shadow-card zoom-card group"
+      className="stat-box mobile-stat-card pressable card-3d cursor-pointer group hover:border-purple-500/60 dark:hover:border-purple-500/50"
     >
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 font-black text-xs flex items-center justify-center">
+      <div className="flex items-center justify-between gap-1 mb-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-black text-[10px] flex items-center justify-center shrink-0">
             {coin.symbol?.charAt(0) || 'C'}
           </div>
-          <div>
-            <div className="font-extrabold text-slate-900 dark:text-white group-hover:text-purple-600 transition-colors truncate max-w-[110px]">
-              {coin.name || coin.symbol}
-            </div>
-            <div className="text-[10px] font-mono text-slate-400">{coin.symbol}</div>
-          </div>
+          <span className="stat-title truncate max-w-[80px] sm:max-w-none group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+            {coin.name || coin.symbol}
+          </span>
         </div>
-        <span className="font-mono text-[10px] text-purple-600 dark:text-purple-400 font-bold uppercase">
+        <span className="text-[9px] font-mono text-purple-600 dark:text-purple-400 font-bold uppercase">
           {coin.category ? coin.category.split(' ')[0] : 'CRYPTO'}
         </span>
       </div>
 
-      <div className={`mt-3 text-lg sm:text-2xl font-bold font-mono transition-colors rounded px-1 -ml-1 ${
+      <div className={`my-1 text-base sm:text-2xl font-black font-mono tracking-tight transition-colors rounded px-1 -ml-1 ${
         live.flash === 'up'
           ? 'flash-up bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 ring-1 ring-emerald-500/40'
           : live.flash === 'down'
@@ -611,19 +622,26 @@ const LiveCryptoCard: React.FC<{ coin: any; onSelect: () => void }> = ({ coin, o
         {isUSD ? '$' : '₹'}{displayPrice > 0 ? displayPrice.toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: displayPrice > 100 ? 2 : (displayPrice < 1 ? 4 : 2), maximumFractionDigits: displayPrice < 1 ? 6 : 2 }) : '0.00'}
       </div>
 
-      <div className="mt-1 flex items-center gap-1.5 text-xs font-mono font-semibold">
-        {isUp ? (
-          <span className="text-emerald-600 dark:text-emerald-400 flex items-center">
-            <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-            +{displayChangePercent.toFixed(2)}%
-          </span>
-        ) : (
-          <span className="text-rose-600 dark:text-rose-400 flex items-center">
-            <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
-            {displayChangePercent.toFixed(2)}%
-          </span>
+      <div className="flex items-center justify-between gap-1 pt-1 text-xs">
+        <div className={`stat-desc font-mono font-bold ${
+          isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+        }`}>
+          {isUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+          <span>{isUp ? '+' : ''}{displayChangePercent.toFixed(2)}%</span>
+        </div>
+
+        {onTrade && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onTrade();
+            }}
+            className="px-2 py-0.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold shadow-xs active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer"
+            title="Trade in Live Terminal"
+          >
+            <span>Trade</span>
+          </button>
         )}
-        <span className="text-slate-400 text-[10px]">24h Vol</span>
       </div>
     </div>
   );
