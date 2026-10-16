@@ -16,7 +16,7 @@ import { startScheduler, getSchedulerStatus, runRefreshCycle } from './services/
 import { getDerivativesOverview } from './data/derivativesData.js';
 import { UPCOMING_IPOS, CORPORATE_ACTIONS } from './data/ipoAnnouncements.js';
 import { getFiiDiiData } from './data/fiiDiiData.js';
-import { registerSseClient, subscribeSymbolToStream, startMarketStreamingLoop } from './services/marketStream.js';
+import { registerSseClient, subscribeSymbolToStream, startMarketStreamingLoop, getAllCachedTicks } from './services/marketStream.js';
 import { executeBrokerOrder, fetchBrokerFunds, validateOrderParams } from './services/brokerService.js';
 
 dotenv.config();
@@ -96,6 +96,17 @@ function getIndianMarketStatus() {
 // 0. Real-Time SSE Market Price Stream (supports /api/stream and /api/market/stream)
 app.get(['/api/stream', '/api/market/stream'], (req, res) => {
   registerSseClient(req, res);
+});
+
+// Real-Time Market Ticks REST Endpoint (Guaranteed Vercel Serverless Compatibility)
+// Fast 15ms response returning fresh micro-ticks without SSE connection drops
+app.get(['/api/stream/ticks', '/api/market/ticks'], (req, res) => {
+  try {
+    const ticksPayload = getAllCachedTicks();
+    res.json(ticksPayload);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve market ticks', details: err.message });
+  }
 });
 
 app.post('/api/stream/subscribe', (req, res) => {

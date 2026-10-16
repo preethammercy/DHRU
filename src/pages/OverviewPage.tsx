@@ -547,9 +547,9 @@ const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote
       </div>
       <div className={`mt-2 text-lg sm:text-2xl font-bold font-mono transition-colors rounded px-1 -ml-1 ${
         live.flash === 'up'
-          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+          ? 'flash-up bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 ring-1 ring-emerald-500/40'
           : live.flash === 'down'
-          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+          ? 'flash-down bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 ring-1 ring-rose-500/40'
           : 'text-slate-900 dark:text-white'
       }`}>
         ₹{displayPrice > 0 ? displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Loading...'}
@@ -603,9 +603,9 @@ const LiveCryptoCard: React.FC<{ coin: any; onSelect: () => void }> = ({ coin, o
 
       <div className={`mt-3 text-lg sm:text-2xl font-bold font-mono transition-colors rounded px-1 -ml-1 ${
         live.flash === 'up'
-          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+          ? 'flash-up bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 ring-1 ring-emerald-500/40'
           : live.flash === 'down'
-          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+          ? 'flash-down bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 ring-1 ring-rose-500/40'
           : 'text-slate-900 dark:text-white'
       }`}>
         {isUSD ? '$' : '₹'}{displayPrice > 0 ? displayPrice.toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: displayPrice > 100 ? 2 : (displayPrice < 1 ? 4 : 2), maximumFractionDigits: displayPrice < 1 ? 6 : 2 }) : '0.00'}
@@ -650,9 +650,9 @@ const LiveAssetRow: React.FC<{ quote: any; isCrypto: boolean; onSelect: () => vo
         <div className="text-right font-mono">
           <div className={`text-xs font-bold transition-colors rounded px-1 ${
             live.flash === 'up'
-              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+              ? 'flash-up bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
               : live.flash === 'down'
-              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+              ? 'flash-down bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300'
               : 'text-slate-900 dark:text-white'
           }`}>
             {currency}{price.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { minimumFractionDigits: price > 100 ? 2 : (price < 1 ? 4 : 2), maximumFractionDigits: price < 1 ? 6 : 2 })}

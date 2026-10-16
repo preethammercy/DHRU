@@ -173,7 +173,7 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 dark:bg-[#070B14] dark:text-[#F1F5F9] transition-colors">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 dark:bg-[#070B14] dark:text-[#F1F5F9] transition-colors w-full max-w-full overflow-x-hidden">
       
       {/* 1. Global Header */}
       <Header
@@ -191,7 +191,7 @@ function AppContent() {
       />
 
       {/* 3. Main Content Container */}
-      <main className={activeNav === 'terminal' ? "flex-1 w-full px-2 sm:px-4 py-4 pb-24 lg:pb-4" : "flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-8"}>
+      <main className={activeNav === 'terminal' ? "flex-1 w-full max-w-full px-2 sm:px-4 py-4 pb-24 lg:pb-4 overflow-x-hidden" : "flex-1 max-w-7xl w-full max-w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 pb-24 lg:pb-8 overflow-x-hidden"}>
         {activeNav === 'terminal' && (
           <TradingTerminalPage
             initialSymbol={selectedSymbol}
@@ -256,6 +256,7 @@ function AppContent() {
         {activeNav === 'ai-predictions' && (
           <AiPredictionsPage
             onSelectStock={handleSelectStock}
+            onTradeStock={handleTradeStock}
           />
         )}
 

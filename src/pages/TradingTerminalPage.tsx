@@ -277,9 +277,9 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
             </span>
             <span className={`font-mono font-bold text-sm px-2 py-0.5 rounded transition-colors ${
               live.flash === 'up'
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                ? 'flash-up bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 ring-1 ring-emerald-500/40'
                 : live.flash === 'down'
-                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                ? 'flash-down bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 ring-1 ring-rose-500/40'
                 : 'text-slate-900 dark:text-white'
             }`}>
               {currency}{live.price > 0 ? live.price.toFixed(2) : (stockDetail?.quote?.price?.toFixed(2) ?? '---')}
@@ -1038,11 +1038,11 @@ const WatchlistItem: React.FC<{
       </div>
 
       <div className="text-right font-mono">
-        <span className={`font-bold block transition-colors ${
+        <span className={`font-bold block transition-colors rounded px-1 ${
           live.flash === 'up'
-            ? 'text-emerald-500'
+            ? 'flash-up text-emerald-500 font-extrabold'
             : live.flash === 'down'
-            ? 'text-rose-500'
+            ? 'flash-down text-rose-500 font-extrabold'
             : 'text-slate-900 dark:text-white'
         }`}>
           ₹{live.price > 0 ? live.price.toFixed(2) : '---'}

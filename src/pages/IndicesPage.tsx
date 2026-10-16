@@ -36,11 +36,11 @@ const LiveAssetCard: React.FC<{
   return (
     <div
       onClick={() => onSelectIndex(item.symbol)}
-      className={`p-5 rounded-2xl bg-white dark:bg-[#0D1527] border cursor-pointer transition-all shadow-card zoom-card group flex flex-col justify-between ${
+      className={`p-5 rounded-2xl bg-white dark:bg-[#0D1527] border cursor-pointer transition-all shadow-card card-3d zoom-card group flex flex-col justify-between ${
         flash === 'up'
-          ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)] bg-emerald-50/20'
+          ? 'flash-up border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.35)] bg-emerald-50/30'
           : flash === 'down'
-          ? 'border-rose-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] bg-rose-50/20'
+          ? 'flash-down border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.35)] bg-rose-50/30'
           : 'border-slate-200 dark:border-[#1A2744] hover:border-blue-400 dark:hover:border-cyan-500/40'
       }`}
     >
