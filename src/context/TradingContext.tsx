@@ -25,6 +25,21 @@ export interface Position {
   entryTime: string;
 }
 
+export interface ClosedPosition {
+  id: string;
+  symbol: string;
+  name: string;
+  product: ProductType;
+  side: OrderSide;
+  quantity: number;
+  entryPrice: number;
+  exitPrice: number;
+  pnl: number;
+  pnlPercent: number;
+  entryTime: string;
+  closedAt: string;
+}
+
 export interface Holding {
   symbol: string;
   name: string;
@@ -81,6 +96,7 @@ interface TradingContextType {
 
   // Tables
   positions: Position[];
+  closedPositions: ClosedPosition[];
   holdings: Holding[];
   orders: Order[];
   tradeHistory: Order[];
@@ -132,29 +148,40 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Cash & margin state - ₹10,00,000 (10 Lakh INR) free starting capital per user
   const [cashBalance, setCashBalance] = useState<number>(() => {
-    const saved = localStorage.getItem(userKey('cash_balance'));
+    const saved = localStorage.getItem(userKey('cash_balance')) || localStorage.getItem('dhru_cash_balance');
     return saved ? Number(saved) : 1000000;
   });
 
   const [realizedPnl, setRealizedPnl] = useState<number>(() => {
-    const saved = localStorage.getItem(userKey('realized_pnl'));
+    const saved = localStorage.getItem(userKey('realized_pnl')) || localStorage.getItem('dhru_realized_pnl');
     return saved ? Number(saved) : 0;
   });
 
   const [positions, setPositions] = useState<Position[]>(() => {
-    const saved = localStorage.getItem(userKey('positions'));
+    const saved = localStorage.getItem(userKey('positions')) || localStorage.getItem('dhru_positions');
     if (!saved) return [];
     try {
       const parsed = JSON.parse(saved);
-      // Clean any legacy mock positions (pos_1, pos_2)
-      return Array.isArray(parsed) ? parsed.filter((p: Position) => !p.id.startsWith('pos_')) : [];
+      // Clean only legacy mock positions (pos_1, pos_2), preserve all real user positions
+      return Array.isArray(parsed) ? parsed.filter((p: Position) => p.id !== 'pos_1' && p.id !== 'pos_2') : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [closedPositions, setClosedPositions] = useState<ClosedPosition[]>(() => {
+    const saved = localStorage.getItem(userKey('closed_positions')) || localStorage.getItem('dhru_closed_positions');
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
   });
 
   const [holdings, setHoldings] = useState<Holding[]>(() => {
-    const saved = localStorage.getItem(userKey('holdings'));
+    const saved = localStorage.getItem(userKey('holdings')) || localStorage.getItem('dhru_holdings');
     if (!saved) return [];
     try {
       const parsed = JSON.parse(saved);
@@ -166,12 +193,12 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem(userKey('orders'));
+    const saved = localStorage.getItem(userKey('orders')) || localStorage.getItem('dhru_orders');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [tradeHistory, setTradeHistory] = useState<Order[]>(() => {
-    const saved = localStorage.getItem(userKey('trades'));
+    const saved = localStorage.getItem(userKey('trades')) || localStorage.getItem('dhru_trades');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -198,17 +225,17 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Reload user-isolated portfolio whenever authenticated user switches
   useEffect(() => {
-    const savedBalance = localStorage.getItem(userKey('cash_balance'));
+    const savedBalance = localStorage.getItem(userKey('cash_balance')) || localStorage.getItem('dhru_cash_balance');
     setCashBalance(savedBalance ? Number(savedBalance) : 1000000);
 
-    const savedRealized = localStorage.getItem(userKey('realized_pnl'));
+    const savedRealized = localStorage.getItem(userKey('realized_pnl')) || localStorage.getItem('dhru_realized_pnl');
     setRealizedPnl(savedRealized ? Number(savedRealized) : 0);
 
-    const savedPos = localStorage.getItem(userKey('positions'));
+    const savedPos = localStorage.getItem(userKey('positions')) || localStorage.getItem('dhru_positions');
     if (savedPos) {
       try {
         const parsed = JSON.parse(savedPos);
-        setPositions(Array.isArray(parsed) ? parsed.filter((p: Position) => !p.id.startsWith('pos_')) : []);
+        setPositions(Array.isArray(parsed) ? parsed.filter((p: Position) => p.id !== 'pos_1' && p.id !== 'pos_2') : []);
       } catch {
         setPositions([]);
       }
@@ -216,7 +243,19 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setPositions([]);
     }
 
-    const savedHoldings = localStorage.getItem(userKey('holdings'));
+    const savedClosed = localStorage.getItem(userKey('closed_positions')) || localStorage.getItem('dhru_closed_positions');
+    if (savedClosed) {
+      try {
+        const parsed = JSON.parse(savedClosed);
+        setClosedPositions(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setClosedPositions([]);
+      }
+    } else {
+      setClosedPositions([]);
+    }
+
+    const savedHoldings = localStorage.getItem(userKey('holdings')) || localStorage.getItem('dhru_holdings');
     if (savedHoldings) {
       try {
         const parsed = JSON.parse(savedHoldings);
@@ -228,24 +267,32 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setHoldings([]);
     }
 
-    const savedOrders = localStorage.getItem(userKey('orders'));
+    const savedOrders = localStorage.getItem(userKey('orders')) || localStorage.getItem('dhru_orders');
     setOrders(savedOrders ? JSON.parse(savedOrders) : []);
 
-    const savedTrades = localStorage.getItem(userKey('trades'));
+    const savedTrades = localStorage.getItem(userKey('trades')) || localStorage.getItem('dhru_trades');
     setTradeHistory(savedTrades ? JSON.parse(savedTrades) : []);
   }, [userKey]);
 
-  // Sync state to user-specific localStorage key
+  // Sync state to user-specific and fallback localStorage keys
   useEffect(() => {
     localStorage.setItem(userKey('cash_balance'), String(cashBalance));
+    localStorage.setItem('dhru_cash_balance', String(cashBalance));
     localStorage.setItem(userKey('realized_pnl'), String(realizedPnl));
+    localStorage.setItem('dhru_realized_pnl', String(realizedPnl));
     localStorage.setItem(userKey('positions'), JSON.stringify(positions));
+    localStorage.setItem('dhru_positions', JSON.stringify(positions));
+    localStorage.setItem(userKey('closed_positions'), JSON.stringify(closedPositions));
+    localStorage.setItem('dhru_closed_positions', JSON.stringify(closedPositions));
     localStorage.setItem(userKey('holdings'), JSON.stringify(holdings));
+    localStorage.setItem('dhru_holdings', JSON.stringify(holdings));
     localStorage.setItem(userKey('orders'), JSON.stringify(orders));
+    localStorage.setItem('dhru_orders', JSON.stringify(orders));
     localStorage.setItem(userKey('trades'), JSON.stringify(tradeHistory));
+    localStorage.setItem('dhru_trades', JSON.stringify(tradeHistory));
     localStorage.setItem(userKey('broker_config'), JSON.stringify(brokerConfig));
     localStorage.setItem(userKey('risk_settings'), JSON.stringify(riskSettings));
-  }, [userKey, cashBalance, realizedPnl, positions, holdings, orders, tradeHistory, brokerConfig, riskSettings]);
+  }, [userKey, cashBalance, realizedPnl, positions, closedPositions, holdings, orders, tradeHistory, brokerConfig, riskSettings]);
 
   // Recalculate dynamic tick-by-tick P&L when prices stream in
   useEffect(() => {
@@ -388,7 +435,21 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
               if (bookedProfit === 0 && existing.pnl !== 0 && existing.pnl !== undefined) {
                 bookedProfit = existing.pnl;
               }
-              order.pnl = bookedProfit;
+              const closedPos: ClosedPosition = {
+                id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                symbol: existing.symbol,
+                name: existing.name,
+                product: existing.product,
+                side: existing.side,
+                quantity: closedQty,
+                entryPrice: existing.averagePrice,
+                exitPrice: execPrice,
+                pnl: bookedProfit,
+                pnlPercent: existing.averagePrice > 0 ? Number(((bookedProfit / (existing.averagePrice * closedQty)) * 100).toFixed(2)) : 0,
+                entryTime: existing.entryTime,
+                closedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+              };
+              setClosedPositions(cp => [closedPos, ...cp]);
               setRealizedPnl(r => Number((r + bookedProfit).toFixed(2)));
               setCashBalance(c => Number((c + bookedProfit).toFixed(2)));
 
@@ -401,6 +462,22 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
               const bookedDiff = existing.side === 'BUY' ? (execPrice - existing.averagePrice) : (existing.averagePrice - execPrice);
               const bookedProfit = Number((bookedDiff * closedQty).toFixed(2));
               order.pnl = bookedProfit;
+
+              const closedPos: ClosedPosition = {
+                id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                symbol: existing.symbol,
+                name: existing.name,
+                product: existing.product,
+                side: existing.side,
+                quantity: closedQty,
+                entryPrice: existing.averagePrice,
+                exitPrice: execPrice,
+                pnl: bookedProfit,
+                pnlPercent: existing.averagePrice > 0 ? Number(((bookedProfit / (existing.averagePrice * closedQty)) * 100).toFixed(2)) : 0,
+                entryTime: existing.entryTime,
+                closedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+              };
+              setClosedPositions(cp => [closedPos, ...cp]);
               setRealizedPnl(r => Number((r + bookedProfit).toFixed(2)));
               setCashBalance(c => Number((c + bookedProfit).toFixed(2)));
 
@@ -635,9 +712,25 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       pnl: bookedProfit
     };
 
+    const closedPos: ClosedPosition = {
+      id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      symbol: pos.symbol,
+      name: pos.name,
+      product: pos.product,
+      side: pos.side,
+      quantity: pos.quantity,
+      entryPrice: pos.averagePrice,
+      exitPrice,
+      pnl: bookedProfit,
+      pnlPercent: pos.averagePrice > 0 ? Number(((bookedProfit / (pos.averagePrice * pos.quantity)) * 100).toFixed(2)) : 0,
+      entryTime: pos.entryTime,
+      closedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    };
+
     setRealizedPnl(r => Number((r + bookedProfit).toFixed(2)));
     setCashBalance(c => Number((c + bookedProfit).toFixed(2)));
     setPositions(prev => prev.filter(p => p.id !== positionId));
+    setClosedPositions(cp => [closedPos, ...cp]);
     setOrders(o => [closeOrder, ...o]);
     setTradeHistory(th => [closeOrder, ...th]);
   }, [positions, ticks]);
@@ -647,6 +740,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (positions.length === 0) return;
     let totalBooked = 0;
     const closeOrders: Order[] = [];
+    const closedList: ClosedPosition[] = [];
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
     for (const pos of positions) {
       const tick = ticks[pos.symbol];
       const exitPrice = tick?.price || pos.currentPrice || pos.averagePrice;
@@ -656,6 +752,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         bookedProfit = pos.pnl;
       }
       totalBooked += bookedProfit;
+
       closeOrders.push({
         id: `SQ_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         symbol: pos.symbol,
@@ -667,15 +764,31 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         filledQuantity: pos.quantity,
         price: exitPrice,
         status: 'EXECUTED',
-        placedAt: new Date().toLocaleTimeString(),
-        executedAt: new Date().toLocaleTimeString(),
+        placedAt: nowTime,
+        executedAt: nowTime,
         pnl: bookedProfit
+      });
+
+      closedList.push({
+        id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        symbol: pos.symbol,
+        name: pos.name,
+        product: pos.product,
+        side: pos.side,
+        quantity: pos.quantity,
+        entryPrice: pos.averagePrice,
+        exitPrice,
+        pnl: bookedProfit,
+        pnlPercent: pos.averagePrice > 0 ? Number(((bookedProfit / (pos.averagePrice * pos.quantity)) * 100).toFixed(2)) : 0,
+        entryTime: pos.entryTime,
+        closedAt: nowTime
       });
     }
 
     setRealizedPnl(r => Number((r + totalBooked).toFixed(2)));
     setCashBalance(c => Number((c + totalBooked).toFixed(2)));
     setPositions([]);
+    setClosedPositions(cp => [...closedList, ...cp]);
     setOrders(o => [...closeOrders, ...o]);
     setTradeHistory(th => [...closeOrders, ...th]);
   }, [positions, ticks]);
@@ -689,9 +802,10 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const resetSimulationBalance = useCallback(() => {
-    setCashBalance(500000);
+    setCashBalance(1000000);
     setRealizedPnl(0);
     setPositions([]);
+    setClosedPositions([]);
     setHoldings(INITIAL_HOLDINGS);
     setOrders([]);
     setTradeHistory([]);
@@ -713,9 +827,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [positions, holdings]);
 
   const totalDayPnl = useMemo(() => {
-    const posDay = positions.reduce((sum, p) => sum + p.dayPnl, 0);
-    const holdDay = holdings.reduce((sum, h) => sum + h.dayPnl, 0);
-    return Number((posDay + holdDay + realizedPnl).toFixed(2));
+    const posOpenPnl = positions.reduce((sum, p) => sum + p.pnl, 0);
+    const holdDayPnl = holdings.reduce((sum, h) => sum + h.dayPnl, 0);
+    return Number((posOpenPnl + holdDayPnl + realizedPnl).toFixed(2));
   }, [positions, holdings, realizedPnl]);
 
   const marginUsed = useMemo(() => {
@@ -734,6 +848,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         marginUsed,
         realizedPnl,
         positions,
+        closedPositions,
         holdings,
         orders,
         tradeHistory,

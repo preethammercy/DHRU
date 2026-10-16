@@ -236,12 +236,15 @@ export async function fetchInstrumentCandles(symbol, range = '1mo', interval = '
 
       // Filter out null / invalid points
       if (o != null && h != null && l != null && c != null && !isNaN(c) && !isNaN(o)) {
+        const isMicro = c < 0.01;
+        const isSmall = c < 20;
+        const decimals = isMicro ? 8 : (isSmall ? 4 : 2);
         rawCandles.push({
           time: t,
-          open: Number(o.toFixed(2)),
-          high: Number(h.toFixed(2)),
-          low: Number(l.toFixed(2)),
-          close: Number(c.toFixed(2)),
+          open: Number(o.toFixed(decimals)),
+          high: Number(h.toFixed(decimals)),
+          low: Number(l.toFixed(decimals)),
+          close: Number(c.toFixed(decimals)),
           volume: v
         });
       }
@@ -272,12 +275,15 @@ export async function fetchInstrumentCandles(symbol, range = '1mo', interval = '
         const low = Math.min(...chunk.map(b => b.low));
         const close = chunk[chunk.length - 1].close;
         const volume = chunk.reduce((sum, b) => sum + (b.volume || 0), 0);
+        const isMicro = close < 0.01;
+        const isSmall = close < 20;
+        const decimals = isMicro ? 8 : (isSmall ? 4 : 2);
         aggCandles.push({
           time: chunk[0].time,
-          open: Number(open.toFixed(2)),
-          high: Number(high.toFixed(2)),
-          low: Number(low.toFixed(2)),
-          close: Number(close.toFixed(2)),
+          open: Number(open.toFixed(decimals)),
+          high: Number(high.toFixed(decimals)),
+          low: Number(low.toFixed(decimals)),
+          close: Number(close.toFixed(decimals)),
           volume
         });
       }

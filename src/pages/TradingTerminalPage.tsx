@@ -197,13 +197,18 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
     };
   }, [activeSymbol, activeRange, activeInterval]);
 
-  // Update limit price default when symbol changes
+  // Update limit price default only when active symbol changes or when uninitialized
   useEffect(() => {
-    if (live.price > 0) {
+    if (live.price > 0 && limitPrice === 0) {
       setLimitPrice(live.price);
       setTriggerPrice(Number((live.price * 0.99).toFixed(2)));
     }
-  }, [activeSymbol, live.price]);
+  }, [activeSymbol, live.price, limitPrice]);
+
+  // Reset limit price on symbol switch so it adopts the new symbol's live quote
+  useEffect(() => {
+    setLimitPrice(0);
+  }, [activeSymbol]);
 
   // Handle Order Placement
   const handlePlaceOrder = (e: React.FormEvent) => {

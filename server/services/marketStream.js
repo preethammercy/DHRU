@@ -135,6 +135,92 @@ const BASELINE_DATA = {
   'META': { name: 'Meta Platforms Inc.', price: 582.00, previousClose: 576.00 }
 };
 
+// Check if symbol belongs to Indian equities, indices, or derivatives
+export function isIndianSymbol(symbol) {
+  if (!symbol) return false;
+  const s = symbol.toUpperCase();
+  return (
+    s.endsWith('.NS') ||
+    s.endsWith('.BO') ||
+    s.startsWith('^NSE') ||
+    s.startsWith('^BSE') ||
+    s.startsWith('^CNX') ||
+    s === '^NSEI' ||
+    s === '^BSESN'
+  );
+}
+
+// 24/7 Binance Crypto mapping for direct institutional live feeds
+const BINANCE_CRYPTO_MAP = {
+  'BTC-USD': 'BTCUSDT',
+  'ETH-USD': 'ETHUSDT',
+  'SOL-USD': 'SOLUSDT',
+  'XRP-USD': 'XRPUSDT',
+  'BNB-USD': 'BNBUSDT',
+  'DOGE-USD': 'DOGEUSDT',
+  'ADA-USD': 'ADAUSDT',
+  'AVAX-USD': 'AVAXUSDT',
+  'LINK-USD': 'LINKUSDT',
+  'SUI-USD': 'SUIUSDT',
+  'DOT-USD': 'DOTUSDT',
+  'NEAR-USD': 'NEARUSDT',
+  'APT-USD': 'APTUSDT',
+  'PEPE-USD': 'PEPEUSDT',
+  'SHIB-USD': 'SHIBUSDT',
+  'LTC-USD': 'LTCUSDT',
+  'UNI-USD': 'UNIUSDT',
+  'ARB-USD': 'ARBUSDT',
+  'OP-USD': 'OPUSDT',
+  'RENDER-USD': 'RENDERUSDT',
+  'ICP-USD': 'ICPUSDT',
+  'FET-USD': 'FETUSDT',
+};
+
+// Periodic live Binance ticker sync across all 22 cryptos to eliminate price discrepancies
+export async function refreshBinanceCryptoPrices() {
+  try {
+    const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+    if (!res.ok) return;
+    const binanceData = await res.json();
+    if (!Array.isArray(binanceData)) return;
+
+    const tickerMap = new Map();
+    for (const item of binanceData) {
+      tickerMap.set(item.symbol, item);
+    }
+
+    const now = Date.now();
+    for (const [sym, pair] of Object.entries(BINANCE_CRYPTO_MAP)) {
+      const t = tickerMap.get(pair);
+      if (!t) continue;
+
+      const price = parseFloat(t.lastPrice);
+      const prevClose = parseFloat(t.prevClosePrice);
+      const change = parseFloat(t.priceChange);
+      const changePercent = parseFloat(t.priceChangePercent);
+      if (isNaN(price) || price <= 0) continue;
+
+      const existing = liveTickCache.get(sym);
+      liveTickCache.set(sym, {
+        symbol: sym,
+        name: existing?.name || sym.replace('-USD', ' USD'),
+        price,
+        previousClose: prevClose || price,
+        change: Number(change.toFixed(price > 100 ? 2 : (price < 1 ? 6 : 4))),
+        changePercent: Number(changePercent.toFixed(2)),
+        dayHigh: parseFloat(t.highPrice) || price,
+        dayLow: parseFloat(t.lowPrice) || price,
+        volume: parseFloat(t.volume) || 0,
+        lastFetchTime: now,
+        lastTickTime: now,
+        isLive: true
+      });
+    }
+  } catch {
+    // Network fallback
+  }
+}
+
 // Seed baseline cache if empty
 export function ensureBaselineCache() {
   if (liveTickCache.size > 0) return;
@@ -156,6 +242,9 @@ export function ensureBaselineCache() {
       isLive: isInstrumentLive(sym)
     });
   }
+
+  // Immediately refresh cryptos with authentic live Binance prices
+  refreshBinanceCryptoPrices().catch(() => {});
 }
 
 // Ingest fresh quote directly into stream cache to eliminate discrepancies
@@ -182,10 +271,18 @@ export function ingestFreshQuote(q) {
 // Returns authentic live ticks from cache without synthetic random drift
 export function getAllCachedTicks() {
   ensureBaselineCache();
+  const indianOpen = isIndianMarketOpen();
+
+  // Ensure Indian instruments reflect market session status
+  for (const tick of liveTickCache.values()) {
+    if (isIndianSymbol(tick.symbol)) {
+      tick.isLive = indianOpen;
+    }
+  }
 
   return {
     timestamp: Date.now(),
-    isLive: isIndianMarketOpen(),
+    isLive: indianOpen,
     ticks: Array.from(liveTickCache.values())
   };
 }
@@ -302,15 +399,33 @@ export function broadcastSse(eventName, data) {
 
 // Polling and streaming loop - 1-second pulse for all markets
 let streamInterval = null;
+let cryptoSyncInterval = null;
 
 export function startMarketStreamingLoop() {
   if (streamInterval) return;
+
+  // Background real-time Binance crypto updater (every 2.5 seconds)
+  if (!cryptoSyncInterval) {
+    refreshBinanceCryptoPrices().catch(() => {});
+    cryptoSyncInterval = setInterval(() => {
+      refreshBinanceCryptoPrices().catch(() => {});
+    }, 2500);
+  }
 
   // Run tick cycle every 1000ms (1 second)
   streamInterval = setInterval(async () => {
     if (sseClients.size === 0) return;
 
-    const symbolsToUpdate = Array.from(activeSymbols);
+    const indianOpen = isIndianMarketOpen();
+    const symbolsToUpdate = Array.from(activeSymbols).filter(sym => {
+      // If Indian market is closed (after 3:30 PM IST or weekends), NEVER poll or change Indian symbols!
+      if (isIndianSymbol(sym)) {
+        const quote = liveTickCache.get(sym);
+        if (quote) quote.isLive = indianOpen;
+        if (!indianOpen) return false;
+      }
+      return true;
+    });
 
     // Pick 8 symbols per tick to fetch fresh public quotes periodically
     const batchSize = Math.min(8, symbolsToUpdate.length);
@@ -351,7 +466,7 @@ export function startMarketStreamingLoop() {
     if (updatedTicks.length > 0) {
       broadcastSse('ticks', {
         timestamp: Date.now(),
-        isLive: isIndianMarketOpen(),
+        isLive: indianOpen,
         ticks: updatedTicks
       });
     }

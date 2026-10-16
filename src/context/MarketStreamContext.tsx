@@ -100,10 +100,45 @@ const BINANCE_PAIR_MAP: Record<string, string> = {
   'FETUSDT': 'FET-USD',
 };
 
+// Check if instrument is an Indian stock, index, or derivative
+export function isIndianSymbol(symbol: string): boolean {
+  if (!symbol) return false;
+  const s = symbol.toUpperCase();
+  return (
+    s.endsWith('.NS') ||
+    s.endsWith('.BO') ||
+    s.startsWith('^NSE') ||
+    s.startsWith('^BSE') ||
+    s.startsWith('^CNX') ||
+    s === '^NSEI' ||
+    s === '^BSESN'
+  );
+}
+
+// Client-side IST trading session determination (NSE/BSE: 09:15 to 15:30 IST)
+export function isIndianMarketOpenNow(): boolean {
+  const now = new Date();
+  const istFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+    weekday: 'short'
+  });
+  const parts = istFormatter.formatToParts(now);
+  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+  const weekday = parts.find(p => p.type === 'weekday')?.value || 'Mon';
+  if (weekday === 'Sat' || weekday === 'Sun') return false;
+  const totalMins = hour * 60 + minute;
+  // 09:15 to 15:30 IST
+  return totalMins >= 555 && totalMins <= 930;
+}
 
 export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ticks, setTicks] = useState<Record<string, LiveTick>>(() => {
     const initial: Record<string, LiveTick> = {};
+    const indianOpen = isIndianMarketOpenNow();
     for (const [sym, data] of Object.entries(INITIAL_SEEDS)) {
       initial[sym] = {
         symbol: sym,
@@ -115,7 +150,7 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
         dayLow: (data.price || 0) * 0.985,
         volume: 1200000,
         timestamp: Date.now(),
-        isLive: !!data.isLive,
+        isLive: isIndianSymbol(sym) ? indianOpen : !!data.isLive,
         flash: null
       };
     }
@@ -123,20 +158,47 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
   });
 
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connected');
-  const [isMarketLive, setIsMarketLive] = useState(true);
+  const [isMarketLive, setIsMarketLive] = useState(isIndianMarketOpenNow);
   const eventSourceRef = useRef<EventSource | null>(null);
   const flashTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const activeSymbolsRef = useRef<Set<string>>(new Set(Object.keys(INITIAL_SEEDS)));
+  const binanceWsLastSeen = useRef<Map<string, number>>(new Map());
 
-  // Batch process tick updates and trigger green/red visual flashes
-  const handleTickUpdate = useCallback((newTicks: LiveTick[], isLive?: boolean) => {
-    if (isLive !== undefined) setIsMarketLive(isLive);
+  // Batch process tick updates with strict after-hours freeze for Indian stocks and authoritative Binance WS priority
+  const handleTickUpdate = useCallback((newTicks: LiveTick[], isLive?: boolean, isFromBinanceWs: boolean = false) => {
+    const indianOpen = isIndianMarketOpenNow();
+    if (isLive !== undefined) setIsMarketLive(indianOpen);
 
     setTicks(prev => {
       const next = { ...prev };
+      const now = Date.now();
+
       for (const t of newTicks) {
         activeSymbolsRef.current.add(t.symbol);
         const existing = prev[t.symbol];
+
+        // 1. FREEZE INDIAN EQUITIES & INDICES AFTER 3:30 PM IST (and weekends)
+        if (isIndianSymbol(t.symbol) && !indianOpen) {
+          if (existing) {
+            // Keep existing settlement price 100% frozen, zero flashes, isLive = false
+            next[t.symbol] = {
+              ...existing,
+              isLive: false,
+              flash: null
+            };
+            continue;
+          }
+        }
+
+        // 2. CRYPTO: DO NOT OVERWRITE NATIVE LIVE BINANCE WS TICKS WITH REST / SSE SNAPSHOTS
+        if (t.symbol.includes('-USD') && !isFromBinanceWs) {
+          const lastWs = binanceWsLastSeen.current.get(t.symbol) || 0;
+          if (now - lastWs < 15000 && existing && existing.price > 0) {
+            // Native WebSocket stream is live and fresh; skip stale REST update
+            continue;
+          }
+        }
+
         let flash: 'up' | 'down' | null = null;
         if (existing && existing.price > 0 && t.price > 0) {
           if (t.price > existing.price) flash = 'up';
@@ -146,6 +208,7 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
         next[t.symbol] = {
           ...existing,
           ...t,
+          isLive: isIndianSymbol(t.symbol) ? indianOpen : (t.isLive !== undefined ? t.isLive : true),
           flash: flash || existing?.flash || null
         };
 
@@ -310,7 +373,11 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
             }
 
             if (ticksToUpdate.length > 0) {
-              handleTickUpdate(ticksToUpdate, true);
+              const now = Date.now();
+              for (const t of ticksToUpdate) {
+                binanceWsLastSeen.current.set(t.symbol, now);
+              }
+              handleTickUpdate(ticksToUpdate, true, true);
             }
           } catch {
             // ignore

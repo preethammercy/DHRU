@@ -4,7 +4,7 @@
 // Fully mobile-compact with responsive card layouts and desktop data tables.
 
 import React, { useState, useMemo } from 'react';
-import { useTrading, Position, Holding, Order } from '../context/TradingContext';
+import { useTrading, Position, ClosedPosition, Holding, Order } from '../context/TradingContext';
 import { useAuth } from '../context/AuthContext';
 import { useMarketStream } from '../context/MarketStreamContext';
 import {
@@ -46,6 +46,7 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
 }) => {
   const {
     positions,
+    closedPositions,
     holdings,
     orders,
     tradeHistory,
@@ -79,6 +80,13 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
     );
   }, [positions, searchQuery]);
 
+  const filteredClosedPositions = useMemo(() => {
+    return (closedPositions || []).filter(p =>
+      p.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [closedPositions, searchQuery]);
+
   const filteredHoldings = useMemo(() => {
     return holdings.filter(h =>
       h.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -105,10 +113,14 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
   }, [tradeHistory, searchQuery]);
 
   const formatCurrency = (val: number, decimals: number = 2) => {
-    if (isCrypto) {
-      return `$${val.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
-    }
-    return `₹${val.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+    const isNegative = val < 0;
+    const absVal = Math.abs(val || 0);
+    const formatted = absVal.toLocaleString(isCrypto ? 'en-US' : 'en-IN', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+    const prefix = isCrypto ? '$' : '₹';
+    return isNegative ? `-${prefix}${formatted}` : `${prefix}${formatted}`;
   };
 
   const handleTradeInstrument = (symbol: string, side: 'BUY' | 'SELL' = 'BUY') => {
@@ -363,25 +375,59 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
           
           {/* TAB 1: POSITIONS */}
           {activeTab === 'positions' && (
-            <div>
+            <div className="space-y-6">
+              {/* 1.1 OPEN POSITIONS SECTION */}
               {filteredPositions.length === 0 ? (
-                <div className="text-center py-16 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-cyan-400 flex items-center justify-center mx-auto">
-                    <Layers className="w-6 h-6" />
+                filteredClosedPositions.length > 0 ? (
+                  <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-cyan-400">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                          All Open Positions Squared Off
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          0 active intraday positions currently running. View your closed trades and booked returns below.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onNavigate?.('terminal')}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+                    >
+                      Trade in Terminal
+                    </button>
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">No Open Positions</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                    You have no active intraday (MIS) trades running. Execute an order in the Live Terminal to start tracking real-time P&L.
-                  </p>
-                  <button
-                    onClick={() => onNavigate?.('terminal')}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
-                  >
-                    Open Live Terminal
-                  </button>
-                </div>
+                ) : (
+                  <div className="text-center py-16 space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-cyan-400 flex items-center justify-center mx-auto">
+                      <Layers className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">No Open Positions</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                      You have no active intraday (MIS) trades running. Execute an order in the Live Terminal to start tracking real-time P&L.
+                    </p>
+                    <button
+                      onClick={() => onNavigate?.('terminal')}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+                    >
+                      Open Live Terminal
+                    </button>
+                  </div>
+                )
               ) : (
                 <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                        Open Intraday Positions ({filteredPositions.length})
+                      </h3>
+                    </div>
+                  </div>
+
                   {/* Mobile Cards (visible on phones < md) */}
                   <div className="grid grid-cols-1 gap-3 md:hidden">
                     {filteredPositions.map(pos => {
@@ -414,12 +460,12 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
                               <span className={`text-base font-black font-mono ${
                                 isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                               }`}>
-                                {isProfit ? '+' : ''}{formatCurrency(pos.pnl)}
+                                {pos.pnl > 0 ? '+' : ''}{formatCurrency(pos.pnl)}
                               </span>
                               <div className={`text-[10px] font-mono font-bold ${
                                 isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                               }`}>
-                                {isProfit ? '+' : ''}{pos.pnlPercent.toFixed(2)}%
+                                {pos.pnlPercent > 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%
                               </div>
                             </div>
                           </div>
@@ -512,12 +558,12 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
                               <td className={`py-3.5 px-4 text-right font-bold ${
                                 isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                               }`}>
-                                {isProfit ? '+' : ''}{formatCurrency(pos.pnl)}
+                                {pos.pnl > 0 ? '+' : ''}{formatCurrency(pos.pnl)}
                               </td>
                               <td className={`py-3.5 px-4 text-right font-semibold ${
                                 isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                               }`}>
-                                {isProfit ? '+' : ''}{pos.pnlPercent.toFixed(2)}%
+                                {pos.pnlPercent > 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%
                               </td>
                               <td className="py-3.5 px-4 text-center">
                                 <button
@@ -534,6 +580,149 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
                     </table>
                   </div>
                 </>
+              )}
+
+              {/* 1.2 CLOSED POSITIONS (TODAY'S REALIZED TRADES) */}
+              {filteredClosedPositions.length > 0 && (
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-600" />
+                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                        Closed Positions Today ({filteredClosedPositions.length})
+                      </h3>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
+                      Total Realized: <strong className={realizedPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                        {realizedPnl > 0 ? '+' : ''}{formatCurrency(realizedPnl)}
+                      </strong>
+                    </span>
+                  </div>
+
+                  {/* Mobile Closed Cards */}
+                  <div className="grid grid-cols-1 gap-2.5 md:hidden">
+                    {filteredClosedPositions.map(cp => {
+                      const isProfit = cp.pnl >= 0;
+                      return (
+                        <div
+                          key={cp.id}
+                          className="p-3.5 rounded-2xl bg-slate-50/60 dark:bg-[#070B14]/80 border border-slate-200 dark:border-slate-800 space-y-2.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-extrabold text-sm text-slate-900 dark:text-white">
+                                  {cp.symbol}
+                                </span>
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                  {cp.product} • {cp.side}
+                                </span>
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                                  CLOSED
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-slate-400 block mt-0.5">
+                                {cp.name} • Closed at {cp.closedAt}
+                              </span>
+                            </div>
+
+                            <div className="text-right">
+                              <span className={`text-sm font-black font-mono ${
+                                isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                              }`}>
+                                {cp.pnl > 0 ? '+' : ''}{formatCurrency(cp.pnl)}
+                              </span>
+                              <div className={`text-[10px] font-mono font-bold ${
+                                isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                              }`}>
+                                {cp.pnlPercent > 0 ? '+' : ''}{cp.pnlPercent.toFixed(2)}%
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 py-1.5 px-2.5 rounded-xl bg-white dark:bg-[#0D1527] border border-slate-200/60 dark:border-slate-800/60 text-[11px] font-mono">
+                            <div>
+                              <span className="text-[9px] text-slate-400 uppercase">Qty</span>
+                              <p className="font-semibold text-slate-800 dark:text-slate-200">{cp.quantity}</p>
+                            </div>
+                            <div>
+                              <span className="text-[9px] text-slate-400 uppercase">Entry</span>
+                              <p className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(cp.entryPrice)}</p>
+                            </div>
+                            <div>
+                              <span className="text-[9px] text-slate-400 uppercase">Exit</span>
+                              <p className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(cp.exitPrice)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop Closed Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-slate-50 dark:bg-[#070B14] text-slate-500 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider font-mono">
+                        <tr>
+                          <th className="py-2.5 px-4">Instrument</th>
+                          <th className="py-2.5 px-4">Product / Side</th>
+                          <th className="py-2.5 px-4 text-right">Quantity</th>
+                          <th className="py-2.5 px-4 text-right">Entry Price</th>
+                          <th className="py-2.5 px-4 text-right">Exit Price</th>
+                          <th className="py-2.5 px-4 text-right">Realized Return</th>
+                          <th className="py-2.5 px-4 text-right">Return %</th>
+                          <th className="py-2.5 px-4 text-center">Closed At</th>
+                          <th className="py-2.5 px-4 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
+                        {filteredClosedPositions.map(cp => {
+                          const isProfit = cp.pnl >= 0;
+                          return (
+                            <tr key={cp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
+                              <td className="py-3 px-4 font-bold text-slate-900 dark:text-white font-sans">
+                                <span>{cp.symbol}</span>
+                                <span className="block text-[11px] font-normal text-slate-400 font-mono">{cp.name}</span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                  {cp.product} • {cp.side}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right font-semibold text-slate-800 dark:text-slate-200">
+                                {cp.quantity}
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                {formatCurrency(cp.entryPrice)}
+                              </td>
+                              <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">
+                                {formatCurrency(cp.exitPrice)}
+                              </td>
+                              <td className={`py-3 px-4 text-right font-bold ${
+                                isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                              }`}>
+                                {cp.pnl > 0 ? '+' : ''}{formatCurrency(cp.pnl)}
+                              </td>
+                              <td className={`py-3 px-4 text-right font-semibold ${
+                                isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                              }`}>
+                                {cp.pnlPercent > 0 ? '+' : ''}{cp.pnlPercent.toFixed(2)}%
+                              </td>
+                              <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400 text-[11px]">
+                                {cp.closedAt}
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-cyan-400 border border-blue-200 dark:border-blue-800">
+                                  CLOSED
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </div>
           )}

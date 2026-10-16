@@ -204,7 +204,9 @@ export const TradingViewChart: React.FC<ChartProps> = ({
     if (tick && tick.price > 0) {
       if (cleanCandles.length > 0) {
         const last = cleanCandles[cleanCandles.length - 1];
-        if (last.close > 0 && Math.abs(tick.price - last.close) / last.close <= 0.15) {
+        const isCryptoSym = symbol.includes('-USD');
+        const maxVar = isCryptoSym ? 0.40 : 0.15;
+        if (last.close > 0 && Math.abs(tick.price - last.close) / last.close <= maxVar) {
           return tick.price;
         }
       } else {
@@ -277,9 +279,10 @@ export const TradingViewChart: React.FC<ChartProps> = ({
 
     if (cleanCandles.length === 0) return;
 
-    // Determine dynamic price precision based on asset class
-    const isMicro = symbol.includes('PEPE') || symbol.includes('SHIB');
-    const isSmall = (currentPrice > 0 && currentPrice < 2) || ['XRP-USD', 'DOGE-USD', 'ADA-USD', 'SUI-USD', 'NEAR-USD'].includes(symbol);
+    // Determine dynamic price precision based on asset class and candle price
+    const refPrice = currentPrice > 0 ? currentPrice : (cleanCandles.length > 0 ? cleanCandles[cleanCandles.length - 1].close : 0);
+    const isMicro = (refPrice > 0 && refPrice < 0.001) || symbol.includes('PEPE') || symbol.includes('SHIB');
+    const isSmall = (refPrice > 0 && refPrice < 25) || ['XRP-USD', 'DOGE-USD', 'ADA-USD', 'SUI-USD', 'NEAR-USD', 'DOT-USD', 'APT-USD', 'RENDER-USD', 'FET-USD', 'ARB-USD', 'OP-USD', 'ICP-USD', 'LINK-USD', 'AVAX-USD'].includes(symbol);
     const seriesPriceFormat = isMicro
       ? { type: 'price' as const, precision: 8, minMove: 0.00000001 }
       : isSmall
@@ -717,9 +720,11 @@ export const TradingViewChart: React.FC<ChartProps> = ({
     const newPrice = liveTick.price;
     if (newPrice <= 0) return;
 
-    // Sanity check: ensure live price is within 15% of the last candle close
-    // This protects charts from any out-of-order or stale network glitches
-    if (lastCandle.close > 0 && Math.abs(newPrice - lastCandle.close) / lastCandle.close > 0.15) {
+    // Sanity check: ensure live price is within acceptable range of the last candle close
+    // For crypto assets, allow up to 40% variance to support volatile runs and wide daily swings
+    const isCryptoSym = symbol.includes('-USD');
+    const maxVar = isCryptoSym ? 0.40 : 0.15;
+    if (lastCandle.close > 0 && Math.abs(newPrice - lastCandle.close) / lastCandle.close > maxVar) {
       return;
     }
 
