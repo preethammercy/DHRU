@@ -76,49 +76,63 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-[#070B14]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-[#1A2744] shadow-[0_2px_12px_rgba(37,99,235,0.04)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
         
-        {/* Left: 'D' Logo & Brand Title */}
-        <div
-          className="flex items-center gap-3 cursor-pointer select-none group"
-          onClick={() => onSelectNav('overview')}
-        >
-          <DhruLogo size={36} />
+        {/* Left: Mobile 3-Line Hamburger Menu Button + Logo & Brand */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          
+          {/* 3-Line Hamburger Menu Button (at Left Corner Upside for Mobile) */}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-[#131F38] border border-slate-200 dark:border-[#1E2D4A] text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-cyan-400 active:scale-95 transition-all cursor-pointer shrink-0 shadow-xs"
+            aria-label="Open Navigation Menu"
+            title="Open Platform Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
 
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-black text-xl tracking-tight bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 dark:from-white dark:to-cyan-400 bg-clip-text text-transparent">
-                DHRU.AI
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowMarketSelector(true);
-                }}
-                className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                  marketMode === 'crypto'
-                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800'
-                    : 'bg-blue-50 dark:bg-cyan-500/10 text-blue-700 dark:text-cyan-400 border border-blue-200 dark:border-cyan-500/20'
-                }`}
-                title="Click to switch trading markets"
-              >
-                {marketMode === 'crypto' ? (
-                  <>
-                    <Coins className="w-2.5 h-2.5" />
-                    <span>CRYPTO DESK</span>
-                  </>
-                ) : (
-                  <>
-                    <span>🇮🇳</span>
-                    <span>INDIA DESK</span>
-                  </>
-                )}
-                <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
-              </button>
+          {/* 'D' Logo & Brand Title */}
+          <div
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group min-w-0"
+            onClick={() => onSelectNav('overview')}
+          >
+            <DhruLogo size={32} />
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-lg sm:text-xl tracking-tight bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 dark:from-white dark:to-cyan-400 bg-clip-text text-transparent">
+                  DHRU.AI
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMarketSelector(true);
+                  }}
+                  className={`text-[9px] sm:text-[10px] uppercase font-mono px-1.5 sm:px-2 py-0.5 rounded-full font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    marketMode === 'crypto'
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800'
+                      : 'bg-blue-50 dark:bg-cyan-500/10 text-blue-700 dark:text-cyan-400 border border-blue-200 dark:border-cyan-500/20'
+                  }`}
+                  title="Click to switch trading markets"
+                >
+                  {marketMode === 'crypto' ? (
+                    <>
+                      <Coins className="w-2.5 h-2.5" />
+                      <span>CRYPTO DESK</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🇮🇳</span>
+                      <span>INDIA DESK</span>
+                    </>
+                  )}
+                  <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block tracking-wide font-medium truncate">
+                Understand Every Market. See Beyond the Numbers.
+              </p>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block tracking-wide font-medium">
-              Understand Every Market. See Beyond the Numbers.
-            </p>
           </div>
         </div>
 
@@ -186,15 +200,14 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Terminal</span>
           </button>
 
-          {/* Live Predictions & Entry/Exit Signals Button */}
+          {/* Live Predictions & Entry/Exit Signals Button (Desktop/Tablet) */}
           <button
             onClick={() => onOpenPredictions ? onOpenPredictions() : onSelectNav('ai-predictions')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer bg-gradient-to-r from-blue-700 via-indigo-600 to-cyan-600 hover:from-blue-800 hover:to-cyan-700 text-white shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:scale-[1.02]"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer bg-gradient-to-r from-blue-700 via-indigo-600 to-cyan-600 hover:from-blue-800 hover:to-cyan-700 text-white shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:scale-[1.02]"
             title="Live AI Market Predictions: Entry, Stop Loss & Exit Times"
           >
             <Zap className="w-3.5 h-3.5 fill-current" />
-            <span className="hidden sm:inline">Live Signals</span>
-            <span className="sm:hidden">Signals</span>
+            <span>Live Signals</span>
           </button>
 
           {/* Ask DHRU AI Fast Button */}
@@ -345,14 +358,6 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
           </div>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-slate-600 lg:hidden cursor-pointer"
-          >
-            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </button>
         </div>
       </div>
 
