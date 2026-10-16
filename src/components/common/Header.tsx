@@ -26,7 +26,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useTrading } from '../../context/TradingContext';
 import { MarketStatus } from '../../types';
 import { DhruLogo } from './DhruLogo';
-import { MobileSidebarDrawer } from './MobileSidebarDrawer';
 
 interface HeaderProps {
   marketStatus: MarketStatus | null;
@@ -34,7 +33,7 @@ interface HeaderProps {
   onSelectNav: (page: string) => void;
   activeNav: string;
   onOpenPredictions?: () => void;
-  onOpenMobileMenu?: () => void;
+  onOpenMobileMenu: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -50,7 +49,6 @@ export const Header: React.FC<HeaderProps> = ({
   const { user, signInWithGoogle, signOut, marketMode, setShowMarketSelector } = useAuth();
   const { marginAvailable } = useTrading();
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -85,13 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* 3-Line Hamburger Menu Button (at Left Corner Upside for Mobile) */}
           <button
-            onClick={() => {
-              if (onOpenMobileMenu) {
-                onOpenMobileMenu();
-              } else {
-                setMobileMenuOpen(true);
-              }
-            }}
+            onClick={onOpenMobileMenu}
             className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-[#131F38] border border-slate-200 dark:border-[#1E2D4A] text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-cyan-400 active:scale-95 transition-all cursor-pointer shrink-0 shadow-xs"
             aria-label="Open Navigation Menu"
             title="Open Platform Menu"
@@ -368,18 +360,6 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Mobile Off-Canvas Sidebar Drawer (Fallback when not rendered by root App) */}
-      {!onOpenMobileMenu && (
-        <MobileSidebarDrawer
-          isOpen={mobileMenuOpen}
-          onClose={() => setMobileMenuOpen(false)}
-          activeNav={activeNav}
-          onSelectNav={onSelectNav}
-          onOpenSearch={onOpenSearch}
-          onOpenPredictions={onOpenPredictions}
-        />
-      )}
     </header>
   );
 };

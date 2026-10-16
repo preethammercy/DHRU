@@ -94,7 +94,7 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
 
   const drawerElement = (
     <div
-      className="fixed inset-0 z-[999999] lg:hidden flex isolate"
+      className="fixed inset-0 z-[999999] lg:hidden flex"
       style={{
         zIndex: 999999,
         position: 'fixed',
@@ -102,22 +102,24 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        width: '100vw',
-        height: '100dvh'
+        width: '100%',
+        height: '100%'
       }}
     >
       {/* 1. Backdrop overlay */}
       <div
-        className="fixed inset-0 bg-slate-900/70 dark:bg-black/85 backdrop-blur-sm transition-opacity duration-300"
+        className="absolute inset-0 bg-slate-950/75 dark:bg-black/85 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
         aria-hidden="true"
-        style={{ zIndex: 999999 }}
       />
 
       {/* 2. Off-canvas sliding drawer container */}
       <div
-        className="relative w-[86vw] max-w-[320px] bg-white dark:bg-[#070B14] text-slate-900 dark:text-slate-100 h-full h-[100dvh] shadow-2xl flex flex-col z-[1000000] overflow-hidden transform transition-transform duration-300 ease-out border-r border-slate-200 dark:border-[#1A2744]"
-        style={{ zIndex: 1000000 }}
+        className="relative w-[86vw] max-w-[320px] bg-white dark:bg-[#070B14] text-slate-900 dark:text-slate-100 h-full shadow-2xl flex flex-col z-10 overflow-hidden border-r border-slate-200 dark:border-[#1A2744] animate-in slide-in-from-left duration-250"
+        style={{
+          height: '100%',
+          maxHeight: '100dvh'
+        }}
       >
         
         {/* Header with Logo, Version Badge, and Close Button */}

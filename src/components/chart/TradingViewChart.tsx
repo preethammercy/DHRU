@@ -760,7 +760,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#070B14]/80 text-xs">
         
         {/* Left: Unified Single-Choice Timeframe Period Buttons (No dual selector!) */}
-        <div className="flex items-center gap-1 bg-slate-200/70 dark:bg-slate-800/80 p-0.5 rounded-lg">
+        <div className="flex items-center gap-1 bg-slate-200/70 dark:bg-slate-800/80 p-0.5 rounded-lg overflow-x-auto scrollbar-none max-w-full">
           {UNIFIED_TIMEFRAMES.map(item => {
             const isActive = activeInterval === item.interval;
             return (
@@ -768,7 +768,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
                 key={item.label}
                 title={item.title}
                 onClick={() => onTimeframeChange?.(item.range, item.interval)}
-                className={`px-2.5 py-1 rounded font-semibold text-[11px] transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded font-semibold text-[11px] transition-all cursor-pointer whitespace-nowrap ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-xs font-bold'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/40 dark:hover:bg-slate-700/40'
@@ -781,7 +781,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
         </div>
 
         {/* Right: Chart Tools, Indicators & Zoom Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none">
           
           {/* Indicator Manager Modal Trigger */}
           <button
