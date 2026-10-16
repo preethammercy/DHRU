@@ -75,20 +75,20 @@ const US_EQUITIES = new Set(['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'A
 // Baseline quotes map so cache is primed even on serverless cold starts
 const BASELINE_DATA = {
   // Cryptos (24/7)
-  'BTC-USD': { name: 'Bitcoin USD', price: 80918.56, previousClose: 82132.23 },
-  'ETH-USD': { name: 'Ethereum USD', price: 2403.62, previousClose: 2439.85 },
-  'SOL-USD': { name: 'Solana USD', price: 103.33, previousClose: 105.33 },
-  'XRP-USD': { name: 'XRP USD', price: 1.2986, previousClose: 1.3332 },
-  'BNB-USD': { name: 'Binance Coin USD', price: 720.34, previousClose: 728.65 },
-  'DOGE-USD': { name: 'Dogecoin USD', price: 0.0798, previousClose: 0.0811 },
-  'SUI-USD': { name: 'Sui Network USD', price: 2.15, previousClose: 2.10 },
-  'ADA-USD': { name: 'Cardano USD', price: 0.2229, previousClose: 0.2297 },
-  'AVAX-USD': { name: 'Avalanche USD', price: 9.96, previousClose: 10.03 },
-  'LINK-USD': { name: 'Chainlink USD', price: 12.26, previousClose: 12.45 },
-  'NEAR-USD': { name: 'NEAR Protocol USD', price: 4.96, previousClose: 5.25 },
-  'PEPE-USD': { name: 'Pepe USD', price: 0.0000098, previousClose: 0.0000094 },
-  'APT-USD': { name: 'Aptos USD', price: 9.85, previousClose: 9.40 },
-  'RENDER-USD': { name: 'Render Token USD', price: 5.75, previousClose: 5.50 },
+  'BTC-USD': { name: 'Bitcoin USD', price: 81294.00, previousClose: 82345.00 },
+  'ETH-USD': { name: 'Ethereum USD', price: 2413.93, previousClose: 2442.00 },
+  'SOL-USD': { name: 'Solana USD', price: 103.78, previousClose: 105.65 },
+  'XRP-USD': { name: 'XRP USD', price: 1.3012, previousClose: 1.3404 },
+  'BNB-USD': { name: 'Binance Coin USD', price: 721.93, previousClose: 733.80 },
+  'DOGE-USD': { name: 'Dogecoin USD', price: 0.0800, previousClose: 0.0811 },
+  'SUI-USD': { name: 'Sui Network USD', price: 1.0133, previousClose: 1.0319 },
+  'ADA-USD': { name: 'Cardano USD', price: 0.2238, previousClose: 0.2308 },
+  'AVAX-USD': { name: 'Avalanche USD', price: 10.042, previousClose: 9.972 },
+  'LINK-USD': { name: 'Chainlink USD', price: 12.310, previousClose: 12.512 },
+  'NEAR-USD': { name: 'NEAR Protocol USD', price: 5.036, previousClose: 5.273 },
+  'PEPE-USD': { name: 'Pepe USD', price: 0.00000396, previousClose: 0.00000417 },
+  'APT-USD': { name: 'Aptos USD', price: 9.85, previousClose: 9.98 },
+  'RENDER-USD': { name: 'Render Token USD', price: 5.75, previousClose: 5.82 },
 
   // Indian Indices
   '^NSEI': { name: 'NIFTY 50', price: 23146.15, previousClose: 22622.70 },
@@ -179,42 +179,9 @@ export function ingestFreshQuote(q) {
 }
 
 // REST Polling Endpoint Handler (Vercel Serverless Compatible)
-// Returns instant fresh ticks with realistic live micro-variance
+// Returns authentic live ticks from cache without synthetic random drift
 export function getAllCachedTicks() {
   ensureBaselineCache();
-
-  // Apply real micro-variance on requested snapshot for live instruments
-  for (const [sym, quote] of liveTickCache.entries()) {
-    const live = isInstrumentLive(sym);
-    if (!live) continue;
-
-    const isCrypto = sym.includes('-USD');
-    const isForex = sym.includes('=X') || sym.includes('=F');
-    const volatility = isCrypto ? 0.0008 : (isForex ? 0.0002 : 0.0004);
-    const deltaPercent = (Math.random() - 0.492) * volatility;
-
-    let newPrice = quote.price * (1 + deltaPercent);
-    if (newPrice > 100) newPrice = Number(newPrice.toFixed(2));
-    else if (newPrice > 1) newPrice = Number(newPrice.toFixed(4));
-    else newPrice = Number(newPrice.toFixed(6));
-
-    if (newPrice > 0 && newPrice !== quote.price) {
-      const newChange = Number((newPrice - quote.previousClose).toFixed(newPrice > 100 ? 2 : 4));
-      const newChangePercent = quote.previousClose > 0
-        ? Number(((newChange / quote.previousClose) * 100).toFixed(2))
-        : 0;
-
-      quote.price = newPrice;
-      quote.change = newChange;
-      quote.changePercent = newChangePercent;
-      quote.dayHigh = Math.max(quote.dayHigh, newPrice);
-      quote.dayLow = Math.min(quote.dayLow, newPrice);
-      quote.volume += Math.floor(Math.random() * 40) + 1;
-      quote.lastTickTime = Date.now();
-      quote.isLive = live;
-      liveTickCache.set(sym, quote);
-    }
-  }
 
   return {
     timestamp: Date.now(),
@@ -355,10 +322,10 @@ export function startMarketStreamingLoop() {
     for (const sym of shuffled) {
       try {
         let quote = liveTickCache.get(sym);
-        if (!quote || (Date.now() - (quote.lastFetchTime || 0) > 30000)) {
+        if (!quote || (Date.now() - (quote.lastFetchTime || 0) > 10000)) {
           const fresh = await fetchInstrumentQuote(sym).catch(() => null);
           if (fresh && fresh.price > 0) {
-            liveTickCache.set(sym, {
+            const updated = {
               symbol: sym,
               name: fresh.name,
               price: fresh.price,
@@ -371,71 +338,13 @@ export function startMarketStreamingLoop() {
               lastFetchTime: Date.now(),
               lastTickTime: Date.now(),
               isLive: isInstrumentLive(sym)
-            });
+            };
+            liveTickCache.set(sym, updated);
+            updatedTicks.push(updated);
           }
         }
       } catch {
         // continue
-      }
-    }
-
-    // Now generate real-time micro-tick price movements every second
-    for (const sym of symbolsToUpdate) {
-      let quote = liveTickCache.get(sym);
-      if (!quote || quote.price <= 0) continue;
-
-      const isCrypto = sym.includes('-USD');
-      const isForex = sym.includes('=X') || sym.includes('=F');
-      const live = isInstrumentLive(sym);
-
-      // Do NOT simulate price movements for instruments when their exchange is closed (e.g. Indian equities after 3:30 PM IST)
-      if (!live) {
-        continue;
-      }
-
-      // Micro variance: crypto ±0.04%, forex ±0.01%, equities ±0.02%
-      const volatility = isCrypto ? 0.0006 : (isForex ? 0.00015 : 0.00035);
-      const randomDirection = (Math.random() - 0.492);
-      const deltaPercent = randomDirection * volatility;
-
-      let newPrice = quote.price * (1 + deltaPercent);
-      // Precision formatting
-      if (newPrice > 100) {
-        newPrice = Number(newPrice.toFixed(2));
-      } else if (newPrice > 1) {
-        newPrice = Number(newPrice.toFixed(4));
-      } else {
-        newPrice = Number(newPrice.toFixed(6));
-      }
-
-      if (newPrice > 0 && newPrice !== quote.price) {
-        const newChange = Number((newPrice - quote.previousClose).toFixed(newPrice > 100 ? 2 : 4));
-        const newChangePercent = quote.previousClose > 0
-          ? Number(((newChange / quote.previousClose) * 100).toFixed(2))
-          : 0;
-
-        quote.price = newPrice;
-        quote.change = newChange;
-        quote.changePercent = newChangePercent;
-        quote.dayHigh = Math.max(quote.dayHigh, newPrice);
-        quote.dayLow = Math.min(quote.dayLow, newPrice);
-        quote.volume += Math.floor(Math.random() * (isCrypto ? 120 : 50)) + 5;
-        quote.lastTickTime = Date.now();
-        quote.isLive = live;
-
-        liveTickCache.set(sym, quote);
-        updatedTicks.push({
-          symbol: quote.symbol,
-          price: quote.price,
-          previousClose: quote.previousClose,
-          change: quote.change,
-          changePercent: quote.changePercent,
-          dayHigh: quote.dayHigh,
-          dayLow: quote.dayLow,
-          volume: quote.volume,
-          timestamp: quote.lastTickTime,
-          isLive: live
-        });
       }
     }
 

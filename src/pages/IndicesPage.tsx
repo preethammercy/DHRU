@@ -31,7 +31,7 @@ const LiveAssetCard: React.FC<{
 
   const isForex = item.symbol.includes('=X') || item.symbol.includes('=F');
   const currency = isForex && item.symbol.includes('INR') ? '₹' : (isCrypto || isForex ? '$' : '₹');
-  const maxDecimals = price < 2 ? 4 : (price < 100 ? 3 : 2);
+  const maxDecimals = price < 0.001 ? 8 : (price < 2 ? 4 : (price < 100 ? 3 : 2));
 
   return (
     <div

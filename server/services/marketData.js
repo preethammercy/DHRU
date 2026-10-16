@@ -19,6 +19,49 @@ export async function fetchInstrumentQuote(symbol) {
     return cached.data;
   }
 
+  // Real-Time Institutional Crypto Quote from Binance (TradingView exact)
+  if (symbol.includes('-USD')) {
+    try {
+      const pair = symbol.replace('-USD', 'USDT');
+      const binanceRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${pair}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (binanceRes.ok) {
+        const d = await binanceRes.json();
+        const price = parseFloat(d.lastPrice);
+        const prevClose = parseFloat(d.prevClosePrice);
+        const change = parseFloat(d.priceChange);
+        const changePercent = parseFloat(d.priceChangePercent);
+        const data = {
+          symbol,
+          name: symbol.replace('-USD', ' USD'),
+          currency: 'USD',
+          exchange: 'Global Crypto',
+          price,
+          previousClose: prevClose,
+          change: Number(change.toFixed(price > 100 ? 2 : 4)),
+          changePercent: Number(changePercent.toFixed(2)),
+          dayHigh: parseFloat(d.highPrice),
+          dayLow: parseFloat(d.lowPrice),
+          volume: parseFloat(d.volume),
+          fiftyTwoWeekHigh: null,
+          fiftyTwoWeekLow: null,
+          marketCap: null,
+          lastUpdated: new Date().toISOString(),
+          timestampEpoch: Math.floor(Date.now() / 1000),
+          source: 'Binance Global Real-Time Feed',
+          status: 'Real-Time 24/7 Global TradingView Exact',
+          instrumentType: 'CRYPTOCURRENCY'
+        };
+        quoteCache.set(symbol, { data, cachedAt: Date.now() });
+        import('./marketStream.js').then(m => m.ingestFreshQuote(data)).catch(() => {});
+        return data;
+      }
+    } catch {
+      // Fallback to Yahoo Finance below
+    }
+  }
+
   try {
     const encodedSym = encodeURIComponent(symbol);
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSym}?range=1d&interval=1d`;
@@ -105,6 +148,54 @@ export async function fetchInstrumentCandles(symbol, range = '1mo', interval = '
   const cached = candleCache.get(cacheKey);
   if (cached && (Date.now() - cached.cachedAt < CACHE_TTL_MS)) {
     return cached.data;
+  }
+
+  // 1. Real-Time Institutional Crypto K-Lines directly from Binance
+  if (symbol.includes('-USD')) {
+    try {
+      const pair = symbol.replace('-USD', 'USDT');
+      const binanceIntervalMap = {
+        '1m': '1m', '5m': '5m', '15m': '15m', '30m': '30m',
+        '60m': '1h', '1h': '1h', '4h': '4h',
+        '1d': '1d', '1D': '1d', '1wk': '1w', '1W': '1w', '1mo': '1M', '1M': '1M'
+      };
+      const bInterval = binanceIntervalMap[interval] || '30m';
+      const limit = ['1m', '5m'].includes(bInterval) ? 300 : 200;
+      const bRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${pair}&interval=${bInterval}&limit=${limit}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (bRes.ok) {
+        const klines = await bRes.json();
+        if (Array.isArray(klines) && klines.length > 0) {
+          const rawCandles = klines.map(k => ({
+            time: Math.floor(k[0] / 1000),
+            open: parseFloat(k[1]),
+            high: parseFloat(k[2]),
+            low: parseFloat(k[3]),
+            close: parseFloat(k[4]),
+            volume: parseFloat(k[5])
+          })).filter(c => c && !isNaN(c.close));
+
+          const responseData = {
+            symbol,
+            range,
+            interval,
+            count: rawCandles.length,
+            candles: rawCandles,
+            volumeData: rawCandles.map(c => ({
+              time: c.time,
+              value: c.volume,
+              color: c.close >= c.open ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'
+            })),
+            source: 'Binance Institutional K-Line Feed'
+          };
+          candleCache.set(cacheKey, { data: responseData, cachedAt: Date.now() });
+          return responseData;
+        }
+      }
+    } catch (bErr) {
+      console.warn('[MarketData] Binance kline fallback to Yahoo:', bErr.message);
+    }
   }
 
   try {

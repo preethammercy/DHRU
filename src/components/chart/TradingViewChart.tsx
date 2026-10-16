@@ -102,6 +102,14 @@ function formatCandleTime(time: number | string | undefined, interval: string) {
   });
 }
 
+function formatPrice(val?: number): string {
+  if (val === undefined || val === null || isNaN(val)) return '-';
+  if (val >= 100) return val.toFixed(2);
+  if (val >= 1) return val.toFixed(4);
+  if (val >= 0.0001) return val.toFixed(6);
+  return val.toFixed(8);
+}
+
 export const TradingViewChart: React.FC<ChartProps> = ({
   candles,
   volumeData: _volumeData,
@@ -177,6 +185,25 @@ export const TradingViewChart: React.FC<ChartProps> = ({
     }
     return deduped;
   }, [candles]);
+
+  // Synchronized Live LTP strictly matched with candlestick bar series
+  const liveLtp = useMemo(() => {
+    const tick = ticks[symbol];
+    if (tick && tick.price > 0) {
+      if (cleanCandles.length > 0) {
+        const last = cleanCandles[cleanCandles.length - 1];
+        if (last.close > 0 && Math.abs(tick.price - last.close) / last.close <= 0.15) {
+          return tick.price;
+        }
+      } else {
+        return tick.price;
+      }
+    }
+    if (cleanCandles.length > 0) {
+      return cleanCandles[cleanCandles.length - 1].close;
+    }
+    return currentPrice;
+  }, [ticks, symbol, cleanCandles, currentPrice]);
 
   // Active oscillators
   const activeOscillators = useMemo(() => {
@@ -667,6 +694,12 @@ export const TradingViewChart: React.FC<ChartProps> = ({
     const newPrice = liveTick.price;
     if (newPrice <= 0) return;
 
+    // Sanity check: ensure live price is within 15% of the last candle close
+    // This protects charts from any out-of-order or stale network glitches
+    if (lastCandle.close > 0 && Math.abs(newPrice - lastCandle.close) / lastCandle.close > 0.15) {
+      return;
+    }
+
     const updatedBar = {
       time: lastCandle.time,
       open: lastCandle.open,
@@ -881,10 +914,10 @@ export const TradingViewChart: React.FC<ChartProps> = ({
                   📅 {formatCandleTime(hoverData.time, activeInterval)}
                 </span>
               )}
-              <span>O: <strong className="text-slate-900 dark:text-white">{currencySym}{hoverData.open?.toFixed(2) ?? '-'}</strong></span>
-              <span>H: <strong className="text-emerald-600 dark:text-emerald-400">{currencySym}{hoverData.high?.toFixed(2) ?? '-'}</strong></span>
-              <span>L: <strong className="text-rose-600 dark:text-rose-400">{currencySym}{hoverData.low?.toFixed(2) ?? '-'}</strong></span>
-              <span>C: <strong className="text-slate-900 dark:text-white">{currencySym}{hoverData.close?.toFixed(2) ?? '-'}</strong></span>
+              <span>O: <strong className="text-slate-900 dark:text-white">{currencySym}{formatPrice(hoverData.open)}</strong></span>
+              <span>H: <strong className="text-emerald-600 dark:text-emerald-400">{currencySym}{formatPrice(hoverData.high)}</strong></span>
+              <span>L: <strong className="text-rose-600 dark:text-rose-400">{currencySym}{formatPrice(hoverData.low)}</strong></span>
+              <span>C: <strong className="text-slate-900 dark:text-white">{currencySym}{formatPrice(hoverData.close)}</strong></span>
               {hoverData.change !== undefined && (
                 <span className={hoverData.change >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
                   {hoverData.change >= 0 ? '+' : ''}{currencySym}{hoverData.change} ({hoverData.changePercent}%)
@@ -893,7 +926,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
             </div>
           ) : (
             <div className="text-slate-400 font-sans text-xs flex items-center gap-2">
-              <span>Live LTP: <strong className="text-slate-900 dark:text-white font-mono">{currencySym}{currentPrice.toFixed(2)}</strong></span>
+              <span>Live LTP: <strong className="text-slate-900 dark:text-white font-mono">{currencySym}{formatPrice(liveLtp)}</strong></span>
               <span className="text-[11px] text-slate-400">(Hover on candle to inspect historical timestamp & OHLC)</span>
             </div>
           )}

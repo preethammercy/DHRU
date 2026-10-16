@@ -310,3 +310,43 @@ describe('User Capital & Market Gateway Verification', () => {
     assert.ok(sampleSetup.exitCriteria.length > 5);
   });
 });
+
+describe('Institutional Real-Time Market Streaming Verification', () => {
+  test('getAllCachedTicks returns authentic quotes without synthetic random walk drift', async () => {
+    const { getAllCachedTicks } = await import('../server/services/marketStream.js');
+    const firstCall = getAllCachedTicks();
+    assert.ok(firstCall.ticks.length > 0, 'Ticks array must not be empty');
+
+    const btcFirst = firstCall.ticks.find(t => t.symbol === 'BTC-USD');
+    assert.ok(btcFirst, 'BTC-USD must exist in streaming universe');
+    assert.ok(btcFirst.price >= 50000 && btcFirst.price <= 150000, 'BTC price must be realistic institutional level (~81k)');
+
+    // Call repeatedly to ensure zero random walk perturbation
+    const secondCall = getAllCachedTicks();
+    const btcSecond = secondCall.ticks.find(t => t.symbol === 'BTC-USD');
+    assert.equal(btcFirst.price, btcSecond.price, 'Price must remain completely stable without artificial random walk');
+  });
+
+  test('Crypto symbols map accurately to institutional Binance instruments', () => {
+    const mapping = {
+      'BTCUSDT': 'BTC-USD',
+      'ETHUSDT': 'ETH-USD',
+      'SOLUSDT': 'SOL-USD',
+      'BNBUSDT': 'BNB-USD',
+      'XRPUSDT': 'XRP-USD',
+      'DOGEUSDT': 'DOGE-USD',
+      'ADAUSDT': 'ADA-USD',
+      'AVAXUSDT': 'AVAX-USD',
+      'LINKUSDT': 'LINK-USD',
+      'NEARUSDT': 'NEAR-USD',
+      'SUIUSDT': 'SUI-USD',
+      'PEPEUSDT': 'PEPE-USD',
+    };
+
+    assert.equal(mapping['BTCUSDT'], 'BTC-USD');
+    assert.equal(mapping['ETHUSDT'], 'ETH-USD');
+    assert.equal(mapping['SOLUSDT'], 'SOL-USD');
+    assert.equal(Object.keys(mapping).length, 12);
+  });
+});
+

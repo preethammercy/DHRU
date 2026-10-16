@@ -38,17 +38,18 @@ const MarketStreamContext = createContext<MarketStreamContextType>({
 
 // Seed quotes map so components have immediate data on first paint
 const INITIAL_SEEDS: Record<string, Partial<LiveTick>> = {
-  'BTC-USD': { price: 80918.56, previousClose: 82132.23, change: -1213.67, changePercent: -1.48, isLive: true },
-  'ETH-USD': { price: 2403.62, previousClose: 2439.85, change: -36.23, changePercent: -1.48, isLive: true },
-  'SOL-USD': { price: 103.33, previousClose: 105.33, change: -2.00, changePercent: -1.90, isLive: true },
-  'XRP-USD': { price: 1.2986, previousClose: 1.3332, change: -0.0346, changePercent: -2.25, isLive: true },
-  'BNB-USD': { price: 720.34, previousClose: 728.65, change: -8.31, changePercent: -1.14, isLive: true },
-  'DOGE-USD': { price: 0.0798, previousClose: 0.0811, change: -0.0013, changePercent: -1.60, isLive: true },
-  'SUI-USD': { price: 2.15, previousClose: 2.10, change: 0.05, changePercent: 2.38, isLive: true },
-  'ADA-USD': { price: 0.2229, previousClose: 0.2297, change: -0.0068, changePercent: -4.35, isLive: true },
-  'AVAX-USD': { price: 9.96, previousClose: 10.03, change: -0.07, changePercent: -0.70, isLive: true },
-  'LINK-USD': { price: 12.26, previousClose: 12.45, change: -0.19, changePercent: -1.53, isLive: true },
-  'NEAR-USD': { price: 4.96, previousClose: 5.25, change: -0.29, changePercent: -5.52, isLive: true },
+  'BTC-USD': { price: 81294.00, previousClose: 82345.00, change: -1051.00, changePercent: -1.28, isLive: true },
+  'ETH-USD': { price: 2413.93, previousClose: 2442.00, change: -28.07, changePercent: -1.15, isLive: true },
+  'SOL-USD': { price: 103.78, previousClose: 105.65, change: -1.87, changePercent: -1.77, isLive: true },
+  'XRP-USD': { price: 1.3012, previousClose: 1.3404, change: -0.0392, changePercent: -2.92, isLive: true },
+  'BNB-USD': { price: 721.93, previousClose: 733.80, change: -11.87, changePercent: -1.62, isLive: true },
+  'DOGE-USD': { price: 0.0800, previousClose: 0.0811, change: -0.0011, changePercent: -1.36, isLive: true },
+  'SUI-USD': { price: 1.0133, previousClose: 1.0319, change: -0.0186, changePercent: -1.80, isLive: true },
+  'ADA-USD': { price: 0.2238, previousClose: 0.2308, change: -0.0070, changePercent: -3.03, isLive: true },
+  'AVAX-USD': { price: 10.042, previousClose: 9.972, change: 0.070, changePercent: 0.70, isLive: true },
+  'LINK-USD': { price: 12.310, previousClose: 12.512, change: -0.202, changePercent: -1.61, isLive: true },
+  'NEAR-USD': { price: 5.036, previousClose: 5.273, change: -0.237, changePercent: -4.50, isLive: true },
+  'PEPE-USD': { price: 0.00000396, previousClose: 0.00000417, change: -0.00000021, changePercent: -5.04, isLive: true },
   '^NSEI': { price: 23146.15, previousClose: 22622.70, change: 523.45, changePercent: 2.31, isLive: false },
   '^NSEBANK': { price: 55844.00, previousClose: 55316.00, change: 528.00, changePercent: 0.95, isLive: false },
   '^BSESN': { price: 74729.27, previousClose: 72781.90, change: 1947.37, changePercent: 2.68, isLive: false },
@@ -63,6 +64,22 @@ const INITIAL_SEEDS: Record<string, Partial<LiveTick>> = {
   'NVDA': { price: 215.54, previousClose: 217.23, change: -1.69, changePercent: -0.78, isLive: false },
   'TSLA': { price: 353.18, previousClose: 362.44, change: -9.26, changePercent: -2.55, isLive: false }
 };
+
+const BINANCE_PAIR_MAP: Record<string, string> = {
+  'BTCUSDT': 'BTC-USD',
+  'ETHUSDT': 'ETH-USD',
+  'SOLUSDT': 'SOL-USD',
+  'BNBUSDT': 'BNB-USD',
+  'XRPUSDT': 'XRP-USD',
+  'DOGEUSDT': 'DOGE-USD',
+  'ADAUSDT': 'ADA-USD',
+  'AVAXUSDT': 'AVAX-USD',
+  'LINKUSDT': 'LINK-USD',
+  'NEARUSDT': 'NEAR-USD',
+  'SUIUSDT': 'SUI-USD',
+  'PEPEUSDT': 'PEPE-USD',
+};
+
 
 export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ticks, setTicks] = useState<Record<string, LiveTick>>(() => {
@@ -223,87 +240,123 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [pollTicks, handleTickUpdate]);
 
-  // Client-Side Micro-Variance Engine
-  // Delivers instant, institutional-grade, organic tick movements and green/red flashes
-  // Operates smoothly even when running in serverless cloud environments
+  // 1. Native Real-Time Binance WebSocket Stream (TradingView Exact Live Feeds)
+  // Connects directly from client browser, 100% resilient on Vercel without server limits
   useEffect(() => {
-    const microTickInterval = setInterval(() => {
-      setTicks(prev => {
-        const symbols = Object.keys(prev);
-        if (symbols.length === 0) return prev;
+    let ws: WebSocket | null = null;
+    let reconnectTimer: NodeJS.Timeout | null = null;
+    let isUnmounted = false;
 
-        // Choose 3 to 6 random instruments to tick per pulse
-        const batchSize = Math.floor(Math.random() * 4) + 3;
-        const shuffled = [...symbols].sort(() => 0.5 - Math.random()).slice(0, batchSize);
+    const connectBinanceWs = () => {
+      try {
+        ws = new WebSocket('wss://stream.binance.com:9443/ws/!miniTicker@arr');
 
-        const next = { ...prev };
-        let hasChanges = false;
+        ws.onopen = () => {
+          setConnectionStatus('connected');
+        };
 
-        for (const sym of shuffled) {
-          const item = prev[sym];
-          if (!item || item.price <= 0) continue;
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (!Array.isArray(data)) return;
 
-          const isCrypto = sym.includes('-USD');
-          const isForex = sym.includes('=X') || sym.includes('=F');
+            const ticksToUpdate: LiveTick[] = [];
+            for (const item of data) {
+              const ourSymbol = BINANCE_PAIR_MAP[item.s];
+              if (!ourSymbol) continue;
 
-          // Volatility factor
-          const vol = isCrypto ? 0.0006 : (isForex ? 0.00018 : 0.0003);
-          const direction = (Math.random() - 0.495); // slight natural drift
-          const delta = item.price * direction * vol;
+              const price = parseFloat(item.c);
+              const open = parseFloat(item.o);
+              const high = parseFloat(item.h);
+              const low = parseFloat(item.l);
+              const volume = parseFloat(item.v);
+              if (isNaN(price) || price <= 0) continue;
 
-          let newPrice = item.price + delta;
-          if (newPrice > 100) newPrice = Number(newPrice.toFixed(2));
-          else if (newPrice > 1) newPrice = Number(newPrice.toFixed(4));
-          else newPrice = Number(newPrice.toFixed(6));
+              const change = Number((price - open).toFixed(price > 100 ? 2 : (price < 1 ? 6 : 4)));
+              const changePercent = open > 0 ? Number((((price - open) / open) * 100).toFixed(2)) : 0;
 
-          if (newPrice !== item.price && newPrice > 0) {
-            hasChanges = true;
-            const flash: 'up' | 'down' = newPrice > item.price ? 'up' : 'down';
-            const newChange = Number((newPrice - item.previousClose).toFixed(newPrice > 100 ? 2 : 4));
-            const newChangePercent = item.previousClose > 0
-              ? Number(((newChange / item.previousClose) * 100).toFixed(2))
-              : 0;
-
-            next[sym] = {
-              ...item,
-              price: newPrice,
-              change: newChange,
-              changePercent: newChangePercent,
-              dayHigh: Math.max(item.dayHigh, newPrice),
-              dayLow: Math.min(item.dayLow, newPrice),
-              volume: item.volume + Math.floor(Math.random() * 20) + 1,
-              timestamp: Date.now(),
-              flash
-            };
-
-            // Set auto-reset for the flash animation
-            const oldTimer = flashTimers.current.get(sym);
-            if (oldTimer) clearTimeout(oldTimer);
-
-            const timer = setTimeout(() => {
-              setTicks(current => {
-                if (!current[sym]) return current;
-                return {
-                  ...current,
-                  [sym]: {
-                    ...current[sym],
-                    flash: null
-                  }
-                };
+              ticksToUpdate.push({
+                symbol: ourSymbol,
+                price,
+                previousClose: open,
+                change,
+                changePercent,
+                dayHigh: high,
+                dayLow: low,
+                volume,
+                timestamp: item.E || Date.now(),
+                isLive: true
               });
-              flashTimers.current.delete(sym);
-            }, 750);
+            }
 
-            flashTimers.current.set(sym, timer);
+            if (ticksToUpdate.length > 0) {
+              handleTickUpdate(ticksToUpdate, true);
+            }
+          } catch {
+            // ignore
+          }
+        };
+
+        ws.onerror = () => {
+          try { ws?.close(); } catch {}
+        };
+
+        ws.onclose = () => {
+          if (!isUnmounted) {
+            reconnectTimer = setTimeout(connectBinanceWs, 3000);
+          }
+        };
+      } catch {
+        if (!isUnmounted) {
+          reconnectTimer = setTimeout(connectBinanceWs, 5000);
+        }
+      }
+    };
+
+    connectBinanceWs();
+
+    // Direct Binance REST fetch on mount for instant zero-latency crypto quotes
+    fetch('https://api.binance.com/api/v3/ticker/24hr')
+      .then(res => res.json())
+      .then((arr: any[]) => {
+        if (!Array.isArray(arr)) return;
+        const initialTicks: LiveTick[] = [];
+        for (const item of arr) {
+          const ourSymbol = BINANCE_PAIR_MAP[item.symbol];
+          if (!ourSymbol) continue;
+          const price = parseFloat(item.lastPrice);
+          const prevClose = parseFloat(item.prevClosePrice);
+          const change = parseFloat(item.priceChange);
+          const changePercent = parseFloat(item.priceChangePercent);
+          if (price > 0) {
+            initialTicks.push({
+              symbol: ourSymbol,
+              price,
+              previousClose: prevClose,
+              change: Number(change.toFixed(price > 100 ? 2 : 4)),
+              changePercent: Number(changePercent.toFixed(2)),
+              dayHigh: parseFloat(item.highPrice),
+              dayLow: parseFloat(item.lowPrice),
+              volume: parseFloat(item.volume),
+              timestamp: Date.now(),
+              isLive: true
+            });
           }
         }
+        if (initialTicks.length > 0) {
+          handleTickUpdate(initialTicks, true);
+        }
+      })
+      .catch(() => {});
 
-        return hasChanges ? next : prev;
-      });
-    }, 1100);
-
-    return () => clearInterval(microTickInterval);
-  }, []);
+    return () => {
+      isUnmounted = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (ws) {
+        try { ws.close(); } catch {}
+      }
+    };
+  }, [handleTickUpdate]);
 
   const subscribeSymbol = useCallback((symbol: string) => {
     if (!symbol) return;
@@ -341,8 +394,11 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!quote || !quote.symbol || typeof quote.price !== 'number' || quote.price <= 0) return;
     setTicks(prev => {
       const existing = prev[quote.symbol];
-      // Sync if not present, or if existing price deviates by > 8% (indicating stale baseline seed), or if incoming has change data
-      if (!existing || existing.price <= 0 || Math.abs(existing.price - quote.price) / quote.price > 0.08) {
+      // Don't overwrite live real-time Binance ticks with stale REST snapshots
+      if (existing && existing.isLive && quote.symbol.includes('-USD') && existing.price > 0) {
+        return prev;
+      }
+      if (!existing || existing.price <= 0 || Math.abs(existing.price - quote.price) / quote.price > 0.03 || (!existing.isLive && existing.price !== quote.price)) {
         return {
           ...prev,
           [quote.symbol]: {
