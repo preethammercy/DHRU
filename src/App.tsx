@@ -38,9 +38,56 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { MarketStreamProvider } from './context/MarketStreamContext';
 import { TradingProvider } from './context/TradingContext';
 
+// Path mapping dictionary for URL routing (e.g., /home, /dashboard, /terminal, /markets, etc.)
+const PATH_TO_NAV: Record<string, string> = {
+  '': 'overview',
+  'home': 'overview',
+  'overview': 'overview',
+  'dashboard': 'overview',
+  'terminal': 'terminal',
+  'trade': 'terminal',
+  'indices': 'indices',
+  'markets': 'indices',
+  'assets': 'indices',
+  'stocks': 'stocks',
+  'equities': 'stocks',
+  'sectors': 'sectors',
+  'heatmap': 'sectors',
+  'commodities': 'commodities',
+  'derivatives': 'derivatives',
+  'fno': 'derivatives',
+  'news': 'news',
+  'ai-predictions': 'ai-predictions',
+  'predictions': 'ai-predictions',
+  'signals': 'ai-predictions',
+  'risk-monitor': 'risk-monitor',
+  'risk': 'risk-monitor',
+  'patterns': 'patterns',
+  'pattern-scanner': 'patterns',
+  'watchlist': 'watchlist',
+  'profile': 'profile',
+  'account': 'profile',
+  'ask-dhru': 'ask-dhru',
+  'ai': 'ask-dhru',
+};
+
+function getNavFromLocation(): { nav: string; symbol?: string } {
+  if (typeof window === 'undefined') return { nav: 'overview' };
+  const rawPath = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+
+  if (rawPath.startsWith('stock/') || rawPath.startsWith('quote/')) {
+    const sym = window.location.pathname.split('/')[2];
+    return { nav: 'stock-detail', symbol: sym ? decodeURIComponent(sym).toUpperCase() : undefined };
+  }
+
+  const nav = PATH_TO_NAV[rawPath] || 'overview';
+  return { nav };
+}
+
 function AppContent() {
-  const [activeNav, setActiveNav] = useState('overview');
-  const [selectedSymbol, setSelectedSymbol] = useState('RELIANCE.NS');
+  const initialRoute = getNavFromLocation();
+  const [activeNav, setActiveNavState] = useState(initialRoute.nav);
+  const [selectedSymbol, setSelectedSymbol] = useState(initialRoute.symbol || 'RELIANCE.NS');
   const [askDhruQuestion, setAskDhruQuestion] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [predictionsModalOpen, setPredictionsModalOpen] = useState(false);
@@ -50,6 +97,31 @@ function AppContent() {
 
   // Scroll entrance animation hook
   useScrollAnimation(activeNav);
+
+  // Synchronize URL and page state with HTML5 History API
+  const setActiveNav = (page: string, symbolToSet?: string) => {
+    setActiveNavState(page);
+    let targetPath = `/${page}`;
+    if (page === 'overview') targetPath = '/dashboard';
+    if (page === 'stock-detail' && symbolToSet) {
+      targetPath = `/stock/${encodeURIComponent(symbolToSet)}`;
+    }
+    if (typeof window !== 'undefined' && window.location.pathname !== targetPath) {
+      window.history.pushState({ page, symbol: symbolToSet }, '', targetPath);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Listen to browser Back / Forward history events
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = getNavFromLocation();
+      setActiveNavState(route.nav);
+      if (route.symbol) setSelectedSymbol(route.symbol);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // If user changes market mode, default selected symbol accordingly
   useEffect(() => {
@@ -71,20 +143,17 @@ function AppContent() {
 
   const handleSelectStock = (symbol: string) => {
     setSelectedSymbol(symbol);
-    setActiveNav('stock-detail');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setActiveNav('stock-detail', symbol);
   };
 
   const handleTradeStock = (symbol: string) => {
     setSelectedSymbol(symbol);
     setActiveNav('terminal');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleAskDhruContext = (question: string) => {
     setAskDhruQuestion(question);
     setActiveNav('ask-dhru');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) {

@@ -1,11 +1,11 @@
 // DHRU.AI - Market Overview (Homepage Dashboard)
 // Adaptive Desk: When in Indian Market Mode -> 100% Indian Markets (Nifty, Sensex, NSE/BSE equities, ₹ INR)
-// When in Crypto Mode -> 100% Crypto Markets (Bitcoin, Ethereum, Solana, XRP, SUI, DOGE, $ USD)
+// When in Crypto Mode -> 100% Crypto & Global Forex Markets (Bitcoin, Ethereum, Solana, XRP, EUR/USD, Gold, US Tech, $ USD)
 // Clean, user-friendly, non-AI aesthetic matching Groww and Angel One.
 
 import React, { useEffect, useState } from 'react';
 import { Quote, NewsItem, MarketStatus } from '../types';
-import { getMarketOverview, getNews, getFiiDiiData, getCryptoInstruments } from '../services/api';
+import { getMarketOverview, getNews, getFiiDiiData, getCryptoInstruments, getForexInstruments } from '../services/api';
 import { useLivePrice } from '../context/MarketStreamContext';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -21,7 +21,9 @@ import {
   CandlestickChart,
   Coins,
   ChevronRight,
-  ArrowRight
+  ArrowRight,
+  Globe2,
+  DollarSign
 } from 'lucide-react';
 
 interface Props {
@@ -38,17 +40,21 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
   const [news, setNews] = useState<NewsItem[]>([]);
   const [cryptoData, setCryptoData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cryptoFilter, setCryptoFilter] = useState<'all' | 'crypto' | 'forex'>('all');
 
   const loadData = async () => {
     setLoading(true);
     try {
       if (marketMode === 'crypto') {
-        const [cryptoRes, newsRes] = await Promise.all([
+        const [cryptoRes, forexRes, newsRes] = await Promise.all([
           getCryptoInstruments().catch(() => ({ crypto: [] })),
+          getForexInstruments().catch(() => ({ forex: [] })),
           getNews().catch(() => ({ news: [] }))
         ]);
-        const list = cryptoRes?.crypto || cryptoRes?.instruments || [];
-        setCryptoData(list);
+        const cryptoList = cryptoRes?.crypto || cryptoRes?.instruments || [];
+        const forexList = forexRes?.forex || forexRes?.instruments || [];
+        const combined = [...cryptoList, ...forexList];
+        setCryptoData(combined);
         setNews(newsRes?.news || []);
       } else {
         const [overviewRes, newsRes, fiiRes] = await Promise.all([
@@ -78,7 +84,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
       <div className="py-24 text-center space-y-4">
         <div className="w-10 h-10 border-2 border-blue-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-          Loading verified {isCrypto ? 'cryptocurrency' : 'Indian exchange'} quotes...
+          Loading verified {isCrypto ? 'Crypto & Forex' : 'Indian exchange'} quotes...
         </p>
       </div>
     );
@@ -91,8 +97,14 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
   const breadth = data?.breadth || { advances: 18, declines: 12, ratio: 1.5 };
   const status: MarketStatus = data?.status;
 
-  // Crypto mode sorted lists
-  const cryptoSorted = [...cryptoData].sort((a, b) => (b.price || 0) - (a.price || 0));
+  // Crypto & FX mode filtered & sorted lists
+  const filteredCrypto = cryptoData.filter(item => {
+    if (cryptoFilter === 'crypto') return item.symbol?.includes('USD') && !item.symbol?.includes('=') && !['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'].includes(item.symbol);
+    if (cryptoFilter === 'forex') return item.symbol?.includes('=') || ['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'].includes(item.symbol);
+    return true;
+  });
+
+  const cryptoSorted = [...filteredCrypto].sort((a, b) => (b.price || 0) - (a.price || 0));
   const cryptoGainers = [...cryptoData].sort((a, b) => (b.changePercent || 0) - (a.changePercent || 0)).slice(0, 5);
   const cryptoLosers = [...cryptoData].sort((a, b) => (a.changePercent || 0) - (b.changePercent || 0)).slice(0, 5);
   const cryptoAdvances = cryptoData.filter(c => (c.changePercent || 0) >= 0).length;
@@ -102,7 +114,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
     <div className="space-y-8 animate-fade-in pb-12">
       
       {/* 1. Hero Vision Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] p-6 sm:p-8 shadow-card zoom-card scroll-animate">
+      <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] p-6 sm:p-8 shadow-card zoom-card">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -111,7 +123,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
               <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
               <span>
                 {isCrypto
-                  ? 'Global 24/7 Cryptocurrency Desk • Real-Time Order Book • $12,000 Free Margin'
+                  ? 'Global 24/7 Crypto & FX Desk • 48+ Assets • Real-Time Order Book • $12,000 Margin'
                   : 'Verified NSE & BSE Quotes • Zero Fabricated Numbers • ₹10,00,000 Free Margin'}
               </span>
             </div>
@@ -119,7 +131,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               {isCrypto ? (
                 <>
-                  Trade Crypto Markets.{' '}
+                  Global Crypto & FX Markets.{' '}
                   <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
                     Round-The-Clock Precision.
                   </span>
@@ -136,7 +148,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
 
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {isCrypto
-                ? 'Institutional AI analysis, Smart Money Order Blocks, and 24/7 candlestick charts for Bitcoin, Ethereum, Solana, XRP, SUI, DOGE, and 20+ digital assets in $ USD.'
+                ? 'Institutional AI analysis, Smart Money Order Blocks, and real-time tick streaming for Bitcoin, Ethereum, Solana, XRP, EUR/USD, Gold, Crude Oil, and US Equities in $ USD.'
                 : 'DHRU.AI empowers Indian investors by explaining what is happening, why, what the risks are, and what historical evidence suggests could happen next in ₹ INR.'}
             </p>
 
@@ -146,7 +158,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]"
               >
                 <CandlestickChart className="w-4 h-4" />
-                <span>Open {isCrypto ? 'Crypto' : 'Indian'} Trading Terminal</span>
+                <span>Open {isCrypto ? 'Crypto & FX' : 'Indian'} Live Terminal</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-1" />
               </button>
 
@@ -155,7 +167,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
               >
                 {isCrypto ? <span>🇮🇳</span> : <Coins className="w-4 h-4 text-purple-600" />}
-                <span>Switch to {isCrypto ? 'Indian Markets (₹)' : 'Crypto Desk ($)'}</span>
+                <span>Switch to {isCrypto ? 'Indian Markets (₹)' : 'Crypto & FX Desk ($)'}</span>
               </button>
             </div>
           </div>
@@ -179,7 +191,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs">
               {isCrypto
-                ? 'Continuous crypto liquidity with tick-by-tick paper order matching in USD.'
+                ? `${cryptoData.length} active digital & interbank pairs updating in real time.`
                 : status?.message || 'NSE & BSE Equity Trading Sessions in INR.'}
             </p>
           </div>
@@ -188,61 +200,64 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
 
       {/* 2. Key Benchmark Strips */}
       {isCrypto ? (
-        /* CRYPTO MODE BENCHMARKS */
-        <div className="space-y-4 scroll-animate delay-100">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+        /* CRYPTO & FOREX MODE BENCHMARKS */
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
               <Coins className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              Top Cryptocurrency Benchmarks (24/7 Live)
-            </h2>
-            <button
-              onClick={() => onNavigate('indices')}
-              className="text-xs text-blue-600 dark:text-cyan-400 font-bold hover:underline cursor-pointer"
-            >
-              View All 22+ Cryptos →
-            </button>
+              <h2 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                Top Crypto & Forex Benchmarks (24/7 Real-Time)
+              </h2>
+            </div>
+
+            {/* Quick Segment Filter */}
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#0D1527] p-1 rounded-xl border border-slate-200 dark:border-[#1A2744] text-xs">
+              <button
+                onClick={() => setCryptoFilter('all')}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                  cryptoFilter === 'all'
+                    ? 'bg-purple-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                All ({cryptoData.length})
+              </button>
+              <button
+                onClick={() => setCryptoFilter('crypto')}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                  cryptoFilter === 'crypto'
+                    ? 'bg-purple-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                Cryptos
+              </button>
+              <button
+                onClick={() => setCryptoFilter('forex')}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                  cryptoFilter === 'forex'
+                    ? 'bg-purple-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                Forex & FX
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {cryptoSorted.slice(0, 4).map((coin) => (
-              <div
+              <LiveCryptoCard
                 key={coin.symbol}
-                onClick={() => onSelectStock(coin.symbol)}
-                className="p-4 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-purple-500 cursor-pointer transition-all shadow-card zoom-card group"
-              >
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 font-black text-xs flex items-center justify-center">
-                      {coin.symbol.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="font-extrabold text-slate-900 dark:text-white group-hover:text-purple-600 transition-colors">
-                        {coin.name}
-                      </div>
-                      <div className="text-[10px] font-mono text-slate-400">{coin.symbol}</div>
-                    </div>
-                  </div>
-                  <span className="font-mono text-[10px] text-purple-600 dark:text-purple-400 font-bold">CRYPTO</span>
-                </div>
-
-                <div className="mt-3 text-lg sm:text-2xl font-bold font-mono text-slate-900 dark:text-white">
-                  ${coin.price ? coin.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Loading...'}
-                </div>
-
-                <div className="mt-1 flex items-center gap-1.5 text-xs font-mono font-semibold">
-                  <span className={(coin.changePercent || 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400 flex items-center' : 'text-rose-600 dark:text-rose-400 flex items-center'}>
-                    {(coin.changePercent || 0) >= 0 ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
-                    {(coin.changePercent || 0) >= 0 ? '+' : ''}{(coin.changePercent || 0).toFixed(2)}%
-                  </span>
-                  <span className="text-slate-400 text-[10px]">24h Vol</span>
-                </div>
-              </div>
+                coin={coin}
+                onSelect={() => onSelectStock(coin.symbol)}
+              />
             ))}
           </div>
         </div>
       ) : (
         /* INDIAN MODE BENCHMARKS */
-        <div className="space-y-4 scroll-animate delay-100">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
@@ -269,7 +284,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
       )}
 
       {/* 3. Market Health & Breadth */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 scroll-animate delay-200">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* Advance / Decline Market Breadth */}
         <div className="p-5 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] flex flex-col justify-between shadow-card zoom-card">
@@ -277,7 +292,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="font-bold text-slate-900 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                 <BarChart2 className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
-                {isCrypto ? 'Crypto Market Breadth' : 'NSE Market Breadth'}
+                {isCrypto ? 'Crypto & Forex Market Breadth' : 'NSE Market Breadth'}
               </span>
               <span className="text-slate-500 font-mono text-[11px]">
                 {isCrypto ? `Ratio: ${(cryptoAdvances / (cryptoDeclines || 1)).toFixed(2)}` : `Ratio: ${breadth.ratio}`}
@@ -294,7 +309,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
             {/* Visual ratio bar */}
             <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full flex overflow-hidden">
               <div
-                className="bg-emerald-500 h-full"
+                className="bg-emerald-500 h-full transition-all duration-500"
                 style={{
                   width: `${
                     isCrypto
@@ -304,7 +319,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
                 }}
               />
               <div
-                className="bg-rose-500 h-full"
+                className="bg-rose-500 h-full transition-all duration-500"
                 style={{
                   width: `${
                     isCrypto
@@ -318,7 +333,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3">
             {isCrypto
               ? cryptoAdvances >= cryptoDeclines
-                ? 'Bullish regime: Buyers absorbing supply across major L1 & DeFi assets.'
+                ? 'Bullish regime: Buyers absorbing supply across major digital & forex pairs.'
                 : 'Consolidation regime: Market taking profits after recent impulse.'
               : breadth.advances >= breadth.declines
               ? 'Broad participation: Buyers controlling majority of liquid Indian equities.'
@@ -332,10 +347,10 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="font-bold text-slate-900 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                 <Activity className="w-4 h-4 text-blue-600" />
-                {isCrypto ? 'Crypto Network & Liquidity' : 'Institutional Flows (FII & DII)'}
+                {isCrypto ? 'Global Network & Forex Liquidity' : 'Institutional Flows (FII & DII)'}
               </span>
               <span className="text-slate-500 font-mono text-[11px]">
-                {isCrypto ? 'Global 24h Vol' : fiiDii?.asOfDate}
+                {isCrypto ? `${cryptoData.length} Instruments Live` : (fiiDii?.asOfDate || 'Today')}
               </span>
             </div>
             {isCrypto ? (
@@ -345,8 +360,8 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
                   <span className="text-purple-600 dark:text-purple-400 font-bold">~56.4%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Total 24h Spot Turnover:</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">~$48.2 Billion</span>
+                  <span className="text-slate-500">24/7 Matching Engine:</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">Continuous Tick Stream</span>
                 </div>
               </div>
             ) : (
@@ -378,7 +393,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
       </div>
 
       {/* 4. Leading Gainers & Losers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 scroll-animate delay-300">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Gainers */}
         <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl p-5 shadow-card zoom-card space-y-3">
@@ -388,11 +403,11 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
                 <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               </div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                Leading {isCrypto ? 'Crypto' : 'Market'} Gainers
+                Leading {isCrypto ? 'Crypto & Forex' : 'Market'} Gainers
               </h3>
             </div>
             <button
-              onClick={() => onNavigate(isCrypto ? 'indices' : 'stocks')}
+              onClick={() => onNavigate('indices')}
               className="text-xs text-blue-600 dark:text-cyan-400 hover:underline cursor-pointer"
             >
               View All →
@@ -420,11 +435,11 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
                 <TrendingDown className="w-4 h-4 text-rose-600 dark:text-rose-400" />
               </div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                Leading {isCrypto ? 'Crypto' : 'Market'} Losers
+                Leading {isCrypto ? 'Crypto & Forex' : 'Market'} Losers
               </h3>
             </div>
             <button
-              onClick={() => onNavigate(isCrypto ? 'indices' : 'stocks')}
+              onClick={() => onNavigate('indices')}
               className="text-xs text-blue-600 dark:text-cyan-400 hover:underline cursor-pointer"
             >
               View All →
@@ -446,7 +461,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
       </div>
 
       {/* 5. News Feed */}
-      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl p-6 shadow-card space-y-4 scroll-animate delay-400">
+      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl p-6 shadow-card space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#1A2744]">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -511,7 +526,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
   );
 };
 
-// Subcomponent: Live Index Card
+// Subcomponent: Live Index Card (Indian Mode)
 const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote, onSelect }) => {
   const live = useLivePrice(quote.symbol, quote);
   const displayPrice = live.price > 0 ? live.price : quote.price;
@@ -556,11 +571,70 @@ const LiveIndexCard: React.FC<{ quote: Quote; onSelect: () => void }> = ({ quote
   );
 };
 
+// Subcomponent: Live Crypto & Forex Card (Crypto Mode)
+const LiveCryptoCard: React.FC<{ coin: any; onSelect: () => void }> = ({ coin, onSelect }) => {
+  const live = useLivePrice(coin.symbol, coin);
+  const displayPrice = live.price > 0 ? live.price : (coin.price || 0);
+  const displayChangePercent = live.changePercent !== 0 ? live.changePercent : (coin.changePercent || 0);
+  const isUp = displayChangePercent >= 0;
+  const isUSD = !coin.symbol?.includes('INR');
+
+  return (
+    <div
+      onClick={onSelect}
+      className="p-4 rounded-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-purple-500/60 dark:hover:border-purple-500/50 hover:shadow-card-hover cursor-pointer transition-all shadow-card zoom-card group"
+    >
+      <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 font-black text-xs flex items-center justify-center">
+            {coin.symbol?.charAt(0) || 'C'}
+          </div>
+          <div>
+            <div className="font-extrabold text-slate-900 dark:text-white group-hover:text-purple-600 transition-colors truncate max-w-[110px]">
+              {coin.name || coin.symbol}
+            </div>
+            <div className="text-[10px] font-mono text-slate-400">{coin.symbol}</div>
+          </div>
+        </div>
+        <span className="font-mono text-[10px] text-purple-600 dark:text-purple-400 font-bold uppercase">
+          {coin.category ? coin.category.split(' ')[0] : 'CRYPTO'}
+        </span>
+      </div>
+
+      <div className={`mt-3 text-lg sm:text-2xl font-bold font-mono transition-colors rounded px-1 -ml-1 ${
+        live.flash === 'up'
+          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+          : live.flash === 'down'
+          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+          : 'text-slate-900 dark:text-white'
+      }`}>
+        {isUSD ? '$' : '₹'}{displayPrice > 0 ? displayPrice.toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: displayPrice > 100 ? 2 : (displayPrice < 1 ? 4 : 2), maximumFractionDigits: displayPrice < 1 ? 6 : 2 }) : '0.00'}
+      </div>
+
+      <div className="mt-1 flex items-center gap-1.5 text-xs font-mono font-semibold">
+        {isUp ? (
+          <span className="text-emerald-600 dark:text-emerald-400 flex items-center">
+            <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
+            +{displayChangePercent.toFixed(2)}%
+          </span>
+        ) : (
+          <span className="text-rose-600 dark:text-rose-400 flex items-center">
+            <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
+            {displayChangePercent.toFixed(2)}%
+          </span>
+        )}
+        <span className="text-slate-400 text-[10px]">24h Vol</span>
+      </div>
+    </div>
+  );
+};
+
 // Subcomponent: Live Asset Row (Indian or Crypto)
 const LiveAssetRow: React.FC<{ quote: any; isCrypto: boolean; onSelect: () => void; onTrade?: () => void }> = ({ quote, isCrypto, onSelect, onTrade }) => {
-  const currency = isCrypto ? '$' : '₹';
-  const price = quote.price || 0;
-  const changePercent = quote.changePercent || 0;
+  const live = useLivePrice(quote.symbol, quote);
+  const currency = isCrypto && !quote.symbol?.includes('INR') ? '$' : '₹';
+  const price = live.price > 0 ? live.price : (quote.price || 0);
+  const changePercent = live.changePercent !== 0 ? live.changePercent : (quote.changePercent || 0);
   const isUp = changePercent >= 0;
 
   return (
@@ -574,8 +648,14 @@ const LiveAssetRow: React.FC<{ quote: any; isCrypto: boolean; onSelect: () => vo
       </div>
       <div className="flex items-center gap-3">
         <div className="text-right font-mono">
-          <div className="text-xs font-bold text-slate-900 dark:text-white">
-            {currency}{price.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <div className={`text-xs font-bold transition-colors rounded px-1 ${
+            live.flash === 'up'
+              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+              : live.flash === 'down'
+              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+              : 'text-slate-900 dark:text-white'
+          }`}>
+            {currency}{price.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { minimumFractionDigits: price > 100 ? 2 : (price < 1 ? 4 : 2), maximumFractionDigits: price < 1 ? 6 : 2 })}
           </div>
           <div className={`text-[11px] font-semibold flex items-center justify-end ${
             isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'

@@ -26,6 +26,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTrading } from '../../context/TradingContext';
 import { MarketStatus } from '../../types';
 import { DhruLogo } from './DhruLogo';
+import { MobileSidebarDrawer } from './MobileSidebarDrawer';
 
 interface HeaderProps {
   marketStatus: MarketStatus | null;
@@ -355,71 +356,15 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden bg-white dark:bg-[#070B14] border-b border-slate-200 dark:border-[#1A2744] px-4 py-3 space-y-2 text-sm shadow-xl">
-          <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 mb-2">
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Current Desk:</span>
-            <button
-              onClick={() => {
-                setShowMarketSelector(true);
-                setMobileMenuOpen(false);
-              }}
-              className="text-xs font-bold text-blue-600 dark:text-cyan-400 flex items-center gap-1 cursor-pointer"
-            >
-              {marketMode === 'crypto' ? '🪙 Crypto Desk' : '🇮🇳 Indian Markets'}
-              <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 pb-2">
-            {(marketMode === 'crypto'
-              ? [
-                  { id: 'overview', label: 'Crypto Overview' },
-                  { id: 'terminal', label: '⚡ Crypto Terminal' },
-                  { id: 'indices', label: 'All Crypto Assets' },
-                  { id: 'sectors', label: 'Crypto Categories' },
-                  { id: 'news', label: 'Crypto News' },
-                  { id: 'ai-predictions', label: 'AI Predictions' },
-                  { id: 'risk-monitor', label: 'Risk Monitor' },
-                  { id: 'patterns', label: 'Pattern Scanner' },
-                  { id: 'watchlist', label: 'Watchlist' },
-                  { id: 'ask-dhru', label: 'Ask DHRU AI' },
-                ]
-              : [
-                  { id: 'overview', label: 'Indian Overview' },
-                  { id: 'terminal', label: '⚡ Live Terminal' },
-                  { id: 'indices', label: 'All Indices' },
-                  { id: 'stocks', label: 'All Stocks' },
-                  { id: 'sectors', label: 'Sectors & Heatmap' },
-                  { id: 'commodities', label: 'Commodities & FX' },
-                  { id: 'derivatives', label: 'Futures & Options' },
-                  { id: 'news', label: 'Financial News' },
-                  { id: 'ai-predictions', label: 'AI Predictions' },
-                  { id: 'risk-monitor', label: 'Risk Monitor' },
-                  { id: 'patterns', label: 'Pattern Scanner' },
-                  { id: 'watchlist', label: 'Watchlist' },
-                  { id: 'ask-dhru', label: 'Ask DHRU AI' },
-                ]
-            ).map(item => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  onSelectNav(item.id);
-                  setMobileMenuOpen(false);
-                }}
-                className={`text-left px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer ${
-                  activeNav === item.id
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Mobile Off-Canvas Sidebar Drawer */}
+      <MobileSidebarDrawer
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        activeNav={activeNav}
+        onSelectNav={onSelectNav}
+        onOpenSearch={onOpenSearch}
+        onOpenPredictions={onOpenPredictions}
+      />
     </header>
   );
 };
