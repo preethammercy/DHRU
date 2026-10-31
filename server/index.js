@@ -9,12 +9,11 @@ import { loadNseDirectory, searchInstruments, getFullStockDirectory, getDirector
 import { fetchInstrumentQuote, fetchInstrumentCandles, batchFetchQuotes, getMarketOverview } from './services/marketData.js';
 import { computeTechnicalSummary } from './services/indicators.js';
 import { fetchAllMarketNews, fetchStockSpecificNews } from './services/newsService.js';
-import { evaluateMarketWideRisk, evaluateInstrumentRisk } from './services/riskEngine.js';
 import { runWalkForwardBacktest, generateScenarios } from './services/predictionEngine.js';
-import { generateStockAnalysisReport, askDhruAssistant, analyzeChartScreenshot, setApiKey, getActiveApiKey } from './services/geminiService.js';
+import { askDhruAssistant } from './services/geminiService.js';
 import { startScheduler, getSchedulerStatus, runRefreshCycle } from './services/refreshScheduler.js';
 import { getDerivativesOverview } from './data/derivativesData.js';
-import { UPCOMING_IPOS, CORPORATE_ACTIONS } from './data/ipoAnnouncements.js';
+import { UPCOMING_IPOS, CORPORATE_ACTIONS, ANNOUNCEMENTS_STATUS } from './data/ipoAnnouncements.js';
 import { getFiiDiiData } from './data/fiiDiiData.js';
 import { registerSseClient, subscribeSymbolToStream, startMarketStreamingLoop, getAllCachedTicks } from './services/marketStream.js';
 import { executeBrokerOrder, fetchBrokerFunds, validateOrderParams } from './services/brokerService.js';
@@ -245,7 +244,10 @@ app.get('/api/stocks/:symbol', async (req, res) => {
     const technicals = computeTechnicalSummary(candles);
     const recentNews = await fetchStockSpecificNews(symbol);
     const scenarios = generateScenarios(quote, candles, technicals);
-    const risk = evaluateInstrumentRisk(quote, technicals, recentNews);
+    const risk = {
+      status: 'unavailable',
+      message: 'Risk ratings are paused until the factor model has source-level inputs and an out-of-sample validation.'
+    };
 
     res.json({
       quote,
@@ -352,21 +354,15 @@ app.get('/api/etfs', async (req, res) => {
 
 // 11. Derivatives (Futures & Options)
 app.get('/api/derivatives', async (req, res) => {
-  try {
-    const nifty = await fetchInstrumentQuote('^NSEI').catch(() => ({ price: 22720 }));
-    const bankNifty = await fetchInstrumentQuote('^NSEBANK').catch(() => ({ price: 55480 }));
-    const data = getDerivativesOverview(nifty.price, bankNifty.price);
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch derivatives overview', details: err.message });
-  }
+  res.json(getDerivativesOverview());
 });
 
 // 12. IPOs & Corporate Announcements
 app.get('/api/ipo-announcements', (req, res) => {
   res.json({
     upcomingIpos: UPCOMING_IPOS,
-    corporateActions: CORPORATE_ACTIONS
+    corporateActions: CORPORATE_ACTIONS,
+    ...ANNOUNCEMENTS_STATUS
   });
 });
 
@@ -388,14 +384,10 @@ app.get('/api/news', async (req, res) => {
 
 // 15. Market Risk Monitor
 app.get('/api/risk', async (req, res) => {
-  try {
-    const overview = await getMarketOverview();
-    const nifty = overview?.indices?.find(i => i.symbol === '^NSEI');
-    const riskAnalysis = evaluateMarketWideRisk(nifty, overview?.breadth, overview?.macro);
-    res.json(riskAnalysis);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to evaluate market risk', details: err.message });
-  }
+  res.json({
+    status: 'unavailable',
+    message: 'The risk score is paused until its inputs and out-of-sample relationship with realized volatility are validated.'
+  });
 });
 
 // 16. Walk-Forward Backtest Simulator
@@ -432,7 +424,10 @@ app.get('/api/patterns', async (req, res) => {
             sector: s.sector,
             price: technicals.lastPrice,
             patterns: technicals.patterns,
-            consensus: technicals.consensus
+            timeframe: '1d',
+            asOf: cRes?.candles?.[cRes.candles.length - 1]?.time ?? null,
+            source: cRes?.source ?? 'Source unavailable',
+            candles: (cRes?.candles || []).slice(-10)
           });
         }
       } catch (e) {
@@ -446,34 +441,7 @@ app.get('/api/patterns', async (req, res) => {
   }
 });
 
-// 18. Gemini AI Deep Analysis Endpoint
-app.post('/api/ai/analyze', async (req, res) => {
-  const { symbol } = req.body;
-  if (!symbol) return res.status(400).json({ error: 'Symbol required' });
-
-  try {
-    const quote = await fetchInstrumentQuote(symbol);
-    const candlesRes = await fetchInstrumentCandles(symbol, '3mo', '1d');
-    const technicals = computeTechnicalSummary(candlesRes?.candles || []);
-    const news = await fetchStockSpecificNews(symbol);
-    const scenarios = generateScenarios(quote, candlesRes?.candles || [], technicals);
-    const risk = evaluateInstrumentRisk(quote, technicals, news);
-
-    const report = await generateStockAnalysisReport({
-      quote,
-      technicals,
-      news,
-      scenarios,
-      risk
-    });
-
-    res.json(report);
-  } catch (err) {
-    res.status(500).json({ error: 'AI analysis failed', details: err.message });
-  }
-});
-
-// 19. Ask DHRU AI Contextual Assistant
+// Ask DHRU: deterministic responses using only context supplied by the market UI.
 app.post('/api/ai/chat', async (req, res) => {
   const { query, currentContext } = req.body;
   if (!query) return res.status(400).json({ error: 'Query is required' });
@@ -486,7 +454,7 @@ app.post('/api/ai/chat', async (req, res) => {
   }
 });
 
-// 20. Scheduler Status & Manual Refresh Trigger
+// Scheduler Status & Manual Refresh Trigger
 app.get('/api/scheduler/status', (req, res) => {
   res.json(getSchedulerStatus());
 });
@@ -500,21 +468,7 @@ app.post('/api/scheduler/refresh', async (req, res) => {
   }
 });
 
-// 21. Settings: Configure Gemini API Key
-app.post('/api/settings/key', (req, res) => {
-  const { apiKey } = req.body;
-  if (!apiKey) return res.status(400).json({ error: 'API Key is required' });
-  const success = setApiKey(apiKey);
-  res.json({ success, active: !!getActiveApiKey() });
-});
-
-app.get('/api/settings/status', (req, res) => {
-  res.json({
-    geminiConfigured: !!getActiveApiKey(),
-    activeEngine: getActiveApiKey() ? 'DHRU Pro Intelligence' : 'DHRU Core Intelligence'
-  });
-});
-// 22. Multi-Broker Order Execution & Fund Routing (Zerodha, Angel One, Dhan, Simulation)
+// Multi-Broker Order Execution & Fund Routing (Zerodha, Angel One, Dhan, Simulation)
 app.post('/api/broker/order', async (req, res) => {
   try {
     const { order, brokerConfig } = req.body || {};
@@ -593,18 +547,6 @@ app.get('/api/forex', async (req, res) => {
     res.json({ forex: enriched, instruments: enriched, count: enriched.length });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch forex instruments', details: err.message });
-  }
-});
-
-// 25. AI Chart Screenshot Vision Scanner
-app.post('/api/ai/scan-image', async (req, res) => {
-  try {
-    const { imageBase64, mimeType } = req.body || {};
-    if (!imageBase64) return res.status(400).json({ error: 'Image data is required' });
-    const analysis = await analyzeChartScreenshot({ imageBase64, mimeType });
-    res.json(analysis);
-  } catch (err) {
-    res.status(500).json({ error: 'Chart vision analysis failed', details: err.message });
   }
 });
 

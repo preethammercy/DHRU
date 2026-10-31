@@ -3,6 +3,7 @@
 // Deduplicates, extracts timestamps, matches instruments, and scores sentiment.
 
 import { XMLParser } from 'fast-xml-parser';
+import { randomUUID } from 'node:crypto';
 
 let cachedNews = [];
 let lastFetchedAt = null;
@@ -87,7 +88,7 @@ export async function fetchAllMarketNews(forceRefresh = false) {
         const sentiment = scoreNewsSentiment(rawTitle + ' ' + description);
 
         allArticles.push({
-          id: `news_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          id: `news_${randomUUID()}`,
           title: cleanTitle,
           link: rawLink,
           publisher: feed.name,
@@ -157,7 +158,7 @@ export async function fetchStockSpecificNews(symbol) {
         const sentiment = scoreNewsSentiment(title);
 
         specific.push({
-          id: `specific_${cleanSym}_${Math.random().toString(36).substring(2, 7)}`,
+          id: `specific_${cleanSym}_${randomUUID()}`,
           title,
           link,
           publisher: 'Financial Media',

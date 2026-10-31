@@ -168,22 +168,16 @@ export function detectCandlestickPatterns(candles) {
       patterns.push({
         name: 'Dragonfly Doji',
         type: 'Bullish Reversal',
-        strength: 'Moderate',
-        explanation: 'Buyers pushed back aggressively against intraday selling, rejecting lower prices.'
       });
     } else if (upperShadowCurr >= rangeCurr * 0.6 && lowerShadowCurr <= rangeCurr * 0.1) {
       patterns.push({
         name: 'Gravestone Doji',
         type: 'Bearish Reversal',
-        strength: 'Moderate',
-        explanation: 'Intraday rally was completely erased by aggressive sellers near resistance.'
       });
     } else {
       patterns.push({
         name: 'Standard Doji',
         type: 'Indecision',
-        strength: 'Neutral',
-        explanation: 'Open and close are virtually equal, reflecting market equilibrium and hesitation.'
       });
     }
   }
@@ -194,15 +188,11 @@ export function detectCandlestickPatterns(candles) {
       patterns.push({
         name: 'Hammer',
         type: 'Bullish Reversal',
-        strength: 'High',
-        explanation: 'Strong intraday recovery after a downward drift shows institutional buying support.'
       });
     } else {
       patterns.push({
         name: 'Hanging Man',
         type: 'Bearish Warning',
-        strength: 'Moderate',
-        explanation: 'Formed at highs; signifies buyers are losing grip as sellers easily push down intraday.'
       });
     }
   }
@@ -213,15 +203,11 @@ export function detectCandlestickPatterns(candles) {
       patterns.push({
         name: 'Shooting Star',
         type: 'Bearish Reversal',
-        strength: 'High',
-        explanation: 'Sellers rejected price at recent highs and hammered price back down to the session low.'
       });
     } else {
       patterns.push({
         name: 'Inverted Hammer',
         type: 'Bullish Reversal',
-        strength: 'Moderate',
-        explanation: 'Test of higher prices after a pullback; indicates early buying interest.'
       });
     }
   }
@@ -231,8 +217,6 @@ export function detectCandlestickPatterns(candles) {
     patterns.push({
       name: 'Bullish Engulfing',
       type: 'Bullish Reversal',
-      strength: 'High',
-      explanation: 'Green candle completely wraps around prior red candle, indicating decisive shift to buyers.'
     });
   }
 
@@ -241,8 +225,6 @@ export function detectCandlestickPatterns(candles) {
     patterns.push({
       name: 'Bearish Engulfing',
       type: 'Bearish Reversal',
-      strength: 'High',
-      explanation: 'Red candle completely overwhelms preceding green candle, signaling severe profit-taking.'
     });
   }
 
@@ -251,8 +233,6 @@ export function detectCandlestickPatterns(candles) {
     patterns.push({
       name: 'Morning Star',
       type: 'Bullish Reversal',
-      strength: 'Very High',
-      explanation: 'Three-candle pattern where exhaustion selling is followed by a strong recovery candle.'
     });
   }
 
@@ -262,15 +242,11 @@ export function detectCandlestickPatterns(candles) {
       patterns.push({
         name: 'Bullish Marubozu',
         type: 'Bullish Continuation',
-        strength: 'High',
-        explanation: 'Full-bodied green candle with almost no wicks; shows buyers controlled every minute.'
       });
     } else {
       patterns.push({
         name: 'Bearish Marubozu',
         type: 'Bearish Continuation',
-        strength: 'High',
-        explanation: 'Full-bodied red candle with almost no wicks; shows uninterrupted institutional selling.'
       });
     }
   }

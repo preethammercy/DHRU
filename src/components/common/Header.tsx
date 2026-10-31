@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-[#070B14]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-[#1A2744] shadow-[0_2px_12px_rgba(37,99,235,0.04)]">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
+      <div className="max-w-[1200px] mx-auto px-3 sm:px-6 lg:px-8 h-[52px] sm:h-16 flex items-center justify-between gap-2 sm:gap-3">
         
         {/* Left: Mobile 3-Line Hamburger Menu Button + Logo & Brand */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-lg sm:text-xl tracking-tight bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 dark:from-white dark:to-cyan-400 bg-clip-text text-transparent">
+                <span className="font-bold text-lg sm:text-xl tracking-tight text-slate-950 dark:text-white">
                   DHRU.AI
                 </span>
                 <button
@@ -125,8 +125,8 @@ export const Header: React.FC<HeaderProps> = ({
                   <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
                 </button>
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block tracking-wide font-medium truncate">
-                Understand Every Market. See Beyond the Numbers.
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block tracking-wide truncate">
+                Market data and analysis
               </p>
             </div>
           </div>
@@ -134,9 +134,9 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Center: Universal Search Bar Trigger */}
         <div className="flex-1 max-w-md mx-2 hidden md:block">
-          <button
+            <button
             onClick={onOpenSearch}
-            className="w-full flex items-center justify-between px-4 py-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-blue-400 hover:bg-white dark:hover:bg-[#131F38] rounded-xl transition-all shadow-2xs group hover:scale-[1.01]"
+            className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-slate-400 hover:bg-white dark:hover:bg-[#131F38] rounded-lg transition-colors group"
           >
             <div className="flex items-center gap-2.5">
               <Search className="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors" />
@@ -154,7 +154,14 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          
+          <button
+            onClick={onOpenSearch}
+            className="md:hidden min-h-11 min-w-11 flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+            aria-label="Search markets and stocks"
+          >
+            <Search className="w-5 h-5" />
+          </button>
+
           {/* Market Status Pill */}
           <div className="hidden xl:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0D1527] border border-slate-200/90 dark:border-[#1A2744] text-xs font-medium">
             <span className="relative flex h-2 w-2">
@@ -173,7 +180,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Virtual Paper Capital Pill */}
           <div 
             onClick={() => onSelectNav('terminal')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-400 cursor-pointer hover:scale-[1.02] transition-transform shadow-2xs"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-50 dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             title="Available Virtual Trading Margin"
           >
             <Wallet className="w-3.5 h-3.5" />
@@ -199,11 +206,11 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Live Predictions & Entry/Exit Signals Button (Desktop/Tablet) */}
           <button
             onClick={() => onOpenPredictions ? onOpenPredictions() : onSelectNav('ai-predictions')}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer bg-gradient-to-r from-blue-700 via-indigo-600 to-cyan-600 hover:from-blue-800 hover:to-cyan-700 text-white shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:scale-[1.02]"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer bg-slate-900 hover:bg-slate-700 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-950 text-white"
             title="Live AI Market Predictions: Entry, Stop Loss & Exit Times"
           >
             <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>Live Signals</span>
+            <span>Signal status</span>
           </button>
 
           {/* Ask DHRU AI Fast Button */}

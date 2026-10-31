@@ -87,14 +87,13 @@ dhru.ai/
 │       ├── marketData.js       # Real-time quotes, OHLCV candles, batching & caching
 │       ├── indicators.js       # SMA, EMA, RSI, MACD, Bollinger Bands, VWAP, Pivots, Patterns
 │       ├── newsService.js      # RSS aggregator (Livemint, Economic Times, Google News)
-│       ├── riskEngine.js       # 5-factor systemic risk model (Low / Mod / High / Very High)
 │       ├── predictionEngine.js # Walk-forward backtester and ATR dispersion envelopes
 │       ├── geminiService.js    # Secure server-side Google Gemini 2.5 Flash + fallback engine
 │       └── refreshScheduler.js # 10-minute automated background refresh loop
 ├── src/                        # Frontend React 18 Application
 │   ├── components/             # Reusable UI components
 │   │   ├── chart/              # TradingView Lightweight Charts (Candlesticks, Volume, Overlays)
-│   │   ├── common/             # Header, Navigation, UniversalSearchModal, SettingsModal
+│   │   ├── common/             # Header, Navigation, UniversalSearchModal
 │   │   └── stock/              # TechnicalScorecard, GeminiReport
 │   ├── context/                # ThemeContext (Dark/Light), WatchlistContext
 │   ├── pages/                  # 16 specialized full-page views
@@ -111,14 +110,12 @@ dhru.ai/
 
 ---
 
-## 5. Security & Privacy Guarantees
+## 5. Data and Privacy Notes
 
-1. **Zero Client Exposure of API Keys:**  
-   Google Gemini API keys are configured and stored strictly in server-side protected memory or `.env`. They are never embedded in client JavaScript bundles, HTML documents, or browser network payloads.
-2. **Deterministic Intelligence Fallback:**  
-   If no Gemini key is provided, DHRU.AI runs an institutional-grade deterministic mathematical reasoning engine directly on the server, ensuring 100% platform functionality out of the box. Adding a free Gemini API key in the top Settings modal instantly activates full generative language capabilities.
-3. **Local Storage Watchlist:**  
-   Personal watchlists are saved directly on the client's browser without storing personally identifiable information on external databases.
+1. Market quotes and historical candles depend on the configured upstream providers and can be delayed or unavailable. Each displayed quote should be read with its source and update time.
+2. The assistant summarizes attached market facts and educational definitions. It does not provide trade recommendations or price targets.
+3. Derivatives, institutional flows, IPO announcements, risk scores, and predictive scenarios remain unavailable until their data sources and validation are in place.
+4. Personal watchlists are saved in browser local storage.
 
 ---
 

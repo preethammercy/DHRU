@@ -94,7 +94,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
   const indices: Quote[] = data?.indices || [];
   const gainers: Quote[] = data?.gainers || [];
   const losers: Quote[] = data?.losers || [];
-  const breadth = data?.breadth || { advances: 18, declines: 12, ratio: 1.5 };
+  const breadth = data?.breadth || null;
   const status: MarketStatus = data?.status;
 
   // Crypto & FX mode filtered & sorted lists
@@ -113,90 +113,39 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
   return (
     <div className="space-y-8 animate-fade-in pb-12">
       
-      {/* 1. Hero Vision Banner */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] p-4 sm:p-8 shadow-card zoom-card">
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
-          <div className="max-w-2xl space-y-2.5 sm:space-y-3">
-            <div className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700/50 dark:text-blue-300 text-[11px] sm:text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400 shrink-0" />
-              <span className="truncate">
-                {isCrypto
-                  ? 'Global 24/7 Crypto & FX Desk • 48+ Assets • Real-Time Order Book'
-                  : 'Verified NSE & BSE Quotes • Zero Fabricated Numbers • ₹10L Margin'}
-              </span>
-            </div>
-
-            <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
-              {isCrypto ? (
-                <>
-                  Global Crypto & FX Markets.{' '}
-                  <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
-                    Round-The-Clock Precision.
-                  </span>
-                </>
-              ) : (
-                <>
-                  Understand Every Market.{' '}
-                  <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                    See Beyond the Numbers.
-                  </span>
-                </>
-              )}
-            </h1>
-
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2 sm:line-clamp-none">
-              {isCrypto
-                ? 'Institutional AI analysis, Smart Money Order Blocks, and real-time tick streaming for Bitcoin, Ethereum, Solana, XRP, EUR/USD, Gold, and US Equities in $ USD.'
-                : 'DHRU.AI empowers Indian investors by explaining what is happening, why, what the risks are, and what historical evidence suggests could happen next in ₹ INR.'}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1">
-              <button
-                onClick={() => onNavigate('terminal')}
-                className="flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md hover:shadow-lg pressable transition-all cursor-pointer"
-              >
-                <CandlestickChart className="w-4 h-4" />
-                <span>Open {isCrypto ? 'Crypto & FX' : 'Indian'} Terminal</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
-              </button>
-
-              <button
-                onClick={() => setShowMarketSelector(true)}
-                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs pressable transition-all cursor-pointer"
-              >
-                {isCrypto ? <span>🇮🇳</span> : <Coins className="w-4 h-4 text-purple-600" />}
-                <span>Switch to {isCrypto ? 'Indian (₹)' : 'Crypto & FX ($)'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Session Status Card */}
-          <div className="w-full md:w-auto p-4 rounded-2xl bg-slate-50 dark:bg-[#070B14]/80 border border-slate-200 dark:border-[#1A2744] shadow-sm space-y-2 shrink-0">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-xs text-slate-500 uppercase font-mono">Market Session</span>
-              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 ${
-                isCrypto || status?.status === 'Live'
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
-                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isCrypto || status?.status === 'Live' ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
-                {isCrypto ? '24/7 Global Live' : status?.label || 'Market Closed'}
-              </span>
-            </div>
-            <div className="text-xl font-bold font-mono text-slate-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
-              {status?.currentTimeIST || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs">
-              {isCrypto
-                ? `${cryptoData.length} active digital & interbank pairs updating in real time.`
-                : status?.message || 'NSE & BSE Equity Trading Sessions in INR.'}
-            </p>
-          </div>
+      {/* Compact market heading: keep live data above promotional copy. */}
+      <section className="flex flex-col gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+            {isCrypto ? 'Global markets' : 'NSE · BSE'}
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-3xl">
+            {isCrypto ? 'Crypto and foreign exchange' : 'Market overview'}
+          </h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            {isCrypto ? 'Prices and daily moves across tracked assets.' : 'Benchmarks, market breadth and the day’s leading stocks.'}
+          </p>
         </div>
-      </div>
+        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <span className={`h-2 w-2 rounded-full ${isCrypto || status?.status === 'Live' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            <span>{isCrypto ? 'Markets open 24/7' : status?.label || 'Market status unavailable'}</span>
+            {!isCrypto && status?.currentTimeIST && <span className="font-mono text-xs text-slate-500">{status.currentTimeIST} IST</span>}
+          </div>
+          <button
+            onClick={() => onNavigate('terminal')}
+            className="min-h-11 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
+          >
+            Open terminal
+          </button>
+          <button
+            onClick={() => setShowMarketSelector(true)}
+            className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            {isCrypto ? 'Switch to India' : 'Switch market'}
+          </button>
+        </div>
+      </section>
 
       {/* 2. Key Benchmark Strips */}
       {isCrypto ? (
@@ -297,15 +246,15 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
                 {isCrypto ? 'Crypto & Forex Market Breadth' : 'NSE Market Breadth'}
               </span>
               <span className="text-slate-500 font-mono text-[11px]">
-                {isCrypto ? `Ratio: ${(cryptoAdvances / (cryptoDeclines || 1)).toFixed(2)}` : `Ratio: ${breadth.ratio}`}
+                {isCrypto ? `Ratio: ${(cryptoAdvances / (cryptoDeclines || 1)).toFixed(2)}` : breadth ? `Ratio: ${breadth.ratio}` : 'Unavailable'}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs font-mono py-2">
               <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                {isCrypto ? `${cryptoAdvances} Advances` : `${breadth.advances} Advances`}
+                {isCrypto ? `${cryptoAdvances} Advances` : breadth ? `${breadth.advances} Advances` : 'Advances unavailable'}
               </span>
               <span className="text-rose-600 dark:text-rose-400 font-bold">
-                {isCrypto ? `${cryptoDeclines} Declines` : `${breadth.declines} Declines`}
+                {isCrypto ? `${cryptoDeclines} Declines` : breadth ? `${breadth.declines} Declines` : 'Declines unavailable'}
               </span>
             </div>
             {/* Visual ratio bar */}
@@ -316,7 +265,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
                   width: `${
                     isCrypto
                       ? (cryptoAdvances / (cryptoAdvances + cryptoDeclines || 1)) * 100
-                      : (breadth.advances / (breadth.advances + breadth.declines || 1)) * 100
+                      : breadth ? (breadth.advances / (breadth.advances + breadth.declines || 1)) * 100 : 0
                   }%`
                 }}
               />
@@ -326,7 +275,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
                   width: `${
                     isCrypto
                       ? (cryptoDeclines / (cryptoAdvances + cryptoDeclines || 1)) * 100
-                      : (breadth.declines / (breadth.advances + breadth.declines || 1)) * 100
+                      : breadth ? (breadth.declines / (breadth.advances + breadth.declines || 1)) * 100 : 0
                   }%`
                 }}
               />
@@ -334,12 +283,8 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3">
             {isCrypto
-              ? cryptoAdvances >= cryptoDeclines
-                ? 'Bullish regime: Buyers absorbing supply across major digital & forex pairs.'
-                : 'Consolidation regime: Market taking profits after recent impulse.'
-              : breadth.advances >= breadth.declines
-              ? 'Broad participation: Buyers controlling majority of liquid Indian equities.'
-              : 'Divergent participation: Heavyweights resisting despite broad decline pressure.'}
+              ? `Counts cover ${cryptoData.length} tracked instruments; they do not represent the full market.`
+              : breadth ? 'Counts are calculated from the quote set shown on this page.' : 'Breadth is unavailable because current quote data could not be assembled.'}
           </p>
         </div>
 
@@ -352,43 +297,17 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
                 {isCrypto ? 'Global Network & Forex Liquidity' : 'Institutional Flows (FII & DII)'}
               </span>
               <span className="text-slate-500 font-mono text-[11px]">
-                {isCrypto ? `${cryptoData.length} Instruments Live` : (fiiDii?.asOfDate || 'Today')}
+                {isCrypto ? `${cryptoData.length} tracked instruments` : 'Unavailable'}
               </span>
             </div>
             {isCrypto ? (
-              <div className="space-y-1.5 text-xs font-mono py-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Bitcoin Dominance:</span>
-                  <span className="text-purple-600 dark:text-purple-400 font-bold">~56.4%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">24/7 Matching Engine:</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">Continuous Tick Stream</span>
-                </div>
-              </div>
+              <p className="py-1 text-sm text-slate-600 dark:text-slate-300">Network share and market-wide liquidity metrics are not available from the configured price feed.</p>
             ) : (
-              <div className="space-y-1.5 text-xs font-mono py-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">FII / FPI Net:</span>
-                  <span className={fiiDii?.todaySummary?.fii?.netInvestmentCr >= 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-rose-600 dark:text-rose-400 font-bold'}>
-                    {fiiDii?.todaySummary?.fii?.trend || '+₹1,330 Cr'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">DII (Mutual Funds) Net:</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                    {fiiDii?.todaySummary?.dii?.trend || '+₹1,419 Cr'}
-                  </span>
-                </div>
-              </div>
+              <p className="py-1 text-sm text-slate-600 dark:text-slate-300">FII/DII flows are unavailable. No verified flow source is configured.</p>
             )}
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-            {isCrypto ? (
-              <span>Order Execution: <strong className="text-emerald-600 dark:text-emerald-400">Sub-second tick matching active</strong></span>
-            ) : (
-              <span>Combined Institutional Net: <strong className="text-emerald-600 dark:text-emerald-400">+{fiiDii?.todaySummary?.combinedNetCr || 2750} Cr</strong></span>
-            )}
+            {isCrypto ? <span>Feed: public ticker snapshots</span> : <span>{fiiDii?.message || 'Source: unavailable'}</span>}
           </p>
         </div>
 

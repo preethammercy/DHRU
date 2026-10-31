@@ -11,7 +11,6 @@ import { MarketSelectorModal } from './components/common/MarketSelectorModal';
 import { MarketStatus } from './types';
 import { getMarketStatus } from './services/api';
 import { DhruLogo } from './components/common/DhruLogo';
-import { useScrollAnimation } from './hooks/useScrollAnimation';
 import { MobileSidebarDrawer } from './components/common/MobileSidebarDrawer';
 
 // Pages
@@ -101,9 +100,6 @@ function AppContent() {
 
   const { user, loading, showMarketSelector, setShowMarketSelector, marketMode } = useAuth();
 
-  // Scroll entrance animation hook
-  useScrollAnimation(activeNav);
-
   // Synchronize URL and page state with HTML5 History API
   const setActiveNav = (page: string, symbolToSet?: string) => {
     setActiveNavState(page);
@@ -179,7 +175,7 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 dark:bg-[#070B14] dark:text-[#F1F5F9] transition-colors w-full max-w-full overflow-x-hidden">
+    <div className="app-shell min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 dark:bg-[#070B14] dark:text-[#F1F5F9] transition-colors w-full max-w-full overflow-x-hidden">
       
       {/* 1. Global Header */}
       <Header
@@ -191,14 +187,11 @@ function AppContent() {
         onOpenMobileMenu={() => setMobileMenuOpen(true)}
       />
 
-      {/* 2. Top Module Navigation Strip */}
-      <Navigation
-        activeNav={activeNav}
-        onSelectNav={setActiveNav}
-      />
+      <div className="mx-auto flex w-full max-w-[1440px] flex-1 min-h-0">
+        <Navigation activeNav={activeNav} onSelectNav={setActiveNav} />
 
-      {/* 3. Main Content Container */}
-      <main className={activeNav === 'terminal' ? "flex-1 w-full max-w-full px-2 sm:px-4 py-4 pb-24 lg:pb-4 overflow-x-hidden" : "flex-1 max-w-7xl w-full max-w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 pb-24 lg:pb-8 overflow-x-hidden"}>
+      {/* Main Content Container */}
+      <main className={activeNav === 'terminal' ? "flex-1 min-w-0 w-full max-w-full px-2 sm:px-4 py-4 pb-24 lg:pb-4 overflow-x-hidden" : "flex-1 min-w-0 max-w-[1200px] w-full px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-10 overflow-x-hidden"}>
         {activeNav === 'terminal' && (
           <TradingTerminalPage
             initialSymbol={selectedSymbol}
@@ -305,6 +298,7 @@ function AppContent() {
           <ProfilePage />
         )}
       </main>
+      </div>
 
       {/* 4. Global Modals & Mobile Drawer */}
       <MobileSidebarDrawer
@@ -358,12 +352,12 @@ function AppContent() {
                 </span>
               </div>
               <p className="text-slate-500 dark:text-slate-400 mt-1">
-                “Understand Every Market. See Beyond the Numbers.”
+                Indian market data and analysis, in one place.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600 dark:text-slate-400">
-              <button onClick={() => setActiveNav('terminal')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer font-bold">⚡ Live Terminal</button>
+              <button onClick={() => setActiveNav('terminal')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer font-semibold">Terminal</button>
               <button onClick={() => setActiveNav('overview')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Overview</button>
               {marketMode === 'crypto' ? (
                 <>
@@ -381,13 +375,13 @@ function AppContent() {
                 </>
               )}
               <button onClick={() => setActiveNav('ask-dhru')} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">Ask DHRU AI</button>
-              <button onClick={() => setShowMarketSelector(true)} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer font-bold text-blue-600 dark:text-cyan-400">🌐 Switch Market</button>
+              <button onClick={() => setShowMarketSelector(true)} className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer font-semibold text-blue-600 dark:text-cyan-400">Switch market</button>
             </div>
           </div>
 
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500 font-mono">
-            <span>© 2026 DHRU.AI • Real-Time Exchange Data & DHRU Intelligence</span>
-            <span>Educational Financial Platform • Free {marketMode === 'crypto' ? '$12,000' : '₹10,00,000'} Virtual Capital Included</span>
+            <span>© 2026 DHRU.AI · Market information for educational use</span>
+            <span>Paper trading balance: {marketMode === 'crypto' ? '$12,000' : '₹10,00,000'}</span>
           </div>
         </div>
       </footer>
@@ -400,8 +394,7 @@ function AppContent() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         marketMode={marketMode}
-        onOpenSearch={() => setSearchOpen(true)}
-        onOpenPredictions={() => setPredictionsModalOpen(true)}
+        onOpenMenu={() => setMobileMenuOpen(true)}
       />
     </div>
   );

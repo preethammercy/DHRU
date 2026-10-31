@@ -72,69 +72,6 @@ const liveTickCache = new Map();
 
 const US_EQUITIES = new Set(['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META']);
 
-// Baseline quotes map so cache is primed even on serverless cold starts
-const BASELINE_DATA = {
-  // Cryptos (24/7)
-  'BTC-USD': { name: 'Bitcoin USD', price: 81294.00, previousClose: 82345.00 },
-  'ETH-USD': { name: 'Ethereum USD', price: 2413.93, previousClose: 2442.00 },
-  'SOL-USD': { name: 'Solana USD', price: 103.78, previousClose: 105.65 },
-  'XRP-USD': { name: 'XRP USD', price: 1.3012, previousClose: 1.3404 },
-  'BNB-USD': { name: 'Binance Coin USD', price: 721.93, previousClose: 733.80 },
-  'DOGE-USD': { name: 'Dogecoin USD', price: 0.0800, previousClose: 0.0811 },
-  'SUI-USD': { name: 'Sui Network USD', price: 1.0133, previousClose: 1.0319 },
-  'ADA-USD': { name: 'Cardano USD', price: 0.2238, previousClose: 0.2308 },
-  'AVAX-USD': { name: 'Avalanche USD', price: 10.042, previousClose: 9.972 },
-  'LINK-USD': { name: 'Chainlink USD', price: 12.310, previousClose: 12.512 },
-  'NEAR-USD': { name: 'NEAR Protocol USD', price: 5.036, previousClose: 5.273 },
-  'PEPE-USD': { name: 'Pepe USD', price: 0.00000396, previousClose: 0.00000417 },
-  'APT-USD': { name: 'Aptos USD', price: 9.85, previousClose: 9.98 },
-  'RENDER-USD': { name: 'Render Token USD', price: 5.75, previousClose: 5.82 },
-
-  // Indian Indices
-  '^NSEI': { name: 'NIFTY 50', price: 23146.15, previousClose: 22622.70 },
-  '^BSESN': { name: 'BSE SENSEX', price: 74729.27, previousClose: 72781.90 },
-  '^NSEBANK': { name: 'BANK NIFTY', price: 55844.00, previousClose: 55316.00 },
-  '^CNXIT': { name: 'NIFTY IT', price: 41920.00, previousClose: 41650.00 },
-
-  // Indian Top Equities
-  'RELIANCE.NS': { name: 'Reliance Industries Ltd.', price: 1211.20, previousClose: 1215.00 },
-  'TCS.NS': { name: 'Tata Consultancy Services', price: 2465.00, previousClose: 2350.00 },
-  'HDFCBANK.NS': { name: 'HDFC Bank Ltd.', price: 728.85, previousClose: 726.85 },
-  'INFY.NS': { name: 'Infosys Ltd.', price: 1890.60, previousClose: 1872.00 },
-  'ICICIBANK.NS': { name: 'ICICI Bank Ltd.', price: 1245.00, previousClose: 1232.00 },
-  'SBIN.NS': { name: 'State Bank of India', price: 845.20, previousClose: 838.00 },
-  'BHARTIARTL.NS': { name: 'Bharti Airtel Ltd.', price: 1680.00, previousClose: 1665.00 },
-  'TATAMOTORS.NS': { name: 'Tata Motors Ltd.', price: 925.50, previousClose: 918.00 },
-  'ITC.NS': { name: 'ITC Ltd.', price: 502.40, previousClose: 498.50 },
-  'LT.NS': { name: 'Larsen & Toubro Ltd.', price: 3580.00, previousClose: 3540.00 },
-
-  // Forex & Global Macro
-  'EURUSD=X': { name: 'EUR / USD', price: 1.1227, previousClose: 1.1221 },
-  'GBPUSD=X': { name: 'GBP / USD', price: 1.3315, previousClose: 1.3274 },
-  'USDJPY=X': { name: 'USD / JPY', price: 149.85, previousClose: 150.10 },
-  'INR=X': { name: 'USD / INR', price: 83.98, previousClose: 83.95 },
-  'GBPINR=X': { name: 'GBP / INR', price: 109.35, previousClose: 109.10 },
-  'EURINR=X': { name: 'EUR / INR', price: 91.32, previousClose: 91.20 },
-  'JPYINR=X': { name: 'JPY / INR', price: 0.5605, previousClose: 0.5590 },
-  'AUDUSD=X': { name: 'AUD / USD', price: 0.6685, previousClose: 0.6660 },
-  'USDCAD=X': { name: 'USD / CAD', price: 1.3820, previousClose: 1.3835 },
-  'USDCHF=X': { name: 'USD / CHF', price: 0.8650, previousClose: 0.8665 },
-  'NZDUSD=X': { name: 'NZD / USD', price: 0.6050, previousClose: 0.6035 },
-  'GC=F': { name: 'Gold Futures (USD/oz)', price: 4181.20, previousClose: 4170.10 },
-  'SI=F': { name: 'Silver Futures', price: 33.65, previousClose: 33.20 },
-  'CL=F': { name: 'Crude Oil WTI', price: 71.40, previousClose: 70.80 },
-
-  // US Global Equities
-  'AAPL': { name: 'Apple Inc.', price: 343.29, previousClose: 342.00 },
-  'NFLX': { name: 'Netflix Inc.', price: 70.52, previousClose: 72.61 },
-  'NVDA': { name: 'NVIDIA Corp.', price: 215.54, previousClose: 217.23 },
-  'TSLA': { name: 'Tesla Inc.', price: 353.18, previousClose: 362.44 },
-  'MSFT': { name: 'Microsoft Corp.', price: 418.60, previousClose: 415.00 },
-  'GOOGL': { name: 'Alphabet Inc.', price: 165.40, previousClose: 164.00 },
-  'AMZN': { name: 'Amazon.com Inc.', price: 188.20, previousClose: 186.50 },
-  'META': { name: 'Meta Platforms Inc.', price: 582.00, previousClose: 576.00 }
-};
-
 // Check if symbol belongs to Indian equities, indices, or derivatives
 export function isIndianSymbol(symbol) {
   if (!symbol) return false;
@@ -221,32 +158,10 @@ export async function refreshBinanceCryptoPrices() {
   }
 }
 
-// Seed baseline cache if empty
+// Refresh public snapshots on demand; never prime cache with sample prices.
 export function ensureBaselineCache() {
-  if (liveTickCache.size > 0) return;
-  for (const [sym, base] of Object.entries(BASELINE_DATA)) {
-    const change = Number((base.price - base.previousClose).toFixed(base.price > 100 ? 2 : 4));
-    const changePercent = Number(((change / base.previousClose) * 100).toFixed(2));
-    liveTickCache.set(sym, {
-      symbol: sym,
-      name: base.name,
-      price: base.price,
-      previousClose: base.previousClose,
-      change,
-      changePercent,
-      dayHigh: Number((base.price * 1.012).toFixed(base.price > 100 ? 2 : 4)),
-      dayLow: Number((base.price * 0.991).toFixed(base.price > 100 ? 2 : 4)),
-      volume: 1250000,
-      lastFetchTime: Date.now(),
-      lastTickTime: Date.now(),
-      isLive: isInstrumentLive(sym)
-    });
-  }
-
-  // Immediately refresh cryptos with authentic live Binance prices
   refreshBinanceCryptoPrices().catch(() => {});
 }
-
 // Ingest fresh quote directly into stream cache to eliminate discrepancies
 export function ingestFreshQuote(q) {
   if (!q || !q.symbol || typeof q.price !== 'number' || q.price <= 0) return;
@@ -400,6 +315,7 @@ export function broadcastSse(eventName, data) {
 // Polling and streaming loop - 1-second pulse for all markets
 let streamInterval = null;
 let cryptoSyncInterval = null;
+let symbolBatchOffset = 0;
 
 export function startMarketStreamingLoop() {
   if (streamInterval) return;
@@ -429,12 +345,14 @@ export function startMarketStreamingLoop() {
 
     // Pick 8 symbols per tick to fetch fresh public quotes periodically
     const batchSize = Math.min(8, symbolsToUpdate.length);
-    const shuffled = symbolsToUpdate.sort(() => 0.5 - Math.random()).slice(0, batchSize);
+    const batchStart = symbolsToUpdate.length ? symbolBatchOffset % symbolsToUpdate.length : 0;
+    const batch = Array.from({ length: batchSize }, (_, index) => symbolsToUpdate[(batchStart + index) % symbolsToUpdate.length]);
+    symbolBatchOffset = symbolsToUpdate.length ? (batchStart + batchSize) % symbolsToUpdate.length : 0;
 
     const updatedTicks = [];
 
-    // Periodic remote quote refresh for shuffled batch
-    for (const sym of shuffled) {
+    // Rotate through symbols in a stable order to avoid repeatedly missing the same instruments.
+    for (const sym of batch) {
       try {
         let quote = liveTickCache.get(sym);
         if (!quote || (Date.now() - (quote.lastFetchTime || 0) > 10000)) {

@@ -14,12 +14,21 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('dhru_theme');
-    return (saved === 'dark' || saved === 'light') ? saved : 'light';
+    try {
+      const saved = localStorage.getItem('dhru_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {
+      // Storage can be unavailable in private browsing contexts.
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {
-    localStorage.setItem('dhru_theme', theme);
+    try {
+      localStorage.setItem('dhru_theme', theme);
+    } catch {
+      // The selected theme still applies for this session when storage is blocked.
+    }
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {

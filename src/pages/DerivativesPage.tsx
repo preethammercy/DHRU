@@ -31,6 +31,19 @@ export const DerivativesPage: React.FC = () => {
   const nifty = data?.instruments?.nifty;
   const bankNifty = data?.instruments?.bankNifty;
 
+  if (!nifty && !bankNifty) {
+    return (
+      <section className="max-w-2xl space-y-3 border-b border-slate-200 pb-6 dark:border-slate-800">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">NSE derivatives</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Options data unavailable</h1>
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          {data?.message || 'No verified option-chain provider is configured. PCR, open interest and max pain are not shown.'}
+        </p>
+        <p className="text-xs text-slate-500">A licensed exchange or broker data source is required to publish these figures.</p>
+      </section>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       

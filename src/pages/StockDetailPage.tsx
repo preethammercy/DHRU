@@ -3,7 +3,7 @@
 // Deep intelligence report, stock-specific news, and risk rating.
 
 import React, { useEffect, useState } from 'react';
-import { getStockDetails, getStockCandles, runAiAnalysis } from '../services/api';
+import { getStockDetails, getStockCandles } from '../services/api';
 import { useWatchlist } from '../context/WatchlistContext';
 import { useLivePrice } from '../context/MarketStreamContext';
 import { useTrading } from '../context/TradingContext';
@@ -45,7 +45,6 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, on
   const [volumeData, setVolumeData] = useState<any[]>([]);
   const [activeRange, setActiveRange] = useState('1mo');
   const [activeInterval, setActiveInterval] = useState('1d');
-  const [aiReport, setAiReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   // Quick Trade State
@@ -73,10 +72,6 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, on
       setVolumeData(candleRes.volumeData || []);
       setLoading(false);
 
-      // Pre-load deterministic / AI report
-      runAiAnalysis(symbol).then(rep => {
-        if (isMounted) setAiReport(rep);
-      }).catch(() => {});
     }).catch(err => {
       console.error(err);
       if (isMounted) setLoading(false);
@@ -432,7 +427,11 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, on
       />
 
       {/* Risk Rating Card */}
-      {risk && (
+      {risk && risk.status === 'unavailable' ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+          Instrument risk classification is unavailable because no validated risk model is configured.
+        </div>
+      ) : risk && (
         <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl p-5 shadow-card zoom-card space-y-3">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#1A2744]">
             <div className="flex items-center gap-2">
@@ -474,7 +473,7 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, on
       {/* Deep Market Intelligence Report */}
       <GeminiReport
         symbol={symbol}
-        initialReport={aiReport}
+        initialReport={null}
       />
 
       {/* Stock-Specific Relevant News Feed */}

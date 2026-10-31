@@ -861,3 +861,196 @@ html.dark .border-slate-200,
 html.dark .border-blue-100 {
   border-color: #1E2D4A !important;
 }
+
+/* Product-wide visual system: quiet surfaces, clear type and restrained motion. */
+:root {
+  color-scheme: light;
+  --page: #f6f5f1;
+  --surface: #ffffff;
+  --surface-muted: #f0eee8;
+  --line: #e3e0d8;
+  --ink: #16181c;
+  --muted: #5b6068;
+  --action: #1c2b45;
+  --accent: #2c5ec8;
+  --positive: #0f7b4f;
+  --negative: #b3261e;
+  --warning: #8a5300;
+  --dur-micro: 120ms;
+  --dur-base: 200ms;
+  --dur-panel: 280ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+
+html.dark {
+  color-scheme: dark;
+  --page: #111317;
+  --surface: #181b21;
+  --surface-muted: #20242b;
+  --line: #2b2f37;
+  --ink: #ecedef;
+  --muted: #a1a7b1;
+  --action: #e6eaf2;
+  --accent: #7fa6ff;
+  --positive: #5fcb8e;
+  --negative: #f08a80;
+  --warning: #e4b867;
+}
+
+body {
+  background: var(--page) !important;
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.app-shell {
+  background: var(--page) !important;
+  color: var(--ink);
+}
+
+.app-shell header,
+.app-shell nav,
+.app-shell footer {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.app-shell header {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+}
+
+.app-shell > nav {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+}
+
+.app-shell main {
+  min-height: 60vh;
+}
+
+.app-shell .zoom-card,
+.app-shell .shadow-card,
+.app-shell .shadow-card-hover,
+.app-shell .shadow-2xl,
+.app-shell .shadow-xl,
+.app-shell .shadow-lg,
+.app-shell .shadow-md {
+  box-shadow: none !important;
+}
+
+.app-shell .zoom-card:hover,
+.app-shell .zoom-card:active {
+  transform: none !important;
+}
+
+.app-shell button {
+  transition-duration: var(--dur-micro);
+  transition-timing-function: var(--ease-out);
+}
+
+.app-shell button.bg-gradient-to-r,
+.app-shell button.bg-gradient-to-tr {
+  background-image: none !important;
+  background-color: #202833 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html.dark .app-shell button.bg-gradient-to-r,
+html.dark .app-shell button.bg-gradient-to-tr {
+  background-color: #e7ebf0 !important;
+  color: #171b22 !important;
+}
+
+.app-shell .bg-clip-text {
+  background-image: none !important;
+  color: var(--ink) !important;
+}
+
+.app-shell [class*="bg-gradient-to"] {
+  background-image: none !important;
+  background-color: var(--surface-muted) !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+}
+
+.app-shell .bg-clip-text {
+  background-color: transparent !important;
+}
+
+.app-shell .rounded-3xl,
+.app-shell .rounded-2xl {
+  border-radius: 10px !important;
+}
+
+.app-shell .rounded-xl,
+.app-shell .rounded-lg {
+  border-radius: 6px !important;
+}
+
+.app-shell .animate-fade-in,
+.app-shell .animate-zoom-in,
+.app-shell .animate-glow,
+.app-shell .animate-float,
+.app-shell .animate-ticker {
+  animation: none !important;
+}
+
+.app-shell input,
+.app-shell select,
+.app-shell textarea {
+  border-radius: 6px !important;
+  border-color: var(--line) !important;
+}
+
+.app-shell button:focus-visible,
+.app-shell a:focus-visible,
+.app-shell input:focus-visible,
+.app-shell select:focus-visible,
+.app-shell textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.app-shell footer {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+}
+
+.app-shell footer p,
+.app-shell footer span {
+  line-height: 1.5;
+}
+
+@media (max-width: 639px) {
+  body {
+    font-size: 16px;
+  }
+  .app-shell main {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 20px;
+  }
+
+  .app-shell input,
+  .app-shell select,
+  .app-shell textarea {
+    font-size: 16px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

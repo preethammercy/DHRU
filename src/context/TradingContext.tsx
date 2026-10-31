@@ -436,7 +436,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 bookedProfit = existing.pnl;
               }
               const closedPos: ClosedPosition = {
-                id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                id: `closed_${crypto.randomUUID()}`,
                 symbol: existing.symbol,
                 name: existing.name,
                 product: existing.product,
@@ -464,7 +464,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
               order.pnl = bookedProfit;
 
               const closedPos: ClosedPosition = {
-                id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                id: `closed_${crypto.randomUUID()}`,
                 symbol: existing.symbol,
                 name: existing.name,
                 product: existing.product,
@@ -627,7 +627,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
     }
 
-    const orderId = `ORD_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const orderId = `ORD_${crypto.randomUUID()}`;
 
     const newOrder: Order = {
       id: orderId,
@@ -697,7 +697,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // Opposite order
     const closeOrder: Order = {
-      id: `SQ_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      id: `SQ_${crypto.randomUUID()}`,
       symbol: pos.symbol,
       name: pos.name,
       side: pos.side === 'BUY' ? 'SELL' : 'BUY',
@@ -713,7 +713,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     const closedPos: ClosedPosition = {
-      id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      id: `closed_${crypto.randomUUID()}`,
       symbol: pos.symbol,
       name: pos.name,
       product: pos.product,
@@ -754,7 +754,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       totalBooked += bookedProfit;
 
       closeOrders.push({
-        id: `SQ_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        id: `SQ_${crypto.randomUUID()}`,
         symbol: pos.symbol,
         name: pos.name,
         side: pos.side === 'BUY' ? 'SELL' : 'BUY',
@@ -770,7 +770,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
 
       closedList.push({
-        id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        id: `closed_${crypto.randomUUID()}`,
         symbol: pos.symbol,
         name: pos.name,
         product: pos.product,

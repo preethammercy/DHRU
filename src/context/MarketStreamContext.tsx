@@ -1,6 +1,5 @@
 // DHRU.AI - Global Real-Time Market Streaming Context
-// Ultra-Resilient Dual-Engine: SSE + High-Frequency REST Polling + Client-Side Micro-Variance Engine
-// Guarantees real-time price updates and vibrant green/red blinking everywhere, including Vercel Serverless
+// Live market updates from the configured REST/SSE feeds and Binance for supported crypto pairs.
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 
@@ -35,45 +34,6 @@ const MarketStreamContext = createContext<MarketStreamContextType>({
   getQuote: () => null,
   syncQuote: () => {},
 });
-
-// Seed quotes map so components have immediate data on first paint
-const INITIAL_SEEDS: Record<string, Partial<LiveTick>> = {
-  'BTC-USD': { price: 81294.00, previousClose: 82345.00, change: -1051.00, changePercent: -1.28, isLive: true },
-  'ETH-USD': { price: 2413.93, previousClose: 2442.00, change: -28.07, changePercent: -1.15, isLive: true },
-  'SOL-USD': { price: 103.78, previousClose: 105.65, change: -1.87, changePercent: -1.77, isLive: true },
-  'XRP-USD': { price: 1.3012, previousClose: 1.3404, change: -0.0392, changePercent: -2.92, isLive: true },
-  'BNB-USD': { price: 721.93, previousClose: 733.80, change: -11.87, changePercent: -1.62, isLive: true },
-  'DOGE-USD': { price: 0.0800, previousClose: 0.0811, change: -0.0011, changePercent: -1.36, isLive: true },
-  'SUI-USD': { price: 1.0133, previousClose: 1.0319, change: -0.0186, changePercent: -1.80, isLive: true },
-  'ADA-USD': { price: 0.2238, previousClose: 0.2308, change: -0.0070, changePercent: -3.03, isLive: true },
-  'AVAX-USD': { price: 10.042, previousClose: 9.972, change: 0.070, changePercent: 0.70, isLive: true },
-  'LINK-USD': { price: 12.310, previousClose: 12.512, change: -0.202, changePercent: -1.61, isLive: true },
-  'NEAR-USD': { price: 5.036, previousClose: 5.273, change: -0.237, changePercent: -4.50, isLive: true },
-  'PEPE-USD': { price: 0.00000396, previousClose: 0.00000417, change: -0.00000021, changePercent: -5.04, isLive: true },
-  'DOT-USD': { price: 3.84, previousClose: 3.92, change: -0.08, changePercent: -2.04, isLive: true },
-  'APT-USD': { price: 4.88, previousClose: 4.95, change: -0.07, changePercent: -1.41, isLive: true },
-  'SHIB-USD': { price: 0.0000122, previousClose: 0.0000125, change: -0.0000003, changePercent: -2.40, isLive: true },
-  'LTC-USD': { price: 52.80, previousClose: 53.40, change: -0.60, changePercent: -1.12, isLive: true },
-  'UNI-USD': { price: 5.48, previousClose: 5.58, change: -0.10, changePercent: -1.79, isLive: true },
-  'ARB-USD': { price: 0.352, previousClose: 0.360, change: -0.008, changePercent: -2.22, isLive: true },
-  'OP-USD': { price: 0.942, previousClose: 0.965, change: -0.023, changePercent: -2.38, isLive: true },
-  'RENDER-USD': { price: 3.82, previousClose: 3.91, change: -0.09, changePercent: -2.30, isLive: true },
-  'ICP-USD': { price: 5.68, previousClose: 5.80, change: -0.12, changePercent: -2.07, isLive: true },
-  'FET-USD': { price: 0.812, previousClose: 0.835, change: -0.023, changePercent: -2.75, isLive: true },
-  '^NSEI': { price: 23146.15, previousClose: 22622.70, change: 523.45, changePercent: 2.31, isLive: false },
-  '^NSEBANK': { price: 55844.00, previousClose: 55316.00, change: 528.00, changePercent: 0.95, isLive: false },
-  '^BSESN': { price: 74729.27, previousClose: 72781.90, change: 1947.37, changePercent: 2.68, isLive: false },
-  'RELIANCE.NS': { price: 1211.20, previousClose: 1215.00, change: -3.80, changePercent: -0.31, isLive: false },
-  'TCS.NS': { price: 2465.00, previousClose: 2350.00, change: 115.00, changePercent: 4.89, isLive: false },
-  'HDFCBANK.NS': { price: 728.85, previousClose: 726.85, change: 2.00, changePercent: 0.28, isLive: false },
-  'EURUSD=X': { price: 1.1227, previousClose: 1.1221, change: 0.0006, changePercent: 0.05, isLive: true },
-  'GBPUSD=X': { price: 1.3315, previousClose: 1.3274, change: 0.0041, changePercent: 0.31, isLive: true },
-  'GC=F': { price: 4181.20, previousClose: 4170.10, change: 11.10, changePercent: 0.27, isLive: true },
-  'AAPL': { price: 343.29, previousClose: 342.00, change: 1.29, changePercent: 0.38, isLive: false },
-  'NFLX': { price: 70.52, previousClose: 72.61, change: -2.09, changePercent: -2.88, isLive: false },
-  'NVDA': { price: 215.54, previousClose: 217.23, change: -1.69, changePercent: -0.78, isLive: false },
-  'TSLA': { price: 353.18, previousClose: 362.44, change: -9.26, changePercent: -2.55, isLive: false }
-};
 
 const BINANCE_PAIR_MAP: Record<string, string> = {
   'BTCUSDT': 'BTC-USD',
@@ -136,32 +96,12 @@ export function isIndianMarketOpenNow(): boolean {
 }
 
 export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [ticks, setTicks] = useState<Record<string, LiveTick>>(() => {
-    const initial: Record<string, LiveTick> = {};
-    const indianOpen = isIndianMarketOpenNow();
-    for (const [sym, data] of Object.entries(INITIAL_SEEDS)) {
-      initial[sym] = {
-        symbol: sym,
-        price: data.price || 0,
-        previousClose: data.previousClose || data.price || 0,
-        change: data.change || 0,
-        changePercent: data.changePercent || 0,
-        dayHigh: (data.price || 0) * 1.015,
-        dayLow: (data.price || 0) * 0.985,
-        volume: 1200000,
-        timestamp: Date.now(),
-        isLive: isIndianSymbol(sym) ? indianOpen : !!data.isLive,
-        flash: null
-      };
-    }
-    return initial;
-  });
-
+  const [ticks, setTicks] = useState<Record<string, LiveTick>>({});
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connected');
   const [isMarketLive, setIsMarketLive] = useState(isIndianMarketOpenNow);
   const eventSourceRef = useRef<EventSource | null>(null);
   const flashTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const activeSymbolsRef = useRef<Set<string>>(new Set(Object.keys(INITIAL_SEEDS)));
+  const activeSymbolsRef = useRef<Set<string>>(new Set<string>());
   const binanceWsLastSeen = useRef<Map<string, number>>(new Map());
 
   // Batch process tick updates with strict after-hours freeze for Indian stocks and authoritative Binance WS priority

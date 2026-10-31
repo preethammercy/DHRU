@@ -257,16 +257,6 @@ export async function getPatterns() {
   return res.json();
 }
 
-export async function runAiAnalysis(symbol: string) {
-  const res = await fetch(`${API_BASE}/ai/analyze`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ symbol })
-  });
-  if (!res.ok) throw new Error('AI analysis failed');
-  return res.json();
-}
-
 export async function sendChatMessage(query: string, currentContext?: any) {
   const res = await fetch(`${API_BASE}/ai/chat`, {
     method: 'POST',
@@ -287,26 +277,6 @@ export async function triggerManualRefresh() {
   const res = await fetch(`${API_BASE}/scheduler/refresh`, { method: 'POST' });
   if (!res.ok) throw new Error('Refresh failed');
   return res.json();
-}
-
-export async function saveGeminiKey(apiKey: string) {
-  const res = await fetch(`${API_BASE}/settings/key`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ apiKey })
-  });
-  if (!res.ok) throw new Error('Failed to save API key');
-  return res.json();
-}
-
-export async function getSettingsStatus() {
-  try {
-    const res = await fetch(`${API_BASE}/settings/status`);
-    if (!res.ok) return { configured: false, engine: 'Deterministic Mathematical Engine' };
-    return res.json();
-  } catch {
-    return { configured: false, engine: 'Deterministic Mathematical Engine' };
-  }
 }
 
 export async function getCryptoInstruments(): Promise<{ crypto: any[]; instruments: any[]; count: number }> {
@@ -386,12 +356,3 @@ export async function getForexInstruments() {
   return res.json();
 }
 
-export async function scanChartImage(imageBase64: string, mimeType = 'image/png') {
-  const res = await fetch(`${API_BASE}/ai/scan-image`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageBase64, mimeType })
-  });
-  if (!res.ok) throw new Error('Chart image scanning failed');
-  return res.json();
-}

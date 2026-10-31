@@ -1,5 +1,6 @@
 // DHRU.AI - Production Multi-Broker Execution Engine
 // Standardized integration for Zerodha Kite Connect, Angel One SmartAPI, DhanHQ & Sandbox Simulation
+import { randomUUID } from 'node:crypto';
 
 /**
  * Supported Retail Brokers & Exchanges
@@ -154,7 +155,7 @@ export function buildDhanPayload(validatedParams, dhanClientId, accessToken) {
 
   const payload = {
     dhanClientId: String(dhanClientId),
-    correlationId: `DHRU_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    correlationId: `DHRU_${randomUUID()}`,
     transactionType: side,
     exchangeSegment: exchange === 'BSE' ? 'BSE_EQ' : 'NSE_EQ',
     productType: product === 'MIS' ? 'INTRADAY' : 'CNC',
@@ -193,13 +194,13 @@ export async function executeBrokerOrder(orderRequest, brokerConfig) {
 
   // 1. Simulation / Sandbox Mode
   if (!isLive || broker === 'simulation') {
-    const simOrderId = `SIM_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const simOrderId = `SIM_${randomUUID()}`;
     return {
       status: 'SUCCESS',
       mode: 'SIMULATION',
       broker: 'Simulation Engine',
       orderId: simOrderId,
-      exchangeOrderId: `EXCH_${Math.floor(Math.random() * 899999 + 100000)}`,
+      exchangeOrderId: `SIM_EXCH_${randomUUID()}`,
       symbol: validated.symbol,
       side: validated.side,
       product: validated.product,

@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { sendChatMessage, getStockDetails } from '../services/api';
-import { Sparkles, Send, Bot, User, HelpCircle, ArrowRight, ShieldAlert, BarChart2, TrendingUp, Cpu, MessageSquare } from 'lucide-react';
+import { Send, Bot, User, HelpCircle, ArrowRight, ShieldAlert, BarChart2, TrendingUp, Cpu, MessageSquare } from 'lucide-react';
 
 interface Props {
   currentSymbol?: string;
@@ -35,7 +35,16 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
           symbol: currentSymbol,
           name: res?.quote?.name,
           price: res?.quote?.price,
+          change: res?.quote?.change,
           changePercent: res?.quote?.changePercent,
+          dayHigh: res?.quote?.dayHigh,
+          dayLow: res?.quote?.dayLow,
+          open: res?.quote?.open,
+          previousClose: res?.quote?.previousClose,
+          volume: res?.quote?.volume,
+          lastUpdated: res?.quote?.lastUpdated,
+          source: res?.quote?.source,
+          currency: res?.quote?.currency || (currentSymbol?.endsWith('-USD') ? 'USD' : 'INR'),
           technicals: res?.technicals,
           risk: res?.risk,
           scenarios: res?.scenarios
@@ -51,8 +60,8 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
         {
           id: 'welcome',
           role: 'assistant',
-          content: `### Welcome to DHRU Intelligence 🌟\n\nI am your verified Indian financial intelligence copilot. I analyze official exchange data, mathematical indicators (SMA, RSI, MACD, Pivots), institutional flows, and real-time news.\n\nAsk me anything about **${contextStock?.name || currentSymbol}**, benchmark indices (NIFTY / SENSEX), or general market dynamics. Click any suggested question below to start immediately!`,
-          engine: 'DHRU Pro Intelligence',
+          content: `### Market facts\n\nAsk about the displayed quote, price range, indicators, risk score or candle patterns for ${contextStock?.name || currentSymbol}. Answers use the facts currently attached to this instrument.`,
+          engine: 'Grounded facts',
           timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -91,7 +100,7 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
         id: `ai_${Date.now()}`,
         role: 'assistant',
         content: res.reply,
-        engine: 'DHRU Pro Intelligence',
+        engine: res.engine || 'Grounded facts',
         timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, assistantMsg]);
@@ -111,35 +120,33 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
   };
 
   const samplePrompts = [
-    `Why is ${contextStock?.name || 'Reliance Industries'} moving today?`,
-    `What are immediate support and resistance levels for ${currentSymbol}?`,
-    `Explain current Indian market risk and volatility in simple terms`,
-    `Is NIFTY IT showing stronger momentum than NIFTY Bank?`,
-    `How should a beginner analyze candlestick patterns for short-term trades?`,
-    `Compare Tata Motors with Mahindra & Mahindra outlook`,
-    `What do current FII and DII institutional flow trends indicate?`,
-    `What is the 5-day scenario for ${contextStock?.name || currentSymbol}?`
+    `What is the displayed price for ${contextStock?.name || currentSymbol}?`,
+    `What are the day high and low for ${currentSymbol}?`,
+    `What is the current RSI for ${currentSymbol}?`,
+    `Show the moving averages for ${currentSymbol}.`,
+    `What pivot levels are available for ${currentSymbol}?`,
+    `Which heuristic candle patterns were detected for ${currentSymbol}?`,
+    `What does RSI mean?`,
+    `What does a Doji mean?`
   ];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-12">
       
       {/* Header Banner */}
-      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl p-6 shadow-card zoom-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.3)]">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-slate-700 dark:text-slate-200" />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">Ask DHRU Financial Assistant</h1>
-              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                PRO INTELLIGENCE
-              </span>
+              <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Ask DHRU</h1>
+              <span className="text-xs text-slate-500">Answers from displayed market facts</span>
             </div>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
-            Contextual market intelligence explaining what is happening, why, risks, and historical evidence.
+          Factual answers about the open instrument. Advice and price targets are not provided.
           </p>
         </div>
 
@@ -155,7 +162,7 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
         )}
       </div>
 
-      {/* Suggested Prompt Chips */}
+      {/* Suggested questions */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -169,7 +176,7 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
             <button
               key={idx}
               onClick={() => handleSend(p)}
-              className="text-xs px-3.5 py-2 rounded-xl bg-white dark:bg-[#0D1527] hover:bg-blue-50/70 dark:hover:bg-[#131F38] text-slate-700 dark:text-slate-200 hover:text-blue-600 border border-slate-200 dark:border-[#1A2744] hover:border-blue-300 transition-all text-left shadow-sm zoom-card"
+              className="min-h-11 text-sm text-left text-blue-700 underline decoration-slate-300 underline-offset-4 hover:text-blue-900 dark:text-sky-300 dark:hover:text-sky-100"
             >
               {p}
             </button>

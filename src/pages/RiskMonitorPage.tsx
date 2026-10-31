@@ -29,8 +29,20 @@ export const RiskMonitorPage: React.FC = () => {
     );
   }
 
-  const score = risk?.score || 45;
-  const classification = risk?.classification || 'Moderate';
+  if (risk?.status === 'unavailable' || !risk) {
+    return (
+      <section className="mx-auto max-w-3xl space-y-3 py-16 text-center">
+        <ShieldAlert className="mx-auto h-8 w-8 text-slate-500" aria-hidden="true" />
+        <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Market risk data unavailable</h1>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          A verified risk model and its required source data are not configured. No score is shown until both are available.
+        </p>
+      </section>
+    );
+  }
+
+  const score = risk.score;
+  const classification = risk.classification;
   const factors = risk?.factors || [];
   const mitigations = risk?.mitigations || [];
   const metrics = risk?.metrics || {};
