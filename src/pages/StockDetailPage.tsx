@@ -46,6 +46,8 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, on
   const [activeRange, setActiveRange] = useState('1mo');
   const [activeInterval, setActiveInterval] = useState('1d');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [retryToken, setRetryToken] = useState(0);
 
   // Quick Trade State
   const [quickSide, setQuickSide] = useState<'BUY' | 'SELL'>('BUY');
@@ -61,10 +63,14 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, on
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
+    setLoadError('');
+    setStockData(null);
+    setCandles([]);
+    setVolumeData([]);
 
     Promise.all([
       getStockDetails(symbol),
-      getStockCandles(symbol, '1mo', '1d'),
+      getStockCandles(symbol, '1mo', '1d').catch(() => ({ candles: [], volumeData: [] })),
     ]).then(([details, candleRes]) => {
       if (!isMounted) return;
       setStockData(details);
@@ -74,11 +80,14 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, on
 
     }).catch(err => {
       console.error(err);
-      if (isMounted) setLoading(false);
+      if (isMounted) {
+        setLoadError(err instanceof Error ? err.message : 'Market details could not be loaded.');
+        setLoading(false);
+      }
     });
 
     return () => { isMounted = false; };
-  }, [symbol]);
+  }, [symbol, retryToken]);
 
   // Handle timeframe change on chart
   const handleTimeframeChange = async (range: string, interval: string) => {
@@ -118,6 +127,19 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, on
           Loading verified quotes, OHLCV candles & indicators for <span className="font-mono text-blue-600 dark:text-cyan-400">{symbol}</span>...
         </p>
       </div>
+    );
+  }
+
+  if (!stockData && loadError) {
+    return (
+      <section className="mx-auto max-w-xl space-y-3 py-16 text-center">
+        <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Market details unavailable for {symbol}</h1>
+        <p className="text-sm text-slate-600 dark:text-slate-400">{loadError}. The quote provider may be unavailable or may not recognize this symbol. No sample values are shown.</p>
+        <div className="flex justify-center gap-2">
+          <button onClick={onBack} className="min-h-11 rounded-md border border-slate-300 px-4 text-sm dark:border-slate-700">Back</button>
+          <button onClick={() => setRetryToken(value => value + 1)} className="min-h-11 rounded-md bg-slate-900 px-4 text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-950">Retry</button>
+        </div>
+      </section>
     );
   }
 
@@ -473,7 +495,8 @@ export const StockDetailPage: React.FC<Props> = ({ symbol, onBack, onAskDhru, on
       {/* Deep Market Intelligence Report */}
       <GeminiReport
         symbol={symbol}
-        initialReport={null}
+        quote={{ ...quote, price: displayPrice, change: displayChange, changePercent: displayChangePercent, source: live.source || quote?.source, timestamp: live.timestamp }}
+        technicals={technicals}
       />
 
       {/* Stock-Specific Relevant News Feed */}

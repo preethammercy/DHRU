@@ -6,7 +6,7 @@ test('grounded assistant reports attached facts with source and time', async () 
   const result = await askDhruAssistant({
     query: 'What is the displayed price and RSI?',
     currentContext: {
-      symbol: 'ACME.NS', name: 'Acme', price: 123.45, currency: 'INR',
+      symbol: 'BTC-USD', name: 'Bitcoin', price: 123.45, currency: 'USD',
       technicals: { rsi: 51 }, source: 'Fixture feed', lastUpdated: '2026-10-31T10:00:00Z'
     }
   });
@@ -14,6 +14,8 @@ test('grounded assistant reports attached facts with source and time', async () 
   assert.match(result.reply, /RSI: 51/);
   assert.match(result.reply, /Fixture feed/);
   assert.match(result.reply, /As of:/);
+  assert.match(result.reply, /Price: 123\.45 USD/);
+  assert.doesNotMatch(result.reply, /₹/);
 });
 
 test('grounded assistant declines recommendations and does not invent a target', async () => {

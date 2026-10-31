@@ -1,6 +1,4 @@
-// DHRU.AI - Transparent Prediction Engine & Walk-Forward Backtester
-// Generates probabilistic multi-horizon scenarios and walk-forward backtested strategy baselines.
-// Strictly prevents look-ahead bias and displays model uncertainty.
+// Transparent short-horizon scenario calculator and walk-forward backtester.
 
 export function runWalkForwardBacktest(candles, strategy = 'ema_cross') {
   if (!candles || candles.length < 50) {
@@ -131,9 +129,68 @@ export function runWalkForwardBacktest(candles, strategy = 'ema_cross') {
   };
 }
 
-// Forecasts are withheld until the scenario method has a reproducible out-of-sample evaluation.
-export function generateScenarios() {
-  return null;
+// Rolling recent-return drift with a historical volatility envelope. This is a
+// live descriptive model, not a calibrated probability forecast or trade signal.
+export function generateScenarios(quote, candles, interval = '5m', generatedAt = Date.now()) {
+  const price = Number(quote?.price);
+  const validCandles = Array.isArray(candles)
+    ? candles.filter(c => Number.isFinite(Number(c?.close)) && Number(c.close) > 0).slice(-61)
+    : [];
+  if (!Number.isFinite(price) || price <= 0 || validCandles.length < 25) {
+    return {
+      status: 'insufficient_data',
+      symbol: quote?.symbol || null,
+      interval,
+      observations: validCandles.length,
+      requiredObservations: 25,
+      generatedAt: new Date(generatedAt).toISOString(),
+      message: 'At least 25 recent, valid candles and a current quote are required.'
+    };
+  }
+
+  const closes = validCandles.map(c => Number(c.close));
+  const returns = closes.slice(1).map((close, index) => Math.log(close / closes[index])).filter(Number.isFinite);
+  const recentReturns = returns.slice(-30);
+  const meanReturn = recentReturns.reduce((sum, value) => sum + value, 0) / recentReturns.length;
+  const variance = recentReturns.reduce((sum, value) => sum + (value - meanReturn) ** 2, 0) / Math.max(1, recentReturns.length - 1);
+  const volatility = Math.sqrt(variance);
+  const fast = calculateSliceEMA(closes.slice(-40), 9);
+  const slow = calculateSliceEMA(closes.slice(-40), 21);
+  const trendPct = ((fast - slow) / slow) * 100;
+  const bias = trendPct > 0.05 ? 'Upward recent trend' : trendPct < -0.05 ? 'Downward recent trend' : 'Mixed / range-bound';
+  const steps = [3, 12];
+  const horizons = steps.map(stepCount => {
+    const expectedReturnPct = meanReturn * stepCount * 100;
+    const envelopePct = Math.max(volatility * Math.sqrt(stepCount) * 1.96 * 100, 0.01);
+    const center = price * (1 + expectedReturnPct / 100);
+    const range = price * envelopePct / 100;
+    return {
+      label: stepCount === 3 ? '15 minutes' : '1 hour',
+      bars: stepCount,
+      center: Number(center.toFixed(price < 1 ? 6 : 2)),
+      low: Number((center - range).toFixed(price < 1 ? 6 : 2)),
+      high: Number((center + range).toFixed(price < 1 ? 6 : 2)),
+      expectedMovePct: Number(expectedReturnPct.toFixed(3)),
+      historicalEnvelopePct: Number(envelopePct.toFixed(3))
+    };
+  });
+
+  return {
+    status: 'ready',
+    symbol: quote.symbol,
+    interval,
+    price,
+    currency: quote.currency || 'INR',
+    source: quote.source || 'Source unavailable',
+    quoteAsOf: quote.lastUpdated || null,
+    generatedAt: new Date(generatedAt).toISOString(),
+    observations: closes.length,
+    model: 'Recent return drift + historical volatility envelope',
+    bias,
+    trendPct: Number(trendPct.toFixed(3)),
+    horizons,
+    disclaimer: 'Experimental descriptive scenarios. The volatility envelope is not a calibrated probability interval, and the model does not recommend a trade.'
+  };
 }
 function calculateSliceEMA(slice, period) {
   const k = 2 / (period + 1);

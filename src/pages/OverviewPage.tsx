@@ -129,7 +129,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
         <div className="flex flex-wrap items-center gap-3 sm:justify-end">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
             <span className={`h-2 w-2 rounded-full ${isCrypto || status?.status === 'Live' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-            <span>{isCrypto ? 'Markets open 24/7' : status?.label || 'Market status unavailable'}</span>
+            <span>{isCrypto ? 'Crypto 24/7 · FX 24/5' : status?.label || 'Market status unavailable'}</span>
             {!isCrypto && status?.currentTimeIST && <span className="font-mono text-xs text-slate-500">{status.currentTimeIST} IST</span>}
           </div>
           <button
@@ -155,7 +155,7 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
             <div className="flex items-center gap-2">
               <Coins className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               <h2 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
-                Top Crypto & Forex Benchmarks (24/7 Real-Time)
+                Crypto and FX reference prices
               </h2>
             </div>
 

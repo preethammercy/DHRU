@@ -143,12 +143,38 @@ export const TradingViewChart: React.FC<ChartProps> = ({
 
   // Indicators state
   const [indicators, setIndicators] = useState<IndicatorConfig[]>(() => {
-    const saved = localStorage.getItem('dhru_chart_indicators');
-    return saved ? JSON.parse(saved) : DEFAULT_INDICATORS;
+    const storageKey = 'dhru_chart_indicators';
+    const migrationKey = 'dhru_chart_indicators_defaults_off_v1';
+    const defaults = DEFAULT_INDICATORS.map(indicator => ({ ...indicator, enabled: false }));
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const saved = raw ? JSON.parse(raw) : [];
+      const savedById = new Map<string, IndicatorConfig>(
+        Array.isArray(saved) ? saved.filter((item: any) => item && typeof item.id === 'string').map((item: IndicatorConfig) => [item.id, item]) : []
+      );
+      const migrated = localStorage.getItem(migrationKey) !== '1';
+      const initial = defaults.map(indicator => {
+        const previous = savedById.get(indicator.id);
+        return previous
+          ? { ...indicator, ...previous, enabled: migrated ? false : previous.enabled === true }
+          : indicator;
+      });
+      if (migrated) {
+        localStorage.setItem(migrationKey, '1');
+        localStorage.setItem(storageKey, JSON.stringify(initial));
+      }
+      return initial;
+    } catch {
+      return defaults;
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem('dhru_chart_indicators', JSON.stringify(indicators));
+    try {
+      localStorage.setItem('dhru_chart_indicators', JSON.stringify(indicators));
+    } catch {
+      // Chart settings remain usable when browser storage is unavailable.
+    }
   }, [indicators]);
 
   const [hoverData, setHoverData] = useState<{

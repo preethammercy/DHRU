@@ -13,9 +13,9 @@ const BATCH_CACHE_TTL_MS = 90 * 1000; // 1.5 minutes for batch summaries
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
-export async function fetchInstrumentQuote(symbol) {
+export async function fetchInstrumentQuote(symbol, { forceRefresh = false } = {}) {
   const cached = quoteCache.get(symbol);
-  if (cached && (Date.now() - cached.cachedAt < CACHE_TTL_MS)) {
+  if (!forceRefresh && cached && (Date.now() - cached.cachedAt < CACHE_TTL_MS)) {
     return cached.data;
   }
 

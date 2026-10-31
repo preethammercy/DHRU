@@ -14,6 +14,7 @@ export interface LiveTick {
   volume: number;
   timestamp: number;
   isLive: boolean;
+  source?: string;
   flash?: 'up' | 'down' | null;
 }
 
@@ -169,7 +170,7 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
               };
             });
             flashTimers.current.delete(t.symbol);
-          }, 750);
+        }, 1200);
 
           flashTimers.current.set(t.symbol, timer);
         }
@@ -308,6 +309,7 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 dayLow: low,
                 volume,
                 timestamp: item.E || Date.now(),
+                source: 'Binance WebSocket',
                 isLive: true
               });
             }
@@ -366,6 +368,7 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
               dayLow: parseFloat(item.lowPrice),
               volume: parseFloat(item.volume),
               timestamp: Date.now(),
+              source: 'Binance REST ticker',
               isLive: true
             });
           }
@@ -436,8 +439,9 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
             changePercent: quote.changePercent ?? (existing?.changePercent || 0),
             dayHigh: quote.dayHigh || Math.max(existing?.dayHigh || 0, quote.price),
             dayLow: quote.dayLow || Math.min(existing?.dayLow || quote.price, quote.price),
-            volume: quote.volume || existing?.volume || 100000,
-            timestamp: Date.now(),
+            volume: quote.volume ?? existing?.volume ?? 0,
+            timestamp: quote.timestamp || Date.now(),
+            source: quote.source || existing?.source,
             isLive: existing ? existing.isLive : true,
             flash: null
           }
@@ -483,7 +487,9 @@ export function useLivePrice(symbol: string, initialQuote?: any) {
         changePercent: initialQuote.changePercent,
         dayHigh: initialQuote.dayHigh,
         dayLow: initialQuote.dayLow,
-        volume: initialQuote.volume
+        volume: initialQuote.volume,
+        timestamp: initialQuote.timestampEpoch ? initialQuote.timestampEpoch * 1000 : initialQuote.timestamp,
+        source: initialQuote.source
       });
     }
   }, [symbol, initialQuote?.price, syncQuote]);
@@ -505,6 +511,8 @@ export function useLivePrice(symbol: string, initialQuote?: any) {
     dayHigh,
     dayLow,
     volume,
+        timestamp: liveTick?.timestamp,
+        source: liveTick?.source || initialQuote?.source,
     flash,
     isMarketLive,
     connectionStatus,

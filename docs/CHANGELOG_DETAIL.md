@@ -21,3 +21,13 @@
 - `src/context/MarketStreamContext.tsx`, `src/pages/AskDhruPage.tsx`, and `src/services/api.ts` → Removed synthetic initial ticks and obsolete Gemini image/key APIs; grounded answers now include source and as-of context and use the instrument currency.
 - `test/grounded-chat.test.js` and `test/indicators-and-trading.test.js` → Added coverage for grounded answers, missing context, recommendation refusal, and no synthesized initial quotes.
 - `docs/DESIGN_AUDIT.md`, `docs/DESIGN_RATIONALE.md`, `docs/MOTION_SPEC.md`, `docs/DIAGNOSIS.md`, `docs/DATA_SOURCES.md`, `docs/PREDICTION_INVENTORY.md`, and `docs/QA_MATRIX.md` → Recorded the visual decisions, data source limits, validation gap, and QA status. Browser/device screenshot QA remains pending; see the matrix.
+
+## 2026-10-31 — Live feedback, indicators, and assistant repair
+
+- `src/types/indicators.ts` and `src/components/chart/TradingViewChart.tsx` → Disabled every indicator by default and added a one-time migration that turns off studies previously activated by the old defaults while preserving future user choices.
+- `src/context/MarketStreamContext.tsx`, `server/services/marketStream.js`, and `src/index.css` → Carried provider/time metadata into live ticks, made up/down price flashes more visible, and rate-limited serverless crypto snapshot refreshes.
+- `src/pages/AskDhruPage.tsx` and `server/services/geminiService.js` → Fixed USD chat display, refresh assistant context from live ticks, handle greetings, and support a secure optional Gemini Interactions API with a grounded fallback. The API key stays server-side and requests use `store: false`.
+- `src/pages/AiPredictionsPage.tsx`, `server/services/predictionEngine.js`, `server/index.js`, and `src/services/api.ts` → Added live re-anchored 15-minute and 1-hour descriptive scenario ranges from recent 5-minute OHLC data. The interface explicitly labels the model experimental and does not show probabilities or recommendations.
+- `src/components/stock/GeminiReport.tsx` and `src/services/api.ts` → Replaced the paused report panel with a live fact brief and an optional grounded explanation; removed invented fallback RSI/MACD/risk values.
+- `src/pages/StockDetailPage.tsx` → Kept a valid quote page usable if candle history fails and added a retry state when the quote provider rejects a symbol.
+- `test/live-scenarios.test.js` → Added deterministic checks for data sufficiency, current-price re-anchoring, and the absence of confidence claims.

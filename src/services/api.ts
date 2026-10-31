@@ -122,16 +122,9 @@ export async function getStockDetails(symbol: string) {
       return {
         symbol,
         quote: binanceQuote,
-        technicals: {
-          rsi: 54.2,
-          macd: { macd: 12.4, signal: 10.1, hist: 2.3 },
-          sma50: binanceQuote.price * 0.98,
-          sma200: binanceQuote.price * 0.92,
-          overallSignal: 'BULLISH',
-          trendScore: 78
-        },
+        technicals: null,
         recentNews: [],
-        risk: { level: 'MODERATE', score: 45 }
+        risk: { status: 'unavailable', message: 'Risk data is unavailable.' }
       };
     }
     throw err;
@@ -251,6 +244,12 @@ export async function getBacktest(symbol: string, strategy = 'ema_cross') {
   return res.json();
 }
 
+export async function getLiveScenarios(symbol: string) {
+  const res = await fetch(`${API_BASE}/predictions/${encodeURIComponent(symbol)}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Live scenario refresh failed');
+  return res.json();
+}
+
 export async function getPatterns() {
   const res = await fetch(`${API_BASE}/patterns`);
   if (!res.ok) throw new Error('Failed to scan patterns');
@@ -264,6 +263,12 @@ export async function sendChatMessage(query: string, currentContext?: any) {
     body: JSON.stringify({ query, currentContext })
   });
   if (!res.ok) throw new Error('Chat failed');
+  return res.json();
+}
+
+export async function getAiStatus() {
+  const res = await fetch(`${API_BASE}/ai/status`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('AI status is unavailable');
   return res.json();
 }
 
@@ -355,4 +360,3 @@ export async function getForexInstruments() {
   if (!res.ok) throw new Error('Failed to load forex instruments');
   return res.json();
 }
-

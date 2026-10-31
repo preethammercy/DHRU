@@ -130,10 +130,13 @@ dhru.ai/
 # 1. Install dependencies
 npm install
 
-# 2. Build frontend production assets
+# 2. Optional: copy .env.example to .env and set GEMINI_API_KEY
+#    The key is read by the server only; without it, factual fallback answers remain available.
+
+# 3. Build frontend production assets
 npm run build
 
-# 3. Start production server (runs API + UI + 10-Min Scheduler on port 5000)
+# 4. Start production server (runs API + UI + 10-Min Scheduler on port 5000)
 npm start
 ```
 Open **`http://localhost:5000`** in any web browser.
@@ -149,5 +152,5 @@ Runs the Express backend on `http://localhost:5000` and Vite dev server on `http
 ## 7. Compliance & Regulatory Disclosures
 
 - **Educational & Informational Purpose Only:** DHRU.AI is built for market education, financial research, and analytical training. It is NOT a SEBI-registered Research Analyst or Investment Advisor.
-- **Probabilistic Scenarios, Not Guarantees:** Price forecasts and algorithmic models represent statistical envelopes of historical volatility. Past performance does not guarantee future results.
+- **Experimental Scenarios, Not Guarantees:** Live scenario ranges summarize recent return drift and historical volatility. They are not calibrated probabilities or trade recommendations. Past market behavior does not guarantee future results.
 - **Consult a Certified Advisor:** Trading equities and derivatives carries substantial capital risk. Consult a SEBI-registered financial professional before executing trades.

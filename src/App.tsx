@@ -256,6 +256,7 @@ function AppContent() {
 
         {activeNav === 'ai-predictions' && (
           <AiPredictionsPage
+            currentSymbol={selectedSymbol}
             onSelectStock={handleSelectStock}
             onTradeStock={handleTradeStock}
           />
@@ -283,6 +284,7 @@ function AppContent() {
             currentSymbol={selectedSymbol}
             initialQuestion={askDhruQuestion}
             onSelectStock={handleSelectStock}
+            marketMode={marketMode}
           />
         )}
 
@@ -332,15 +334,15 @@ function AppContent() {
       <LivePredictionsModal
         isOpen={predictionsModalOpen}
         onClose={() => setPredictionsModalOpen(false)}
-        onSelectTrade={(sym) => {
-          setSelectedSymbol(sym);
-          setActiveNav('terminal');
+        onOpenScenarios={() => {
+          setPredictionsModalOpen(false);
+          setActiveNav('ai-predictions');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
 
-      {/* 5. Institutional Footer */}
-      <footer className="w-full bg-white dark:bg-[#05080E] border-t border-slate-200 dark:border-[#1A2744] py-8 pb-28 lg:pb-8 text-xs text-slate-500">
+      {/* 5. Institutional Footer (Desktop / Tablet) */}
+      <footer className="hidden md:block w-full bg-white dark:bg-[#05080E] border-t border-slate-200 dark:border-[#1A2744] py-8 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>

@@ -148,6 +148,8 @@ export async function refreshBinanceCryptoPrices() {
         dayHigh: parseFloat(t.highPrice) || price,
         dayLow: parseFloat(t.lowPrice) || price,
         volume: parseFloat(t.volume) || 0,
+        source: 'Binance REST ticker',
+        timestamp: now,
         lastFetchTime: now,
         lastTickTime: now,
         isLive: true
@@ -159,8 +161,16 @@ export async function refreshBinanceCryptoPrices() {
 }
 
 // Refresh public snapshots on demand; never prime cache with sample prices.
+let baselineRefreshStartedAt = 0;
+let baselineRefreshPromise = null;
 export function ensureBaselineCache() {
-  refreshBinanceCryptoPrices().catch(() => {});
+  if (baselineRefreshPromise) return baselineRefreshPromise;
+  if (Date.now() - baselineRefreshStartedAt < 2500) return Promise.resolve();
+  baselineRefreshStartedAt = Date.now();
+  baselineRefreshPromise = refreshBinanceCryptoPrices()
+    .catch(() => {})
+    .finally(() => { baselineRefreshPromise = null; });
+  return baselineRefreshPromise;
 }
 // Ingest fresh quote directly into stream cache to eliminate discrepancies
 export function ingestFreshQuote(q) {
@@ -175,7 +185,9 @@ export function ingestFreshQuote(q) {
     changePercent: q.changePercent !== undefined ? q.changePercent : (existing?.changePercent || 0),
     dayHigh: q.dayHigh || Math.max(existing?.dayHigh || 0, q.price),
     dayLow: q.dayLow || Math.min(existing?.dayLow || q.price, q.price),
-    volume: q.volume || existing?.volume || 100000,
+    volume: q.volume ?? existing?.volume ?? 0,
+    source: q.source || existing?.source || 'Market data provider',
+    timestamp: Date.now(),
     lastFetchTime: Date.now(),
     lastTickTime: Date.now(),
     isLive: isInstrumentLive(q.symbol)
@@ -368,6 +380,8 @@ export function startMarketStreamingLoop() {
               dayHigh: fresh.dayHigh || fresh.price,
               dayLow: fresh.dayLow || fresh.price,
               volume: fresh.volume || 10000,
+              source: fresh.source || 'Market data provider',
+              timestamp: Date.now(),
               lastFetchTime: Date.now(),
               lastTickTime: Date.now(),
               isLive: isInstrumentLive(sym)

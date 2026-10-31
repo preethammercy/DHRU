@@ -377,7 +377,7 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
             </span>
 
             {[
-              { id: 'ai-predictions', label: '🎯 AI Market Predictions & SMC', icon: Zap, badge: 'SMC v3.5' },
+              { id: 'ai-predictions', label: 'Live market scenarios', icon: Zap },
               { id: 'patterns', label: '👁️ AI Pattern Vision Scanner', icon: CandlestickChart, badge: 'Vision' },
               { id: 'risk-monitor', label: '🛡️ Volatility & Risk Monitor', icon: ShieldAlert },
               { id: 'ask-dhru', label: '✨ Ask DHRU Assistant', icon: Sparkles }

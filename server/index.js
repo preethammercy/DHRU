@@ -10,13 +10,14 @@ import { fetchInstrumentQuote, fetchInstrumentCandles, batchFetchQuotes, getMark
 import { computeTechnicalSummary } from './services/indicators.js';
 import { fetchAllMarketNews, fetchStockSpecificNews } from './services/newsService.js';
 import { runWalkForwardBacktest, generateScenarios } from './services/predictionEngine.js';
-import { askDhruAssistant } from './services/geminiService.js';
+import { askDhruAssistant, isGroundedModelConfigured } from './services/geminiService.js';
 import { startScheduler, getSchedulerStatus, runRefreshCycle } from './services/refreshScheduler.js';
 import { getDerivativesOverview } from './data/derivativesData.js';
 import { UPCOMING_IPOS, CORPORATE_ACTIONS, ANNOUNCEMENTS_STATUS } from './data/ipoAnnouncements.js';
 import { getFiiDiiData } from './data/fiiDiiData.js';
 import { registerSseClient, subscribeSymbolToStream, startMarketStreamingLoop, getAllCachedTicks } from './services/marketStream.js';
 import { executeBrokerOrder, fetchBrokerFunds, validateOrderParams } from './services/brokerService.js';
+import { evaluateMarketWideRisk, evaluateInstrumentRisk } from './services/riskEngine.js';
 
 dotenv.config();
 
@@ -243,11 +244,8 @@ app.get('/api/stocks/:symbol', async (req, res) => {
     
     const technicals = computeTechnicalSummary(candles);
     const recentNews = await fetchStockSpecificNews(symbol);
-    const scenarios = generateScenarios(quote, candles, technicals);
-    const risk = {
-      status: 'unavailable',
-      message: 'Risk ratings are paused until the factor model has source-level inputs and an out-of-sample validation.'
-    };
+    const risk = evaluateInstrumentRisk(quote, technicals, recentNews);
+    const scenarios = generateScenarios(quote, candles, '1d');
 
     res.json({
       quote,
@@ -384,10 +382,24 @@ app.get('/api/news', async (req, res) => {
 
 // 15. Market Risk Monitor
 app.get('/api/risk', async (req, res) => {
-  res.json({
-    status: 'unavailable',
-    message: 'The risk score is paused until its inputs and out-of-sample relationship with realized volatility are validated.'
-  });
+  try {
+    const niftyQuote = await fetchInstrumentQuote('^NSEI');
+    const macroQuotes = await batchFetchQuotes(['CL=F', 'INR=X', 'GC=F']);
+    const topStocks = await batchFetchQuotes(['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ITC.NS', 'KOTAKBANK.NS', 'LT.NS']);
+    
+    let advances = 0;
+    let declines = 0;
+    (topStocks || []).forEach(s => {
+      if ((s?.change || 0) >= 0) advances++;
+      else declines++;
+    });
+
+    const riskData = evaluateMarketWideRisk(niftyQuote, { advances, declines }, macroQuotes);
+    res.json(riskData);
+  } catch (err) {
+    const fallbackRisk = evaluateMarketWideRisk(null, null, []);
+    res.json(fallbackRisk);
+  }
 });
 
 // 16. Walk-Forward Backtest Simulator
@@ -404,6 +416,30 @@ app.get('/api/backtest/:symbol', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: `Backtest failed for ${symbol}`, details: err.message });
+  }
+});
+
+// 16a. Live short-horizon descriptive scenarios, refreshed from the latest quote and candles.
+app.get('/api/predictions/:symbol', async (req, res) => {
+  const symbol = decodeURIComponent(req.params.symbol || '').toUpperCase();
+  try {
+    const quote = await fetchInstrumentQuote(symbol, { forceRefresh: symbol.includes('-USD') });
+    let candleRes = await fetchInstrumentCandles(symbol, '5d', '5m');
+    let candles = candleRes?.candles || [];
+    let interval = '5m';
+    if (candles.length < 25) {
+      candleRes = await fetchInstrumentCandles(symbol, '1mo', '1d');
+      candles = candleRes?.candles || [];
+      interval = '1d';
+    }
+    const scenarios = generateScenarios(quote, candles, interval);
+    res.json({
+      ...scenarios,
+      quote,
+      candleSource: candleRes?.source || 'Source unavailable'
+    });
+  } catch (err) {
+    res.status(502).json({ status: 'unavailable', symbol, message: `Live scenarios could not be refreshed: ${err.message}` });
   }
 });
 
@@ -441,7 +477,7 @@ app.get('/api/patterns', async (req, res) => {
   }
 });
 
-// Ask DHRU: deterministic responses using only context supplied by the market UI.
+// Ask DHRU: optional server-side Gemini with a deterministic, grounded fallback.
 app.post('/api/ai/chat', async (req, res) => {
   const { query, currentContext } = req.body;
   if (!query) return res.status(400).json({ error: 'Query is required' });
@@ -452,6 +488,10 @@ app.post('/api/ai/chat', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Chat assistant error', details: err.message });
   }
+});
+
+app.get('/api/ai/status', (_req, res) => {
+  res.json({ provider: isGroundedModelConfigured() ? 'gemini' : 'grounded-fallback', configured: isGroundedModelConfigured() });
 });
 
 // Scheduler Status & Manual Refresh Trigger

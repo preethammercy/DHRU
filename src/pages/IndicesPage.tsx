@@ -46,8 +46,8 @@ const LiveAssetCard: React.FC<{
     >
       <div>
         <div className="flex items-center justify-between text-xs mb-1">
-          <span className="font-mono text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-[#070B14] dark:text-cyan-400 border border-blue-200 dark:border-[#1A2744] font-semibold truncate max-w-[100px] sm:max-w-none">
-            {item.exchange || (isForex ? 'FOREX' : (isCrypto ? 'CRYPTO' : 'NSE'))} • {item.category}
+          <span className="font-mono text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-[#070B14] dark:text-cyan-400 border border-blue-200 dark:border-[#1A2744] font-semibold whitespace-nowrap">
+            {isCrypto ? 'CRYPTO' : isForex ? 'FOREX' : (item.exchange || 'NSE')}
           </span>
           <span className="text-[9px] sm:text-[10px] font-mono text-slate-400">{item.symbol}</span>
         </div>

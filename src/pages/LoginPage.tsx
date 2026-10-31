@@ -103,7 +103,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               </h1>
 
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                Seamlessly trade Indian equities (NSE/BSE) or 24/7 Cryptocurrency markets with real-time candlestick feeds, Smart Money concept indicators, and verified AI trade predictions.
+                Explore Indian equities and 24/7 cryptocurrency markets with available price feeds, optional chart indicators, and transparent live scenarios.
               </p>
 
               {/* Feature Highlights Grid */}

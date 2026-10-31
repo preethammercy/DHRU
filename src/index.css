@@ -257,13 +257,15 @@ REAL-TIME PRICE BLINK & FLASH (8K High-Visibility Glow)
 }
 
 .flash-up {
-  animation: flashGreenGlow 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: flashGreenGlow 1.2s cubic-bezier(0.16, 1, 0.3, 1);
   color: #10B981 !important;
+  background-color: rgba(16, 185, 129, 0.18);
 }
 
 .flash-down {
-  animation: flashRedGlow 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: flashRedGlow 1.2s cubic-bezier(0.16, 1, 0.3, 1);
   color: #F43F5E !important;
+  background-color: rgba(244, 63, 94, 0.18);
 }
 
 /* 

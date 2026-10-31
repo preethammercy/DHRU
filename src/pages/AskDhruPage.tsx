@@ -3,13 +3,15 @@
 // Features clean White & Blue Fintrix fintech interface with zero vendor branding.
 
 import React, { useState, useEffect, useRef } from 'react';
-import { sendChatMessage, getStockDetails } from '../services/api';
+import { sendChatMessage, getStockDetails, getAiStatus } from '../services/api';
+import { useLivePrice } from '../context/MarketStreamContext';
 import { Send, Bot, User, HelpCircle, ArrowRight, ShieldAlert, BarChart2, TrendingUp, Cpu, MessageSquare } from 'lucide-react';
 
 interface Props {
   currentSymbol?: string;
   initialQuestion?: string;
   onSelectStock: (symbol: string) => void;
+  marketMode?: 'indian' | 'crypto';
 }
 
 interface ChatMessage {
@@ -20,12 +22,24 @@ interface ChatMessage {
   timestamp: string;
 }
 
-export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', initialQuestion, onSelectStock }) => {
+export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', initialQuestion, onSelectStock, marketMode = 'indian' }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState(initialQuestion || '');
   const [loading, setLoading] = useState(false);
   const [contextStock, setContextStock] = useState<any>(null);
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'grounded-fallback' | null>(null);
+  const live = useLivePrice(currentSymbol);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const isUsd = marketMode === 'crypto' ||
+    currentSymbol?.toUpperCase().includes('USD') ||
+    currentSymbol?.toUpperCase().includes('USDT') ||
+    ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'BNB', 'ADA', 'AVAX', 'LINK', 'SUI', 'DOT', 'NEAR', 'PEPE', 'SHIB'].some(c => currentSymbol?.toUpperCase().includes(c));
+  const currencySymbol = isUsd ? '$' : '₹';
+
+  useEffect(() => {
+    getAiStatus().then(status => setAiProvider(status?.provider === 'gemini' ? 'gemini' : 'grounded-fallback')).catch(() => setAiProvider('grounded-fallback'));
+  }, []);
 
   // Load context stock
   useEffect(() => {
@@ -44,7 +58,7 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
           volume: res?.quote?.volume,
           lastUpdated: res?.quote?.lastUpdated,
           source: res?.quote?.source,
-          currency: res?.quote?.currency || (currentSymbol?.endsWith('-USD') ? 'USD' : 'INR'),
+          currency: res?.quote?.currency || (isUsd ? 'USD' : 'INR'),
           technicals: res?.technicals,
           risk: res?.risk,
           scenarios: res?.scenarios
@@ -52,6 +66,21 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
       }).catch(() => {});
     }
   }, [currentSymbol]);
+
+  useEffect(() => {
+    if (!contextStock || live.price <= 0) return;
+    setContextStock((previous: any) => previous ? {
+      ...previous,
+      price: live.price,
+      change: live.change,
+      changePercent: live.changePercent,
+      dayHigh: live.dayHigh,
+      dayLow: live.dayLow,
+      volume: live.volume,
+      lastUpdated: live.timestamp ? new Date(live.timestamp).toISOString() : previous.lastUpdated,
+      source: live.source || previous.source
+    } : previous);
+  }, [live.price, live.change, live.changePercent, live.dayHigh, live.dayLow, live.volume, live.timestamp, live.source]);
 
   // Initial welcome message
   useEffect(() => {
@@ -142,7 +171,7 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
             </div>
             <div>
               <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Ask DHRU</h1>
-              <span className="text-xs text-slate-500">Answers from displayed market facts</span>
+              <span className="text-xs text-slate-500">{aiProvider === 'gemini' ? 'Gemini · grounded in displayed facts' : aiProvider === 'grounded-fallback' ? 'Grounded facts mode' : 'Checking assistant status…'}</span>
             </div>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
@@ -156,7 +185,7 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
             <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">ACTIVE CONTEXT:</span>
             <span className="text-slate-900 dark:text-white font-bold">{contextStock.name || contextStock.symbol}</span>
             <span className={`font-semibold ${contextStock.changePercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-              ₹{contextStock.price} ({contextStock.changePercent >= 0 ? `+${contextStock.changePercent}%` : `${contextStock.changePercent}%`})
+              {currencySymbol}{Number(contextStock.price).toLocaleString(isUsd ? 'en-US' : 'en-IN', { minimumFractionDigits: contextStock.price < 1 ? 4 : 2, maximumFractionDigits: contextStock.price < 1 ? 6 : 2 })} ({contextStock.changePercent >= 0 ? `+${contextStock.changePercent}%` : `${contextStock.changePercent}%`})
             </span>
           </div>
         )}
@@ -228,7 +257,7 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
               <div className={`flex items-center justify-between text-[10px] font-mono pt-2 border-t ${
                 msg.role === 'user' ? 'border-blue-400/50 text-blue-100' : 'border-slate-200 dark:border-slate-800 text-slate-500'
               }`}>
-                <span className="font-semibold">{msg.role === 'user' ? 'You' : 'DHRU Intelligence'}</span>
+                <span className="font-semibold">{msg.role === 'user' ? 'You' : msg.engine || 'Grounded facts'}</span>
                 <span>{msg.timestamp}</span>
               </div>
             </div>
@@ -248,7 +277,7 @@ export const AskDhruPage: React.FC<Props> = ({ currentSymbol = 'RELIANCE.NS', in
             </div>
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-[#1A2744] text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2.5 shadow-sm">
               <span className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              Synthesizing market response from verified exchange quotes and official data...
+              Checking the attached quote and indicator context…
             </div>
           </div>
         )}
