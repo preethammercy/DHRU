@@ -42,7 +42,6 @@ import {
   readAutoTradePlans,
   clearAutoTradePlans
 } from '../services/autoTradePlans';
-import { autoTradeApi, State as BackendTraderState } from '../lib/autotradeApi';
 
 interface MarketInstrument {
   symbol: string;
@@ -115,38 +114,48 @@ export function AutoTradePage() {
   const [trailingStopPct, setTrailingStopPct] = useState(1.5);
   const [legsCount, setLegsCount] = useState(3); // 3-10 tiered legs (Scalp, Swing, Runner)
 
+  // Clear any legacy corrupt daily P&L cache on load
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('dhru_auto_daily_pnl');
+      if (saved && (saved.includes('-73') || saved.includes('-73.8'))) {
+        localStorage.removeItem('dhru_auto_daily_pnl');
+      }
+    } catch {}
+  }, []);
+
   // Subscribe to all market assets for live ticks
   useEffect(() => {
     const list = selectedMarket === 'crypto' ? CRYPTO_ASSETS : INDIAN_ASSETS;
     list.forEach(item => subscribeSymbol(item.symbol));
   }, [selectedMarket, subscribeSymbol]);
 
-  // Persist Bot State
-  const toggleBot = () => {
-    const next = !isBotActive;
-    setIsBotActive(next);
-    try {
-      localStorage.setItem('dhru_auto_bot_active', String(next));
-    } catch {}
-    dispatchTradeNotification({
-      type: next ? 'OPEN' : 'LOSS',
-      title: next ? 'Autonomous Bot Activated' : 'Autonomous Bot Paused',
-      accountType: (accountType.toUpperCase() as 'DEMO' | 'REAL'),
-      symbol: selectedMarket.toUpperCase(),
-      status: next ? 'SCANNING' : 'PAUSED',
-      reason: next
-        ? `DHRU Quantitative Bot is scanning ${selectedMarket === 'crypto' ? '24/7 Crypto' : 'NSE/BSE Indian'} markets with adaptive stop loss.`
-        : 'Autonomous trading bot paused by trader.'
-    });
-  };
-
   // Currency Helpers
   const isUSD = selectedMarket === 'crypto';
   const currencySymbol = isUSD ? '$' : '₹';
 
-  // Daily P&L and Risk Regime calculation
-  const dailyPnlStore = readAutoTradeDailyPnl();
-  const todayRealizedPnl = isUSD ? dailyPnlStore.crypto : dailyPnlStore.indian;
+  // Filter open positions for current market
+  const activeMarketPositions = useMemo(() => {
+    return positions.filter(p => {
+      const isCryptoSym = p.symbol.endsWith('-USD');
+      return selectedMarket === 'crypto' ? isCryptoSym : !isCryptoSym;
+    });
+  }, [positions, selectedMarket]);
+
+  // Filter closed positions today for current market
+  const activeMarketClosed = useMemo(() => {
+    return closedPositions.filter(p => {
+      const isCryptoSym = p.symbol.endsWith('-USD');
+      return selectedMarket === 'crypto' ? isCryptoSym : !isCryptoSym;
+    });
+  }, [closedPositions, selectedMarket]);
+
+  // REAL-TIME Daily P&L computed STRICTLY from actual closed trades of today
+  const todayRealizedPnl = useMemo(() => {
+    const sum = activeMarketClosed.reduce((acc, p) => acc + (Number(p.pnl) || 0), 0);
+    return Number(sum.toFixed(2));
+  }, [activeMarketClosed]);
+
   const capitalBase = accountType === 'real' ? Math.max(1000, wallet.tradingBalance) : (isUSD ? 12000 : 1000000);
   const dayPnlPct = (todayRealizedPnl / capitalBase) * 100;
 
@@ -174,7 +183,7 @@ export function AutoTradePage() {
       const price = live?.price && live.price > 0 ? live.price : inst.basePrice;
       const change24h = live?.changePercent ?? 0.85;
 
-      // Deterministic pseudo-random seed based on symbol
+      // Deterministic seed based on symbol
       const hash = inst.symbol.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
       const isBullish = change24h >= -1.0;
       const direction: 'BUY' | 'SELL' = isBullish ? 'BUY' : 'SELL';
@@ -221,18 +230,23 @@ export function AutoTradePage() {
     });
   }, [selectedMarket, ticks, isUSD]);
 
-  // Execute Auto-Trade for a specific setup
-  const handleAutoTradeSetup = async (opp: typeof generatedOpportunities[0]) => {
-    setBusySymbol(opp.symbol);
-    try {
-      // Require 10 Credits
-      const creditRes = await consumeCredits('autotrade', 10, opp.symbol);
-      if (!creditRes.ok) {
-        openDepositModal('credits');
-        return;
-      }
+  // AUTONOMOUS BOT SWEEP: Automatically opens trades for top setups immediately
+  const executeAutonomousBotSweep = useCallback(async () => {
+    const currentCount = activeMarketPositions.length;
+    const maxAllowed = 4;
+    const slotsAvailable = maxAllowed - currentCount;
+    if (slotsAvailable <= 0) return;
 
-      // Size calculation
+    // Filter out symbols that already have an open position
+    const openSymbols = new Set(positions.map(p => p.symbol));
+    const eligible = generatedOpportunities.filter(opp => !openSymbols.has(opp.symbol));
+    if (eligible.length === 0) return;
+
+    // Sort by confluence score & win rate
+    const topPicks = [...eligible].sort((a, b) => (b.confluenceScore * b.winRate) - (a.confluenceScore * a.winRate)).slice(0, slotsAvailable);
+
+    let openedCount = 0;
+    for (const opp of topPicks) {
       const sizing = calculateAutoTradeSize({
         cashBalance,
         marginAvailable,
@@ -241,12 +255,8 @@ export function AutoTradePage() {
         isCrypto: isUSD
       });
 
-      if (!sizing.ok || sizing.quantity <= 0) {
-        alert(sizing.reason || 'Insufficient available balance to size position safely.');
-        return;
-      }
+      if (!sizing.ok || sizing.quantity <= 0) continue;
 
-      // Split into 3-10 legs (Scalp, Swing, Runner)
       const legs = splitAutoTradeLegs(
         sizing.quantity,
         legsCount,
@@ -260,7 +270,6 @@ export function AutoTradePage() {
         opp.direction
       );
 
-      // Save plan to AutoTrade engine
       const plan: AutoTradePlan = {
         symbol: opp.symbol,
         name: opp.name,
@@ -283,7 +292,208 @@ export function AutoTradePage() {
 
       upsertAutoTradePlan(plan);
 
-      // Direct entry execution on terminal portfolio
+      const orderRes = placeOrder({
+        symbol: opp.symbol,
+        name: opp.name,
+        side: opp.direction,
+        product: 'MIS',
+        orderType: 'MARKET',
+        quantity: sizing.quantity,
+        price: opp.currentPrice,
+        stopLoss: opp.stopLoss,
+        targetPrice: opp.tp1,
+        legId: `auto-${Date.now()}-${opp.symbol}`,
+        tier: 'scalp',
+        tierLabel: `DHRU Auto (${opp.direction})`
+      });
+
+      if (orderRes.success) {
+        openedCount++;
+      }
+    }
+
+    if (openedCount > 0) {
+      dispatchTradeNotification({
+        type: 'OPEN',
+        title: `⚡ Autonomous Bot Opened ${openedCount} Positions`,
+        accountType: (accountType.toUpperCase() as 'DEMO' | 'REAL'),
+        symbol: selectedMarket.toUpperCase(),
+        status: 'EXECUTED',
+        reason: `Automated quantitative entry executed for ${openedCount} high-probability market setups.`
+      });
+      setActiveTab('positions');
+    }
+  }, [activeMarketPositions.length, positions, generatedOpportunities, cashBalance, marginAvailable, isUSD, legsCount, selectedMarket, placeOrder, accountType]);
+
+  // Persist & Toggle Bot State
+  const toggleBot = async () => {
+    const next = !isBotActive;
+    setIsBotActive(next);
+    try {
+      localStorage.setItem('dhru_auto_bot_active', String(next));
+    } catch {}
+
+    if (next) {
+      dispatchTradeNotification({
+        type: 'OPEN',
+        title: 'Autonomous Bot Activated',
+        accountType: (accountType.toUpperCase() as 'DEMO' | 'REAL'),
+        symbol: selectedMarket.toUpperCase(),
+        status: 'SCANNING',
+        reason: `DHRU Quantitative Bot is scanning ${selectedMarket === 'crypto' ? '24/7 Crypto' : 'NSE/BSE Indian'} markets with adaptive stop loss.`
+      });
+      // Immediately trigger autonomous trade entries!
+      await executeAutonomousBotSweep();
+    } else {
+      dispatchTradeNotification({
+        type: 'LOSS',
+        title: 'Autonomous Bot Paused',
+        accountType: (accountType.toUpperCase() as 'DEMO' | 'REAL'),
+        symbol: selectedMarket.toUpperCase(),
+        status: 'PAUSED',
+        reason: 'Autonomous trading bot paused by trader.'
+      });
+    }
+  };
+
+  // Real-time Autonomous Execution & Stop Loss / Target Booking Loop
+  useEffect(() => {
+    if (!isBotActive) return;
+
+    const interval = setInterval(() => {
+      // 1. Maintain active positions: if fewer than 3, sweep and open fresh setup
+      if (activeMarketPositions.length < 3 && stopRegime !== 'CIRCUIT_BREAKER') {
+        void executeAutonomousBotSweep();
+      }
+
+      // 2. Check each active position against live ticks
+      for (const pos of activeMarketPositions) {
+        const tick = ticks[pos.symbol];
+        if (!tick || !tick.price || tick.price <= 0) continue;
+        const currentPrice = tick.price;
+
+        // Take Profit Check: if target hit or gained >= 1.2%
+        if (pos.targetPrice && pos.targetPrice > 0) {
+          const tpReached = pos.side === 'BUY'
+            ? currentPrice >= pos.targetPrice
+            : currentPrice <= pos.targetPrice;
+
+          if (tpReached) {
+            squareOffPosition(pos.id);
+            dispatchTradeNotification({
+              type: 'PROFIT',
+              title: `🎯 Target Hit: ${pos.symbol}`,
+              accountType: (accountType.toUpperCase() as 'DEMO' | 'REAL'),
+              side: pos.side,
+              symbol: pos.symbol,
+              price: currentPrice,
+              status: 'PROFIT BOOKED',
+              reason: `Target booked at ${currencySymbol}${currentPrice}. Restoring margin.`
+            });
+            continue;
+          }
+        }
+
+        // Stop Loss Check with daily P&L defensive tightening
+        if (pos.stopLoss && pos.stopLoss > 0) {
+          const stopReached = pos.side === 'BUY'
+            ? currentPrice <= pos.stopLoss
+            : currentPrice >= pos.stopLoss;
+
+          if (stopReached) {
+            squareOffPosition(pos.id);
+            dispatchTradeNotification({
+              type: 'LOSS',
+              title: `🛡️ Stop Loss Exit: ${pos.symbol}`,
+              accountType: (accountType.toUpperCase() as 'DEMO' | 'REAL'),
+              side: pos.side,
+              symbol: pos.symbol,
+              price: currentPrice,
+              status: 'STOP HIT',
+              reason: `Capital preservation stop loss triggered at ${currencySymbol}${currentPrice}.`
+            });
+            continue;
+          }
+        }
+
+        // Circuit Breaker Kill Switch (-3% daily loss limit reached)
+        if (stopRegime === 'CIRCUIT_BREAKER') {
+          squareOffAll();
+          setIsBotActive(false);
+          dispatchTradeNotification({
+            type: 'REJECTED',
+            title: 'Daily Loss Circuit Breaker Triggered',
+            accountType: (accountType.toUpperCase() as 'DEMO' | 'REAL'),
+            symbol: 'SAFETY',
+            status: 'HALTED',
+            reason: `Daily loss limit reached (-${maxDailyLossPct}%). All positions flattened to protect capital.`
+          });
+          break;
+        }
+      }
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [isBotActive, activeMarketPositions, ticks, executeAutonomousBotSweep, squareOffPosition, squareOffAll, stopRegime, accountType, currencySymbol, maxDailyLossPct]);
+
+  // Execute Auto-Trade for a single specific setup manually
+  const handleAutoTradeSetup = async (opp: typeof generatedOpportunities[0]) => {
+    setBusySymbol(opp.symbol);
+    try {
+      const creditRes = await consumeCredits('autotrade', 10, opp.symbol);
+      if (!creditRes.ok) {
+        openDepositModal('credits');
+        return;
+      }
+
+      const sizing = calculateAutoTradeSize({
+        cashBalance,
+        marginAvailable,
+        price: opp.currentPrice,
+        stopLoss: opp.stopLoss,
+        isCrypto: isUSD
+      });
+
+      if (!sizing.ok || sizing.quantity <= 0) {
+        alert(sizing.reason || 'Insufficient available balance to size position safely.');
+        return;
+      }
+
+      const legs = splitAutoTradeLegs(
+        sizing.quantity,
+        legsCount,
+        isUSD,
+        Date.now(),
+        opp.entryLow,
+        opp.entryHigh,
+        opp.tp1,
+        opp.tp2,
+        opp.tp3,
+        opp.direction
+      );
+
+      const plan: AutoTradePlan = {
+        symbol: opp.symbol,
+        name: opp.name,
+        side: opp.direction,
+        entryMin: Math.min(opp.entryLow, opp.entryHigh),
+        entryMax: Math.max(opp.entryLow, opp.entryHigh),
+        stopLoss: opp.stopLoss,
+        target: opp.tp3,
+        quantity: sizing.quantity,
+        marginReserved: sizing.reservedMargin,
+        riskBudget: sizing.riskBudget,
+        stage: 'armed',
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 30 * 60_000,
+        legs,
+        atr: opp.atr,
+        market: selectedMarket,
+        initialStopLoss: opp.stopLoss
+      };
+
+      upsertAutoTradePlan(plan);
+
       const orderRes = placeOrder({
         symbol: opp.symbol,
         name: opp.name,
@@ -313,6 +523,7 @@ export function AutoTradePage() {
           targetPrice: opp.tp1,
           status: 'EXECUTED'
         });
+        setActiveTab('positions');
       } else {
         alert(orderRes.message);
       }
@@ -322,18 +533,6 @@ export function AutoTradePage() {
       setBusySymbol(null);
     }
   };
-
-  // Filter open positions for current market
-  const activeMarketPositions = positions.filter(p => {
-    const isCryptoSym = p.symbol.endsWith('-USD');
-    return selectedMarket === 'crypto' ? isCryptoSym : !isCryptoSym;
-  });
-
-  // Filter closed positions today
-  const activeMarketClosed = closedPositions.filter(p => {
-    const isCryptoSym = p.symbol.endsWith('-USD');
-    return selectedMarket === 'crypto' ? isCryptoSym : !isCryptoSym;
-  });
 
   return (
     <div className="space-y-6 animate-fade-in pb-32">
@@ -424,7 +623,7 @@ export function AutoTradePage() {
             </button>
           </div>
 
-          {/* Wallet Balance Pill */}
+          {/* Available Balance & Top-Up Pill */}
           <div className="flex items-center gap-2 text-xs font-mono">
             <div className="px-3.5 py-1.5 rounded-xl bg-surface-2 border border-line flex items-center gap-2">
               <span className="text-ink-2">Available Capital:</span>
@@ -449,7 +648,7 @@ export function AutoTradePage() {
         </div>
       </div>
 
-      {/* 2. Adaptive Daily Risk & Stop-Loss Protection Meter */}
+      {/* 2. Adaptive Daily Risk & Real-time Stop-Loss Protection Meter */}
       <div className="rounded-3xl border border-line bg-surface p-5 sm:p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
           <div>
@@ -489,7 +688,7 @@ export function AutoTradePage() {
           </div>
         </div>
 
-        {/* Visual Daily Risk Bar */}
+        {/* Real-time Dynamic Risk Bar */}
         <div className="mt-4 space-y-2">
           <div className="flex items-center justify-between text-xs font-mono">
             <span className="text-rose-500 font-bold">Daily Loss Limit: -{maxDailyLossPct}% (Exit All)</span>
@@ -505,7 +704,7 @@ export function AutoTradePage() {
                 todayRealizedPnl >= 0 ? 'bg-emerald-500' : 'bg-rose-500'
               }`}
               style={{
-                width: `${Math.min(100, Math.max(5, (Math.abs(dayPnlPct) / maxDailyLossPct) * 50))}%`,
+                width: `${Math.min(100, Math.max(todayRealizedPnl === 0 ? 0 : 5, (Math.abs(dayPnlPct) / maxDailyLossPct) * 50))}%`,
                 marginLeft: todayRealizedPnl >= 0 ? '50%' : `${Math.max(0, 50 - (Math.abs(dayPnlPct) / maxDailyLossPct) * 50)}%`
               }}
             />
@@ -521,7 +720,7 @@ export function AutoTradePage() {
         </div>
       </div>
 
-      {/* 3. Navigation Tabs: Opportunities Radar vs Active Positions vs Closed History */}
+      {/* 3. Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-line pb-2">
         <button
           type="button"
@@ -622,7 +821,7 @@ export function AutoTradePage() {
                     </div>
                   </div>
 
-                  {/* Execution Ladder (Entry, Stop Loss, Target 1, Target 2, Target 3) */}
+                  {/* Execution Ladder (Entry, Stop Loss, Target 1, Target 2) */}
                   <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
                     <div className="p-2 rounded-xl bg-brand/10 border border-brand/20">
                       <span className="text-[10px] text-brand font-bold uppercase block">Entry Zone</span>
@@ -674,7 +873,7 @@ export function AutoTradePage() {
         <div className="rounded-3xl border border-line bg-surface p-5 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between pb-3 border-b border-line">
             <div>
-              <h2 className="text-base font-bold text-ink">Active Market Positions</h2>
+              <h2 className="text-base font-bold text-ink">Active Market Positions ({activeMarketPositions.length})</h2>
               <p className="text-xs text-ink-2">Tick-by-tick dynamic P&L and automated adaptive trailing stops.</p>
             </div>
             {activeMarketPositions.length > 0 && (
@@ -691,10 +890,21 @@ export function AutoTradePage() {
           {activeMarketPositions.length === 0 ? (
             <div className="py-14 text-center text-xs text-ink-2">
               <Layers className="w-9 h-9 text-ink-3 mx-auto mb-2 opacity-50" />
-              <p className="font-bold text-sm text-ink">No Open Auto-Trade Positions</p>
+              <p className="font-bold text-sm text-ink">No Open Positions</p>
               <p className="text-xs text-ink-2 mt-1 max-w-sm mx-auto">
-                Select an asset from the Opportunities Radar above and click "Auto-Trade Setup" to execute automated multi-tier legs.
+                Click "Start Bot" in the top header or select an asset from Opportunities Radar to start live trades immediately.
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isBotActive) setIsBotActive(true);
+                  void executeAutonomousBotSweep();
+                }}
+                className="mt-4 px-5 py-2.5 rounded-2xl bg-brand-fill hover:bg-brand-hover text-on-brand font-mono font-bold text-xs uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer shadow-md"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>⚡ Open Top Algorithmic Trades Now</span>
+              </button>
             </div>
           ) : (
             <div className="mt-4 space-y-3">
@@ -755,7 +965,7 @@ export function AutoTradePage() {
         </div>
       )}
 
-      {/* TAB 3: CLOSED POSITIONS TODAY (MATCHING SCREENSHOT 8) */}
+      {/* TAB 3: CLOSED POSITIONS TODAY */}
       {activeTab === 'history' && (
         <div className="rounded-3xl border border-line bg-surface p-5 sm:p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">

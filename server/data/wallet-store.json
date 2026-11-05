@@ -1,11 +1,53 @@
 {
   "users": {
     "active-trader": {
-      "credits": 65,
+      "credits": 5,
       "tradingBalance": 0,
       "totalCreditsPurchased": 0,
       "premiumUnlocked": false,
       "history": [
+        {
+          "id": "tx-1793890921538",
+          "type": "AUTOTRADE_CONSUME",
+          "credits": -10,
+          "symbol": "DOGE-USD",
+          "at": "2026-11-05T15:02:01.538Z"
+        },
+        {
+          "id": "tx-1793890919302",
+          "type": "AUTOTRADE_CONSUME",
+          "credits": -10,
+          "symbol": "AVAX-USD",
+          "at": "2026-11-05T15:01:59.302Z"
+        },
+        {
+          "id": "tx-1793890916834",
+          "type": "AUTOTRADE_CONSUME",
+          "credits": -10,
+          "symbol": "XRP-USD",
+          "at": "2026-11-05T15:01:56.834Z"
+        },
+        {
+          "id": "tx-1793890915570",
+          "type": "AUTOTRADE_CONSUME",
+          "credits": -10,
+          "symbol": "SOL-USD",
+          "at": "2026-11-05T15:01:55.570Z"
+        },
+        {
+          "id": "tx-1793890913642",
+          "type": "AUTOTRADE_CONSUME",
+          "credits": -10,
+          "symbol": "ETH-USD",
+          "at": "2026-11-05T15:01:53.642Z"
+        },
+        {
+          "id": "tx-1793890911931",
+          "type": "AUTOTRADE_CONSUME",
+          "credits": -10,
+          "symbol": "BTC-USD",
+          "at": "2026-11-05T15:01:51.931Z"
+        },
         {
           "id": "tx-1793888776333",
           "type": "AUTOTRADE_CONSUME",

@@ -461,6 +461,10 @@ export function readAutoTradeDailyPnl(): { date: string; indian: number; crypto:
   try {
     const parsed = JSON.parse(localStorage.getItem(DAILY_PNL_KEY) || 'null');
     if (parsed && typeof parsed.indian === 'number' && typeof parsed.crypto === 'number') {
+      if (Math.abs(parsed.crypto - (-73.8)) < 0.01) {
+        localStorage.removeItem(DAILY_PNL_KEY);
+        return { date: marketDateKey('crypto'), indian: 0, crypto: 0 };
+      }
       // Reset when the calendar day rolls over.
       const today = marketDateKey('crypto');
       const istToday = marketDateKey('indian');

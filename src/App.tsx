@@ -360,6 +360,7 @@ function AppContent() {
           <AiPredictionsPage
             onSelectStock={handleSelectStock}
             onTradeStock={handleTradeStock}
+            onNavigate={setActiveNav}
           />
         )}
 
