@@ -6,6 +6,7 @@ import { useTrading, OrderSide, ProductType, OrderType } from '../context/Tradin
 import { useMarketStream, useLivePrice } from '../context/MarketStreamContext';
 import { useAuth } from '../context/AuthContext';
 import { TradingViewChart } from '../components/chart/TradingViewChart';
+import { QuoteFreshness } from '../components/market/QuoteFreshness';
 import { getStockCandles, getStockDetails } from '../services/api';
 import { Candle, VolumeBar } from '../types';
 import {
@@ -50,8 +51,6 @@ const DEFAULT_WATCHLIST_SYMBOLS = [
   { symbol: 'TATAMOTORS.NS', name: 'Tata Motors' },
   { symbol: 'ITC.NS', name: 'ITC Ltd' },
   { symbol: 'LT.NS', name: 'Larsen & Toubro' },
-  { symbol: 'GC=F', name: 'Gold Comex' },
-  { symbol: 'INR=X', name: 'USD/INR' }
 ];
 
 const GLOBAL_WATCHLIST_SYMBOLS = [
@@ -94,6 +93,7 @@ const GLOBAL_WATCHLIST_SYMBOLS = [
   { symbol: 'AMZN', name: 'Amazon Inc.' },
   { symbol: 'META', name: 'Meta Platforms' }
 ];
+const US_STOCKS = ['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
 
 export const TradingTerminalPage: React.FC<TerminalProps> = ({
   initialSymbol = 'RELIANCE.NS',
@@ -112,15 +112,16 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
     }
   }, [initialSymbol]);
 
-  const US_STOCKS = ['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
-  const isGlobal = marketMode === 'crypto' || activeSymbol.includes('USD') || activeSymbol.includes('=X') || activeSymbol.includes('=F') || US_STOCKS.includes(activeSymbol);
-  const isCrypto = isGlobal;
-  const currency = isGlobal && !activeSymbol.includes('INR=X') && !activeSymbol.includes('IN=X') ? '$' : '₹';
-  const watchlistToUse = isGlobal ? GLOBAL_WATCHLIST_SYMBOLS : DEFAULT_WATCHLIST_SYMBOLS;
+  const isCrypto = activeSymbol.endsWith('-USD');
+  const isGlobal = isCrypto || activeSymbol.includes('=X') || activeSymbol.includes('=F') || US_STOCKS.includes(activeSymbol);
+  const watchlistToUse = marketMode === 'crypto'
+    ? GLOBAL_WATCHLIST_SYMBOLS.filter(item => item.symbol.endsWith('-USD'))
+    : DEFAULT_WATCHLIST_SYMBOLS;
 
   // Market Stream & Live Quote
   const { isMarketLive, connectionStatus } = useMarketStream();
   const live = useLivePrice(activeSymbol);
+  const currency = isCrypto ? '$' : activeSymbol.includes('INR') ? '₹' : activeSymbol.includes('=X') || activeSymbol.includes('=F') || US_STOCKS.includes(activeSymbol) ? '$' : '₹';
 
   // Trading context
   const {
@@ -214,6 +215,10 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
     setOrderFeedback(null);
+    if (!live.isTickLive || live.status !== 'LIVE' || live.price <= 0) {
+      setOrderFeedback({ type: 'error', message: 'A timestamped live quote is required before an order can be placed.' });
+      return;
+    }
 
     const res = placeOrder({
       symbol: activeSymbol,
@@ -240,7 +245,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
   };
 
   // Required margin calculation
-  const executionPrice = orderType === 'MARKET' ? (live.price || 1000) : (limitPrice || live.price || 1000);
+  const executionPrice = orderType === 'MARKET' ? (live.isTickLive ? live.price : 0) : (limitPrice || (live.isTickLive ? live.price : 0));
   const totalOrderValue = executionPrice * quantity;
   const requiredMargin = productType === 'MIS' ? totalOrderValue * 0.20 : totalOrderValue;
 
@@ -253,45 +258,46 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
     <div className="flex flex-col gap-3 min-h-[calc(100vh-140px)]">
       
       {/* 1. Terminal Top Ribbon: Market Status, Connectivity, & Account Summary */}
-      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs">
+      <div className="bg-surface dark:bg-surface border border-line dark:border-line rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs ">
         
         {/* Left: Stream Status & Active Instrument */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                isCrypto || isMarketLive ? 'bg-emerald-400' : 'bg-slate-400'
+                isCrypto || isMarketLive ? 'bg-surface-2' : 'bg-surface-2'
               }`} />
               <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                isCrypto || isMarketLive ? 'bg-emerald-500' : 'bg-slate-500'
+                isCrypto || isMarketLive ? 'bg-pos' : 'bg-surface-2'
               }`} />
             </span>
-            <span className="font-semibold text-slate-700 dark:text-slate-200">
+            <span className="font-semibold text-ink-2 dark:text-ink-3">
               {isCrypto ? 'CRYPTO 24/7' : (connectionStatus === 'connected' ? (isMarketLive ? 'NSE LIVE' : 'NSE CLOSED (Next: 09:15 AM)') : 'RECONNECTING')}
             </span>
           </div>
 
-          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+          <div className="h-4 w-px bg-surface-2 dark:bg-surface-2" />
 
           {/* Active Symbol Display */}
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-sm text-slate-900 dark:text-white">
+            <span className="font-extrabold text-sm text-ink dark:text-ink">
               {activeSymbol}
             </span>
-            <span className="text-slate-500 hidden sm:inline">
+            <span className="text-ink-2 hidden sm:inline">
               {stockDetail?.quote?.name || ''}
             </span>
             <span className={`font-mono font-bold text-sm px-2 py-0.5 rounded transition-colors ${
               live.flash === 'up'
-                ? 'flash-up bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 ring-1 ring-emerald-500/40'
+                ? 'flash-up bg-surface-2 text-pos dark:bg-pos-tint dark:text-pos ring-1 ring-pos'
                 : live.flash === 'down'
-                ? 'flash-down bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 ring-1 ring-rose-500/40'
-                : 'text-slate-900 dark:text-white'
+                ? 'flash-down bg-surface-2 text-neg dark:bg-neg-tint dark:text-neg ring-1 ring-neg'
+                : 'text-ink dark:text-ink'
             }`}>
               {currency}{live.price > 0 ? live.price.toFixed(2) : (stockDetail?.quote?.price?.toFixed(2) ?? '---')}
             </span>
+            <QuoteFreshness status={live.status} source={live.source} lastUpdated={live.lastUpdated} timestamp={live.timestamp} />
             <span className={`font-mono text-xs font-semibold flex items-center ${
-              live.change >= 0 ? 'text-emerald-600' : 'text-rose-600'
+              live.change >= 0 ? 'text-pos' : 'text-neg'
             }`}>
               {live.change >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
               {live.change >= 0 ? '+' : ''}{live.change.toFixed(2)} ({live.changePercent.toFixed(2)}%)
@@ -302,28 +308,28 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
         {/* Right: Balance Bar */}
         <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
           <div>
-            <span className="text-slate-500">Avail. Margin:</span>{' '}
-            <strong className="text-slate-900 dark:text-white font-bold">{currency}{marginAvailable.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}</strong>
+            <span className="text-ink-2">Avail. Margin:</span>{' '}
+            <strong className="text-ink dark:text-ink font-bold">{currency}{marginAvailable.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}</strong>
           </div>
           <div>
-            <span className="text-slate-500">Margin Used:</span>{' '}
-            <span className="text-slate-700 dark:text-slate-300">{currency}{marginUsed.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}</span>
+            <span className="text-ink-2">Margin Used:</span>{' '}
+            <span className="text-ink-2 dark:text-ink-3">{currency}{marginUsed.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
           <div>
-            <span className="text-slate-500">Day P&L:</span>{' '}
-            <strong className={totalDayPnl >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+            <span className="text-ink-2">Day P&L:</span>{' '}
+            <strong className={totalDayPnl >= 0 ? 'text-pos font-bold' : 'text-neg font-bold'}>
               {totalDayPnl >= 0 ? '+' : ''}{currency}{totalDayPnl.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}
             </strong>
           </div>
           <div>
-            <span className="text-slate-500">Realized P&L:</span>{' '}
-            <strong className={realizedPnl >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+            <span className="text-ink-2">Realized P&L:</span>{' '}
+            <strong className={realizedPnl >= 0 ? 'text-pos font-bold' : 'text-neg font-bold'}>
               {realizedPnl >= 0 ? '+' : ''}{currency}{realizedPnl.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}
             </strong>
           </div>
 
           {/* Broker Badge */}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200 dark:border-blue-700/40 text-[11px]">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand font-semibold border border-line dark:border-line text-ink">
             <Shield className="w-3 h-3" />
             <span>{brokerConfig.mode === 'live' ? 'BROKER LIVE' : 'SANDBOX SIM'}</span>
           </div>
@@ -335,18 +341,18 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
         
         {/* LEFT COLUMN: Collapsible Watchlist (3 cols) */}
         {leftSidebarOpen && (
-          <div className="lg:col-span-3 bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col h-[650px] shadow-xs">
-            <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="lg:col-span-3 bg-surface dark:bg-surface border border-line dark:border-line rounded-xl flex flex-col h-[650px] ">
+            <div className="p-3 border-b border-line dark:border-line flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
-                <span className="font-bold text-sm text-slate-900 dark:text-white">Watchlist</span>
-                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono px-1.5 py-0.5 rounded">
+                <Layers className="w-4 h-4 text-brand dark:text-brand" />
+                <span className="font-bold text-sm text-ink dark:text-ink">Watchlist</span>
+                <span className="text-ink bg-surface-2 dark:bg-surface-2 text-ink-2 font-mono px-1.5 py-0.5 rounded">
                   {DEFAULT_WATCHLIST_SYMBOLS.length}
                 </span>
               </div>
               <button
                 onClick={() => setLeftSidebarOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                className="text-ink-3 hover:text-ink-2 dark:hover:text-ink cursor-pointer"
                 title="Collapse Watchlist"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -354,21 +360,21 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
             </div>
 
             {/* Watchlist Search */}
-            <div className="p-2 border-b border-slate-100 dark:border-slate-800/60">
+            <div className="p-2 border-b border-line dark:border-line">
               <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
+                <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-ink-3" />
                 <input
                   type="text"
                   placeholder="Filter symbols..."
                   value={watchlistSearch}
                   onChange={e => setWatchlistSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-lg focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
             </div>
 
             {/* Watchlist Items */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/40 text-xs">
+            <div className="flex-1 overflow-y-auto divide-y divide-line dark:divide-line text-xs">
               {filteredWatchlist.map(item => {
                 const isSelected = item.symbol === activeSymbol;
                 return (
@@ -393,7 +399,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
           {!leftSidebarOpen && (
             <button
               onClick={() => setLeftSidebarOpen(true)}
-              className="self-start flex items-center gap-1 px-2.5 py-1 text-xs bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-600 dark:text-slate-300 hover:text-blue-600 cursor-pointer shadow-xs"
+              className="self-start flex items-center gap-1 px-2.5 py-1 text-xs bg-surface dark:bg-surface border border-line dark:border-line rounded-lg text-ink-2 dark:text-ink-3 hover:text-brand cursor-pointer "
             >
               <ChevronRight className="w-3.5 h-3.5" />
               <span>Show Watchlist</span>
@@ -413,20 +419,21 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
         </div>
 
         {/* RIGHT COLUMN: Groww / Angel One Fast Order Ticket (3 cols) */}
-        <div className="lg:col-span-3 bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-4 shadow-xs">
+        <div className="lg:col-span-3 bg-surface dark:bg-surface border border-line dark:border-line rounded-xl p-4 flex flex-col gap-4 ">
           
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+          <div className="flex items-center justify-between border-b border-line dark:border-line pb-3">
             <div>
-              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Order Ticket</h3>
-              <p className="text-[11px] text-slate-500 font-mono">
+              <h3 className="font-extrabold text-sm text-ink dark:text-ink">Order Ticket</h3>
+              <p className="text-ink-2 font-mono">
                 {isGlobal ? (activeSymbol.includes('=X') ? 'Global Interbank Forex' : 'Global 24/7 Crypto') : 'NSE • Continuous Trading'}
               </p>
             </div>
             <div className="text-right">
-              <span className="text-[10px] uppercase font-mono text-slate-400">LTP</span>
-              <p className="font-mono font-bold text-sm text-slate-900 dark:text-white">
-                {currency}{live.price > 0 ? live.price.toFixed(live.price > 100 ? 2 : 4) : (stockDetail?.quote?.price?.toFixed(2) ?? '0.00')}
+              <span className="text-ink uppercase font-mono text-ink-3">LTP</span>
+              <p className="font-mono font-bold text-sm text-ink dark:text-ink">
+                {live.price > 0 ? `${currency}${live.price.toFixed(live.price > 100 ? 2 : 4)}` : 'Unavailable'}
               </p>
+              <QuoteFreshness status={live.status} source={live.source} lastUpdated={live.lastUpdated} timestamp={live.timestamp} />
             </div>
           </div>
 
@@ -434,8 +441,8 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
           {orderFeedback && (
             <div className={`p-2.5 rounded-lg text-xs flex items-start gap-2 ${
               orderFeedback.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200 border border-emerald-200'
-                : 'bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200 border border-rose-200'
+                ? 'bg-surface-2 text-pos dark:bg-pos-tint dark:text-pos border border-line'
+                : 'bg-surface-2 text-neg dark:bg-neg-tint dark:text-neg border border-line'
             }`}>
               {orderFeedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 shrink-0 mt-0.5" />}
               <span>{orderFeedback.message}</span>
@@ -445,14 +452,14 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
           <form onSubmit={handlePlaceOrder} className="flex flex-col gap-3 text-xs">
             
             {/* BUY vs SELL Switch */}
-            <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg">
+            <div className="grid grid-cols-2 gap-1 p-1 bg-surface-2 dark:bg-surface-2 rounded-lg">
               <button
                 type="button"
                 onClick={() => setOrderSide('BUY')}
                 className={`py-2 rounded-md font-bold text-xs transition-all cursor-pointer ${
                   orderSide === 'BUY'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    ? 'bg-pos-fill text-on-brand '
+                    : 'text-ink-2 dark:text-ink-3 hover:text-ink'
                 }`}
               >
                 BUY
@@ -462,8 +469,8 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
                 onClick={() => setOrderSide('SELL')}
                 className={`py-2 rounded-md font-bold text-xs transition-all cursor-pointer ${
                   orderSide === 'SELL'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    ? 'bg-neg-fill text-on-brand '
+                    : 'text-ink-2 dark:text-ink-3 hover:text-ink'
                 }`}
               >
                 SELL
@@ -472,15 +479,15 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
 
             {/* Product Type: Delivery (CNC) vs Intraday (MIS) */}
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-500">Product</label>
+              <label className="text-ink font-semibold text-ink-2">Product</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setProductType('MIS')}
                   className={`py-1.5 px-3 rounded-lg border font-semibold transition-colors cursor-pointer text-center ${
                     productType === 'MIS'
-                      ? 'border-blue-600 bg-blue-50/60 text-blue-700 dark:bg-blue-900/30 dark:border-blue-500 dark:text-blue-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                      ? 'border-line bg-surface-2 text-brand dark:bg-brand-fill dark:border-line dark:text-brand'
+                      : 'border-line dark:border-line text-ink-2 dark:text-ink-3'
                   }`}
                 >
                   Intraday (MIS • 5x)
@@ -490,8 +497,8 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
                   onClick={() => setProductType('CNC')}
                   className={`py-1.5 px-3 rounded-lg border font-semibold transition-colors cursor-pointer text-center ${
                     productType === 'CNC'
-                      ? 'border-blue-600 bg-blue-50/60 text-blue-700 dark:bg-blue-900/30 dark:border-blue-500 dark:text-blue-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                      ? 'border-line bg-surface-2 text-brand dark:bg-brand-fill dark:border-line dark:text-brand'
+                      : 'border-line dark:border-line text-ink-2 dark:text-ink-3'
                   }`}
                 >
                   Delivery (CNC • 1x)
@@ -501,17 +508,17 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
 
             {/* Order Type: Market / Limit / SL */}
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-500">Order Type</label>
-              <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800/60 p-1 rounded-lg">
+              <label className="text-ink font-semibold text-ink-2">Order Type</label>
+              <div className="grid grid-cols-3 gap-1 bg-surface-2 dark:bg-surface-2 p-1 rounded-lg">
                 {(['MARKET', 'LIMIT', 'SL'] as OrderType[]).map(t => (
                   <button
                     key={t}
                     type="button"
                     onClick={() => setOrderType(t)}
-                    className={`py-1 rounded font-semibold text-[11px] transition-colors cursor-pointer ${
+                    className={`py-1 rounded font-semibold text-ink transition-colors cursor-pointer ${
                       orderType === t
-                        ? 'bg-white dark:bg-[#0D1527] text-blue-600 shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400'
+                        ? 'bg-surface dark:bg-surface text-brand '
+                        : 'text-ink-2 dark:text-ink-3'
                     }`}
                   >
                     {t}
@@ -523,8 +530,8 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
             {/* Quantity with quick buttons */}
             <div className="flex flex-col gap-1">
               <div className="flex justify-between items-center">
-                <label className="text-[11px] font-semibold text-slate-500">Quantity</label>
-                <span className="text-[10px] text-slate-400 font-mono">Lot Size: 1</span>
+                <label className="text-ink font-semibold text-ink-2">Quantity</label>
+                <span className="text-ink-3 font-mono">Lot Size: 1</span>
               </div>
               <input
                 type="number"
@@ -532,7 +539,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
                 step="1"
                 value={quantity}
                 onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                className="px-3 py-1.5 bg-slate-50 dark:bg-[#070B14] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="px-3 py-1.5 bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-lg text-ink dark:text-ink font-mono font-bold focus:outline-none focus:ring-1 focus:ring-brand"
               />
               <div className="flex items-center gap-1.5 mt-1">
                 {[10, 25, 50, 100].map(q => (
@@ -540,7 +547,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
                     key={q}
                     type="button"
                     onClick={() => setQuantity(q)}
-                    className="flex-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono text-[10px] hover:bg-slate-200 cursor-pointer"
+                    className="flex-1 py-0.5 rounded bg-surface-2 dark:bg-surface-2 text-ink-2 dark:text-ink-3 font-mono text-ink hover:bg-surface-2 cursor-pointer"
                   >
                     +{q}
                   </button>
@@ -551,13 +558,13 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
             {/* Limit Price (if LIMIT or SL) */}
             {orderType !== 'MARKET' && (
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-semibold text-slate-500">Price (₹)</label>
+                <label className="text-ink font-semibold text-ink-2">Price (₹)</label>
                 <input
                   type="number"
                   step="0.05"
                   value={limitPrice}
                   onChange={e => setLimitPrice(parseFloat(e.target.value) || 0)}
-                  className="px-3 py-1.5 bg-slate-50 dark:bg-[#070B14] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="px-3 py-1.5 bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-lg text-ink dark:text-ink font-mono font-bold focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
             )}
@@ -565,30 +572,30 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
             {/* Trigger Price (if SL) */}
             {orderType === 'SL' && (
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-semibold text-slate-500">Trigger Price (₹)</label>
+                <label className="text-ink font-semibold text-ink-2">Trigger Price (₹)</label>
                 <input
                   type="number"
                   step="0.05"
                   value={triggerPrice}
                   onChange={e => setTriggerPrice(parseFloat(e.target.value) || 0)}
-                  className="px-3 py-1.5 bg-slate-50 dark:bg-[#070B14] border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="px-3 py-1.5 bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-lg text-ink dark:text-ink font-mono font-bold focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
             )}
 
             {/* Margin Calculation & Breakdown */}
-            <div className="mt-2 p-2.5 rounded-lg bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-slate-800 space-y-1.5 text-[11px] font-mono">
+            <div className="mt-2 p-2.5 rounded-lg bg-surface-2 dark:bg-surface border border-line dark:border-line space-y-1.5 text-ink font-mono">
               <div className="flex justify-between">
-                <span className="text-slate-500">Order Value:</span>
-                <span className="text-slate-800 dark:text-slate-200 font-semibold">{currency}{totalOrderValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                <span className="text-ink-2">Order Value:</span>
+                <span className="text-ink dark:text-ink-3 font-semibold">{currency}{totalOrderValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Margin Required:</span>
-                <strong className="text-blue-600 dark:text-cyan-400 font-bold">{currency}{requiredMargin.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
+                <span className="text-ink-2">Margin Required:</span>
+                <strong className="text-brand dark:text-brand font-bold">{currency}{requiredMargin.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Margin Available:</span>
-                <span className={marginAvailable >= requiredMargin ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>
+                <span className="text-ink-2">Margin Available:</span>
+                <span className={marginAvailable >= requiredMargin ? 'text-pos font-semibold' : 'text-neg font-semibold'}>
                   {currency}{marginAvailable.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -597,10 +604,11 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
             {/* Submit Action Button */}
             <button
               type="submit"
-              className={`w-full py-2.5 rounded-lg text-white font-bold text-sm shadow-md transition-all cursor-pointer mt-1 ${
+              disabled={!live.isTickLive || live.status !== 'LIVE'}
+              className={`w-full py-2.5 rounded-lg text-on-brand font-bold text-sm  transition-all cursor-pointer mt-1 ${
                 orderSide === 'BUY'
-                  ? 'bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98]'
-                  : 'bg-rose-600 hover:bg-rose-700 active:scale-[0.98]'
+                  ? 'bg-pos hover:bg-pos-tint active:scale-[0.98]'
+                  : 'bg-neg hover:bg-neg-tint active:scale-[0.98]'
               }`}
             >
               {orderSide === 'BUY' ? 'PLACE BUY ORDER' : 'PLACE SELL ORDER'}
@@ -608,14 +616,14 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
           </form>
 
           {/* Broker Settings & Simulation Toggle */}
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="pt-2 border-t border-line dark:border-line flex items-center justify-between text-ink-2">
             <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-blue-500" />
+              <Clock className="w-3.5 h-3.5 text-brand" />
               <span>Instant Fill</span>
             </span>
             <button
               onClick={() => updateBrokerConfig({ mode: brokerConfig.mode === 'simulation' ? 'live' : 'simulation' })}
-              className="hover:text-blue-600 dark:hover:text-cyan-400 font-semibold transition-colors cursor-pointer"
+              className="hover:text-brand dark:hover:text-brand font-semibold transition-colors cursor-pointer"
             >
               Mode: {brokerConfig.mode.toUpperCase()}
             </button>
@@ -624,28 +632,28 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
       </div>
 
       {/* 3. Compact Positions & Portfolio Quick-Access Banner */}
-      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+      <div className="bg-surface dark:bg-surface border border-line dark:border-line rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-cyan-400 shrink-0">
+          <div className="p-2.5 rounded-xl bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand shrink-0">
             <Layers className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-extrabold text-sm text-slate-900 dark:text-white">
+              <span className="font-extrabold text-sm text-ink dark:text-ink">
                 Portfolio & Active Positions Desk
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-blue-800/60">
+              <span className="px-2 py-0.5 rounded-full text-ink font-mono font-bold bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand border border-line dark:border-line">
                 {positions.length} Active Positions • {holdings.length} Holdings
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap font-mono">
+            <p className="text-xs text-ink-2 dark:text-ink-3 mt-0.5 flex items-center gap-2 flex-wrap font-mono">
               <span>Unrealized P&L:</span>
-              <strong className={`font-bold ${totalUnrealizedPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              <strong className={`font-bold ${totalUnrealizedPnl >= 0 ? 'text-pos dark:text-pos' : 'text-neg dark:text-neg'}`}>
                 {totalUnrealizedPnl >= 0 ? '+' : ''}{marketMode === 'crypto' ? '$' : '₹'}{totalUnrealizedPnl.toFixed(2)}
               </strong>
               <span>•</span>
               <span>Realized P&L:</span>
-              <strong className={`font-bold ${realizedPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              <strong className={`font-bold ${realizedPnl >= 0 ? 'text-pos dark:text-pos' : 'text-neg dark:text-neg'}`}>
                 {realizedPnl >= 0 ? '+' : ''}{marketMode === 'crypto' ? '$' : '₹'}{realizedPnl.toFixed(2)}
               </strong>
               <span>•</span>
@@ -658,7 +666,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
           {positions.length > 0 && (
             <button
               onClick={squareOffAll}
-              className="px-3 py-2 text-xs font-semibold rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-100 border border-rose-200 dark:border-rose-800 transition-colors cursor-pointer"
+              className="px-3 py-2 text-xs font-semibold rounded-xl bg-surface-2 dark:bg-neg-tint text-neg hover:bg-surface-2 border border-line dark:border-line transition-colors cursor-pointer"
             >
               Square Off All
             </button>
@@ -666,7 +674,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
 
           <button
             onClick={() => onNavigate?.('positions')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs shadow-blue-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 bg-brand-fill hover:bg-brand-fill active:scale-95 text-on-brand text-xs font-bold rounded-xl   transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <span>Open Dedicated Positions & Holdings Desk</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -685,21 +693,23 @@ const WatchlistItem: React.FC<{
   onSelect: () => void;
 }> = ({ symbol, name, isSelected, onSelect }) => {
   const live = useLivePrice(symbol);
+  const isCrypto = symbol.endsWith('-USD');
+  const currency = isCrypto ? '$' : symbol.includes('INR') ? '₹' : symbol.includes('=X') || symbol.includes('=F') || US_STOCKS.includes(symbol) ? '$' : '₹';
 
   return (
     <button
       onClick={onSelect}
       className={`w-full p-2.5 text-left flex items-center justify-between transition-colors cursor-pointer ${
         isSelected
-          ? 'bg-blue-50/80 dark:bg-blue-900/25 border-l-3 border-blue-600'
-          : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+          ? 'bg-surface-2 dark:bg-brand-fill border-l-3 border-line'
+          : 'hover:bg-surface-2 dark:hover:bg-surface-2'
       }`}
     >
       <div>
-        <span className={`font-bold block ${isSelected ? 'text-blue-600 dark:text-cyan-400' : 'text-slate-900 dark:text-white'}`}>
+        <span className={`font-bold block ${isSelected ? 'text-brand dark:text-brand' : 'text-ink dark:text-ink'}`}>
           {symbol}
         </span>
-        <span className="text-[10px] text-slate-400 truncate block max-w-[120px] font-mono">
+        <span className="text-ink-3 truncate block max-w-[120px] font-mono">
           {name}
         </span>
       </div>
@@ -707,15 +717,15 @@ const WatchlistItem: React.FC<{
       <div className="text-right font-mono">
         <span className={`font-bold block transition-colors rounded px-1 ${
           live.flash === 'up'
-            ? 'flash-up text-emerald-500 font-extrabold'
+            ? 'flash-up text-pos font-extrabold'
             : live.flash === 'down'
-            ? 'flash-down text-rose-500 font-extrabold'
-            : 'text-slate-900 dark:text-white'
+            ? 'flash-down text-neg font-extrabold'
+            : 'text-ink dark:text-ink'
         }`}>
-          ₹{live.price > 0 ? live.price.toFixed(2) : '---'}
+          {currency}{live.price > 0 ? live.price.toLocaleString(isCrypto || currency === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: isCrypto ? 8 : 2 }) : '---'}
         </span>
-        <span className={`text-[10px] font-semibold flex items-center justify-end ${
-          live.change >= 0 ? 'text-emerald-600' : 'text-rose-600'
+        <span className={`text-ink font-semibold flex items-center justify-end ${
+          live.change >= 0 ? 'text-pos' : 'text-neg'
         }`}>
           {live.change >= 0 ? '+' : ''}{live.changePercent.toFixed(2)}%
         </span>

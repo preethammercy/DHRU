@@ -10,6 +10,8 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build": "vite build",
     "test": "node --test test/*.test.js",
+    "backtest": "node scripts/run-backtest.js",
+    "verify:market-data": "node scripts/verify-market-data.js",
     "start": "node server/index.js"
   },
   "dependencies": {
@@ -20,6 +22,7 @@
     "firebase": "^13.0.0",
     "lightweight-charts": "^4.2.3",
     "lucide-react": "^0.475.0",
+    "motion": "^14.9.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

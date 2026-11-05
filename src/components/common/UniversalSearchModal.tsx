@@ -6,6 +6,8 @@ import { createPortal } from 'react-dom';
 import { Search, X, TrendingUp, Building2, Coins, Compass, ArrowRight, Sparkles } from 'lucide-react';
 import { searchMarket } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { duration, ease } from '../../design/motion';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -21,16 +23,25 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
   onTradeInstrument,
 }) => {
   const { marketMode } = useAuth();
+  const reduceMotion = useReducedMotion();
+  const isMobileViewport = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+  const sheetRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const inputRef = useRef<HTMLInputElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
+      returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setActiveFilter(marketMode === 'crypto' ? 'Crypto' : 'All');
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 50);
+      return () => window.clearTimeout(focusTimer);
+    } else if (returnFocusRef.current) {
+      returnFocusRef.current.focus();
+      returnFocusRef.current = null;
     }
   }, [isOpen, marketMode]);
 
@@ -46,9 +57,9 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
         const data = await searchMarket(query.trim(), 25);
         let resList = data.results || [];
         if (marketMode === 'crypto') {
-          resList = resList.filter((r: any) => r.type === 'Crypto' || r.symbol.includes('USD'));
+          resList = resList.filter((r: any) => r.type === 'Crypto' || r.symbol.endsWith('-USD'));
         } else {
-          resList = resList.filter((r: any) => r.type !== 'Crypto' && !r.symbol.includes('-USD'));
+          resList = resList.filter((r: any) => r.symbol.endsWith('.NS') || r.symbol.endsWith('.BO') || /^\^(NSE|BSE|CNX)/.test(r.symbol));
         }
         setResults(resList);
       } catch (e) {
@@ -73,8 +84,6 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   const filteredResults = activeFilter === 'All'
     ? results
     : results.filter(r => r.type === activeFilter);
@@ -82,11 +91,11 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
   const popularSearches = marketMode === 'crypto'
     ? [
         { label: 'Bitcoin (BTC)', sym: 'BTC-USD' },
-        { label: 'Apple Inc', sym: 'AAPL' },
-        { label: 'Netflix Inc', sym: 'NFLX' },
-        { label: 'NVIDIA Corp', sym: 'NVDA' },
         { label: 'Ethereum (ETH)', sym: 'ETH-USD' },
-        { label: 'Tesla Inc', sym: 'TSLA' },
+        { label: 'Solana (SOL)', sym: 'SOL-USD' },
+        { label: 'BNB', sym: 'BNB-USD' },
+        { label: 'XRP', sym: 'XRP-USD' },
+        { label: 'Dogecoin (DOGE)', sym: 'DOGE-USD' },
       ]
     : [
         { label: 'Reliance Industries', sym: 'RELIANCE.NS' },
@@ -94,57 +103,80 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
         { label: 'HDFC Bank', sym: 'HDFCBANK.NS' },
         { label: 'Tata Consultancy Services', sym: 'TCS.NS' },
         { label: 'Infosys Ltd', sym: 'INFY.NS' },
-        { label: 'Gold (MCX Proxy)', sym: 'GC=F' },
+        { label: 'NIFTY Bank', sym: '^NSEBANK' },
       ];
 
   if (typeof document === 'undefined') return null;
 
   const modalContent = (
-    <div
-      className="fixed inset-0 z-[99999] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+    <AnimatePresence initial={false}>
+    {isOpen && <motion.div
+      key="universal-search-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: reduceMotion ? duration.fast : duration.base, ease: ease.out }}
+      className="quiet-overlay fixed inset-0 z-[99999] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-surface-2  animate-fade-in"
       style={{ zIndex: 99999 }}
     >
-      <div
-        className="w-full max-w-2xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] relative z-10"
+      <motion.div
+        ref={sheetRef}
+        initial={{ opacity: 0, y: reduceMotion ? 0 : isMobileViewport ? 24 : 0, scale: reduceMotion || isMobileViewport ? 1 : 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: reduceMotion ? 0 : isMobileViewport ? 16 : 0, scale: reduceMotion || isMobileViewport ? 1 : 0.98 }}
+        transition={{ duration: reduceMotion ? duration.fast : isMobileViewport ? duration.panel : duration.base, ease: ease.out }}
+        drag={isMobileViewport && !reduceMotion ? 'y' : false}
+        dragConstraints={{ top: 0, bottom: typeof window === 'undefined' ? 800 : window.innerHeight }}
+        dragElastic={0}
+        dragMomentum={false}
+        dragTransition={{ power: 0, timeConstant: 120, bounceStiffness: 1000, bounceDamping: 100 }}
+        onDragEnd={(_, info) => {
+          const sheetHeight = sheetRef.current?.getBoundingClientRect().height ?? 0;
+          if (info.offset.y > sheetHeight * 0.4 || info.velocity.y > 800) onClose();
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Universal Search"
+        className="quiet-sheet w-full max-w-2xl bg-surface dark:bg-surface border border-line dark:border-line rounded-2xl  overflow-hidden flex flex-col max-h-[80vh] relative z-10"
         onClick={e => e.stopPropagation()}
       >
         {/* Search Header Bar */}
-        <div className="p-4 border-b border-slate-200 dark:border-[#1A2744] flex items-center gap-3 bg-slate-50/70 dark:bg-[#070B14]">
-          <Search className="w-5 h-5 text-blue-600 dark:text-cyan-400 shrink-0" />
+        <div className="p-4 border-b border-line dark:border-line flex items-center gap-3 bg-surface-2 dark:bg-surface">
+          <Search className="w-5 h-5 text-brand dark:text-brand shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search company (e.g. Reliance, TCS), symbol, index, sector..."
-            className="w-full bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none font-medium"
+            className="w-full bg-transparent text-sm text-ink dark:text-ink-3 placeholder-slate-400 focus:outline-none font-medium"
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="p-1 text-ink-3 hover:text-ink-2 dark:hover:text-ink-3"
             >
               <X className="w-4 h-4" />
             </button>
           )}
           <button
             onClick={onClose}
-            className="text-xs font-mono text-slate-500 px-2 py-1 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 hover:text-slate-900"
+            className="text-xs font-mono text-ink-2 px-2 py-1 bg-surface dark:bg-surface-2 rounded border border-line dark:border-line hover:text-ink"
           >
             ESC
           </button>
         </div>
 
         {/* Filters Strip */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-slate-200 dark:border-[#1A2744] bg-white dark:bg-[#0A101D] text-xs overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-line dark:border-line bg-surface dark:bg-surface text-xs overflow-x-auto scrollbar-none">
           {(['All', 'Stock', 'Index', 'Crypto', 'Forex', 'Commodity', 'ETF'] as const).map(f => (
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
               className={`px-3 py-1 rounded-xl transition-all whitespace-nowrap ${
                 activeFilter === f
-                  ? 'bg-blue-50 dark:bg-cyan-500/20 text-blue-700 dark:text-cyan-400 font-bold border border-blue-200 dark:border-cyan-500/30'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/40'
+                  ? 'bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand font-bold border border-line dark:border-line'
+                  : 'text-ink-2 dark:text-ink-3 hover:text-ink hover:bg-surface-2 dark:hover:bg-surface-2'
               }`}
             >
               {f === 'Stock' ? 'Stocks' : f}
@@ -153,25 +185,25 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
         </div>
 
         {/* Results Body */}
-        <div className="overflow-y-auto flex-1 p-3 space-y-1 divide-y divide-slate-100 dark:divide-[#1A2744]/40">
+        <div className="overflow-y-auto flex-1 p-3 space-y-1 divide-y divide-line dark:divide-line">
           {loading && (
-            <div className="py-8 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-              <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="py-8 text-center text-xs text-ink-2 flex items-center justify-center gap-2">
+              <span className="w-4 h-4 border-2 border-line border-t-transparent rounded-full animate-spin" />
               Searching official NSE universe...
             </div>
           )}
 
           {!loading && query && filteredResults.length === 0 && (
-            <div className="py-10 text-center text-slate-500 text-xs">
-              No matching instruments found for "<span className="text-slate-900 font-bold">{query}</span>".
-              <p className="mt-1 text-[11px] text-slate-400">Try searching by official NSE ticker (e.g. INFY, SBIN, MARUTI) or corporate name.</p>
+            <div className="py-10 text-center text-ink-2 text-xs">
+              No matching instruments found for "<span className="text-ink font-bold">{query}</span>".
+              <p className="mt-1 text-ink-3">Try searching by official NSE ticker (e.g. INFY, SBIN, MARUTI) or corporate name.</p>
             </div>
           )}
 
           {!query && (
             <div className="p-4 space-y-3">
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <div className="text-xs font-bold text-ink-2 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-brand" />
                 Frequently Searched Instruments
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -182,15 +214,15 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
                       onSelectInstrument(ps.sym);
                       onClose();
                     }}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-[#1A2744] hover:border-blue-400 hover:bg-blue-50/50 text-left transition-all group hover:scale-[1.02]"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line hover:border-line hover:bg-surface-2 text-left transition-all group hover:scale-[1.02]"
                   >
                     <div>
-                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600">
+                      <div className="text-xs font-bold text-ink dark:text-ink-3 group-hover:text-brand">
                         {ps.label}
                       </div>
-                      <div className="text-[10px] font-mono text-slate-500">{ps.sym}</div>
+                      <div className="text-ink font-mono text-ink-2">{ps.sym}</div>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-3.5 h-3.5 text-ink-3 group-hover:text-brand group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 ))}
               </div>
@@ -205,37 +237,37 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
                 onSelectInstrument(item.symbol, item.type);
                 onClose();
               }}
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-blue-50/60 dark:hover:bg-[#131F38] cursor-pointer transition-all group hover:scale-[1.01]"
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-surface-2 dark:hover:bg-surface cursor-pointer transition-all group hover:scale-[1.01]"
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-[#070B14] border border-slate-200 dark:border-[#1A2744] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line flex items-center justify-center shrink-0">
                   {item.type === 'Index' ? (
-                    <TrendingUp className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+                    <TrendingUp className="w-4 h-4 text-brand dark:text-brand" />
                   ) : item.type === 'Crypto' ? (
                     <span className="text-sm">🪙</span>
                   ) : item.type === 'Forex' ? (
                     <span className="text-sm">💱</span>
                   ) : item.type === 'Commodity' ? (
-                    <Coins className="w-4 h-4 text-amber-500" />
+                    <Coins className="w-4 h-4 text-warn" />
                   ) : item.type === 'ETF' ? (
-                    <Compass className="w-4 h-4 text-purple-600" />
+                    <Compass className="w-4 h-4 text-ai" />
                   ) : (
-                    <Building2 className="w-4 h-4 text-blue-600" />
+                    <Building2 className="w-4 h-4 text-brand" />
                   )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 transition-colors">
+                    <span className="text-sm font-bold text-ink dark:text-ink-3 group-hover:text-brand transition-colors">
                       {item.name}
                     </span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-semibold">
+                    <span className="text-ink font-mono px-1.5 py-0.5 rounded bg-surface-2 dark:bg-surface-2 text-ink-2 dark:text-ink-3 border border-line dark:border-line font-semibold">
                       {item.symbol}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+                  <div className="text-xs text-ink-2 flex items-center gap-2 mt-0.5">
                     <span>{item.exchange || 'NSE'}</span>
                     {item.sector && <span>• {item.sector}</span>}
-                    {item.cap && <span className="text-slate-400">• {item.cap}</span>}
+                    {item.cap && <span className="text-ink-3">• {item.cap}</span>}
                   </div>
                 </div>
               </div>
@@ -248,28 +280,29 @@ export const UniversalSearchModal: React.FC<SearchModalProps> = ({
                       onTradeInstrument(item.symbol);
                       onClose();
                     }}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-brand-fill hover:bg-brand-fill-hover text-on-brand text-xs font-bold  transition-all flex items-center gap-1 cursor-pointer"
                     title="Trade directly in Live Terminal"
                   >
                     <span>⚡ Trade</span>
                   </button>
                 )}
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-blue-50 dark:bg-cyan-500/10 text-blue-600 dark:text-cyan-400 border border-blue-200 dark:border-cyan-500/20">
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand border border-line dark:border-line">
                   Analyze
                 </span>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                <ArrowRight className="w-4 h-4 text-ink-3 group-hover:text-brand group-hover:translate-x-1 transition-all" />
               </div>
             </div>
           ))}
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3 bg-slate-50 dark:bg-[#070B14] border-t border-slate-200 dark:border-[#1A2744] flex items-center justify-between text-[11px] text-slate-500 font-medium">
+        <div className="p-3 bg-surface-2 dark:bg-surface border-t border-line dark:border-line flex items-center justify-between text-ink-2 font-medium">
           <span>Search backed by official NSE Equity Master file (2,606+ tickers)</span>
           <span>Click to open full analytics</span>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>}
+    </AnimatePresence>
   );
 
   return createPortal(modalContent, document.body);

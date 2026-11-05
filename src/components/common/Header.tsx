@@ -49,6 +49,11 @@ export const Header: React.FC<HeaderProps> = ({
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (themeColor) themeColor.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  }, [theme]);
+
   // Close profile dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -71,8 +76,8 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-[#070B14]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-[#1A2744] shadow-[0_2px_12px_rgba(37,99,235,0.04)]">
-      <div className="max-w-[1200px] mx-auto px-3 sm:px-6 lg:px-8 h-[52px] sm:h-16 flex items-center justify-between gap-2 sm:gap-3">
+    <header className="sticky top-0 z-40 w-full bg-surface dark:bg-surface  border-b border-line dark:border-line">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
         
         {/* Left: Mobile 3-Line Hamburger Menu Button + Logo & Brand */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -80,23 +85,26 @@ export const Header: React.FC<HeaderProps> = ({
           {/* 3-Line Hamburger Menu Button (at Left Corner Upside for Mobile) */}
           <button
             onClick={onOpenMobileMenu}
-            className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-[#131F38] border border-slate-200 dark:border-[#1E2D4A] text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-cyan-400 active:scale-95 transition-all cursor-pointer shrink-0 shadow-xs"
+            className="lg:hidden p-2 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line text-ink dark:text-ink-3 hover:text-brand dark:hover:text-brand active:scale-95 transition-all cursor-pointer shrink-0 "
             aria-label="Open Navigation Menu"
             title="Open Platform Menu"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* 'D' Logo & Brand Title */}
+          {/* 'D' Logo & Brand Title with Pulse Effect */}
           <div
             className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group min-w-0"
             onClick={() => onSelectNav('overview')}
           >
-            <DhruLogo size={32} />
+            <div className="relative shrink-0">
+              <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-blue-600 to-sky-400 opacity-25 blur-xs group-hover:opacity-70 transition duration-500 group-hover:duration-200 animate-pulse" />
+              <DhruLogo size={32} />
+            </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-lg sm:text-xl tracking-tight text-slate-950 dark:text-white">
+                <span className="font-black text-lg sm:text-xl tracking-tight bg-brand-fill    dark:from-white   text-ink">
                   DHRU.AI
                 </span>
                 <button
@@ -104,75 +112,68 @@ export const Header: React.FC<HeaderProps> = ({
                     e.stopPropagation();
                     setShowMarketSelector(true);
                   }}
-                  className={`text-[9px] sm:text-[10px] uppercase font-mono px-1.5 sm:px-2 py-0.5 rounded-full font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`text-ink sm:text-ink uppercase font-mono px-1.5 sm:px-2 py-0.5 rounded-full font-bold flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     marketMode === 'crypto'
-                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800'
-                      : 'bg-blue-50 dark:bg-cyan-500/10 text-blue-700 dark:text-cyan-400 border border-blue-200 dark:border-cyan-500/20'
+                      ? 'bg-surface-2 text-ai dark:bg-surface-2 dark:text-ai border border-line dark:border-line'
+                      : 'bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand border border-line dark:border-line'
                   }`}
                   title="Click to switch trading markets"
                 >
                   {marketMode === 'crypto' ? (
                     <>
                       <Coins className="w-2.5 h-2.5" />
-                      <span>CRYPTO DESK</span>
+                      <span className="hidden sm:inline">CRYPTO DESK</span>
                     </>
                   ) : (
                     <>
                       <span>🇮🇳</span>
-                      <span>INDIA DESK</span>
+                      <span className="hidden sm:inline">INDIA DESK</span>
                     </>
                   )}
                   <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
                 </button>
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block tracking-wide truncate">
-                Market data and analysis
+              <p className="text-ink-2 dark:text-ink-3 hidden sm:block tracking-wide font-medium truncate">
+                Understand Every Market. See Beyond the Numbers.
               </p>
             </div>
           </div>
         </div>
 
         {/* Center: Universal Search Bar Trigger */}
-        <div className="flex-1 max-w-md mx-2 hidden md:block">
-            <button
+        <div className="flex-1 max-w-md mx-2 hidden xl:block">
+          <button
             onClick={onOpenSearch}
-            className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] hover:border-slate-400 hover:bg-white dark:hover:bg-[#131F38] rounded-lg transition-colors group"
+            className="w-full flex items-center justify-between px-4 py-2 text-xs text-ink-2 dark:text-ink-3 bg-surface-2 dark:bg-surface border border-line dark:border-line hover:border-line hover:bg-surface dark:hover:bg-surface rounded-xl transition-all  group hover:scale-[1.01]"
           >
             <div className="flex items-center gap-2.5">
-              <Search className="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors" />
+              <Search className="w-4 h-4 text-ink-3 group-hover:text-brand dark:group-hover:text-brand transition-colors" />
               <span>
                 {marketMode === 'crypto'
                   ? 'Search 20+ cryptos: Bitcoin, Ethereum, Solana, XRP, SUI...'
                   : 'Search 2,600+ NSE stocks, indices, sectors...'}
               </span>
             </div>
-            <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-500 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
+            <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-ink font-mono font-medium text-ink-2 bg-surface dark:bg-surface-2 rounded border border-line dark:border-line ">
               Ctrl + K
             </kbd>
           </button>
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          <button
-            onClick={onOpenSearch}
-            className="md:hidden min-h-11 min-w-11 flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
-            aria-label="Search markets and stocks"
-          >
-            <Search className="w-5 h-5" />
-          </button>
-
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 xl:gap-2.5">
+          
           {/* Market Status Pill */}
-          <div className="hidden xl:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0D1527] border border-slate-200/90 dark:border-[#1A2744] text-xs font-medium">
+          <div className="hidden xl:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line text-xs font-medium">
             <span className="relative flex h-2 w-2">
               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                marketMode === 'crypto' || marketStatus?.status === 'Live' ? 'bg-emerald-400' : 'bg-slate-400'
+                marketMode === 'crypto' || marketStatus?.status === 'Live' ? 'bg-surface-2' : 'bg-surface-2'
               }`} />
               <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                marketMode === 'crypto' || marketStatus?.status === 'Live' ? 'bg-emerald-500' : 'bg-slate-500'
+                marketMode === 'crypto' || marketStatus?.status === 'Live' ? 'bg-pos' : 'bg-surface-2'
               }`} />
             </span>
-            <span className="font-semibold text-slate-800 dark:text-slate-200">
+            <span className="font-semibold text-ink dark:text-ink-3">
               {marketMode === 'crypto' ? 'Global 24/7' : marketStatus?.label || 'Market Closed'}
             </span>
           </div>
@@ -180,12 +181,12 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Virtual Paper Capital Pill */}
           <div 
             onClick={() => onSelectNav('terminal')}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-50 dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 dark:bg-pos-tint border border-line dark:border-line text-xs font-bold text-pos dark:text-pos cursor-pointer hover:scale-[1.02] transition-transform "
             title="Available Virtual Trading Margin"
           >
             <Wallet className="w-3.5 h-3.5" />
             <span className="font-mono">{formatMargin(marginAvailable)}</span>
-            <span className="text-[10px] uppercase font-mono px-1 py-0.2 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-semibold hidden sm:inline">
+            <span className="text-ink uppercase font-mono px-1 py-0.2 rounded bg-surface-2 dark:bg-pos-tint text-pos dark:text-pos font-semibold hidden sm:inline">
               Margin
             </span>
           </div>
@@ -193,46 +194,48 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Live Terminal Fast Button */}
           <button
             onClick={() => onSelectNav('terminal')}
-            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+            className={`hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all  cursor-pointer ${
               activeNav === 'terminal'
-                ? 'bg-blue-600 text-white shadow-[0_4px_14px_rgba(37,99,235,0.3)] scale-[1.02]'
-                : 'bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-slate-700 dark:text-slate-200 hover:border-blue-400'
+                ? 'bg-brand-fill text-on-brand scale-[1.02]'
+                : 'bg-surface dark:bg-surface border border-line dark:border-line text-ink-2 dark:text-ink-3 hover:border-line'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-pos animate-pulse" />
             <span>Terminal</span>
           </button>
 
           {/* Live Predictions & Entry/Exit Signals Button (Desktop/Tablet) */}
           <button
             onClick={() => onOpenPredictions ? onOpenPredictions() : onSelectNav('ai-predictions')}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer bg-slate-900 hover:bg-slate-700 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-950 text-white"
+            className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all  cursor-pointer bg-brand-fill      text-on-brand hover:scale-[1.02]"
             title="Live AI Market Predictions: Entry, Stop Loss & Exit Times"
           >
             <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>Signal status</span>
+            <span>Live Signals</span>
           </button>
 
-          {/* Ask DHRU AI Fast Button */}
+          {/* DHRU AI Fast Button */}
           <button
             onClick={() => onSelectNav('ask-dhru')}
-            className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+            className={`hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all  cursor-pointer ${
               activeNav === 'ask-dhru'
-                ? 'bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-[0_4px_14px_rgba(37,99,235,0.3)] scale-[1.02]'
-                : 'bg-blue-50 dark:bg-[#0D1527] border border-blue-200 dark:border-[#1A2744] text-blue-700 dark:text-cyan-400 hover:bg-blue-100 hover:border-blue-300'
+                ? 'bg-brand-fill   text-on-brand scale-[1.02]'
+                : 'bg-surface-2 dark:bg-surface border border-line dark:border-line text-brand dark:text-brand hover:bg-surface-2 hover:border-line'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
-            Ask DHRU
+            <Sparkles className="w-3.5 h-3.5 text-brand dark:text-brand" />
+            DHRU AI
           </button>
 
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:border-slate-300 transition-colors cursor-pointer"
-            title={`Switch to ${theme === 'dark' ? 'White & Blue' : 'Dark'} theme`}
+            className="p-2 rounded-xl bg-surface dark:bg-surface border border-line dark:border-line text-ink-2 dark:text-ink-3 hover:text-brand hover:border-line transition-colors cursor-pointer"
+            type="button"
+            aria-label={`Switch to ${theme === 'dark' ? 'day' : 'dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'Day' : 'Dark'} mode`}
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+            {theme === 'dark' ? <Sun className="w-4 h-4 text-warn" /> : <Moon className="w-4 h-4 text-ink-2" />}
           </button>
 
           {/* User Profile / Firebase Google Login Button */}
@@ -241,80 +244,80 @@ export const Header: React.FC<HeaderProps> = ({
               <div>
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all text-xs font-semibold cursor-pointer"
+                  className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-line dark:border-line bg-surface-2 dark:bg-surface-2 hover:bg-surface-2 dark:hover:bg-surface-2 transition-all text-xs font-semibold cursor-pointer"
                 >
                   {user.photoURL ? (
                     <img
                       src={user.photoURL}
                       alt={user.displayName}
-                      className="w-6 h-6 rounded-full object-cover ring-1 ring-blue-500"
+                      className="w-6 h-6 rounded-full object-cover ring-1 ring-brand"
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 text-white font-bold text-xs flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full bg-brand-fill   text-on-brand font-bold text-xs flex items-center justify-center">
                       {user.displayName.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <span className="hidden sm:inline max-w-[90px] truncate text-slate-800 dark:text-slate-200 font-bold">
+                  <span className="hidden sm:inline max-w-[90px] truncate text-ink dark:text-ink-3 font-bold">
                     {user.displayName}
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-ink-3" />
                 </button>
 
                 {/* Profile Dropdown Menu */}
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#0A101D] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl py-3 px-4 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="absolute right-0 mt-2 w-64 bg-surface dark:bg-surface border border-line dark:border-line rounded-2xl  py-3 px-4 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="flex items-center gap-3 pb-3 border-b border-line dark:border-line">
                       {user.photoURL ? (
                         <img
                           src={user.photoURL}
                           alt={user.displayName}
-                          className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500"
+                          className="w-10 h-10 rounded-full object-cover ring-2 ring-brand"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-brand-fill text-on-brand font-black text-sm flex items-center justify-center">
                           {user.displayName.charAt(0).toUpperCase()}
                         </div>
                       )}
                       <div className="overflow-hidden">
-                        <div className="font-extrabold text-sm text-slate-900 dark:text-white truncate">
+                        <div className="font-extrabold text-sm text-ink dark:text-ink truncate">
                           {user.displayName}
                         </div>
-                        <div className="text-[11px] text-slate-500 truncate">
+                        <div className="text-ink-2 truncate">
                           {user.email || 'Google Account Active'}
                         </div>
                       </div>
                     </div>
 
                     <div className="py-2.5 space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                      <div className="flex items-center justify-between text-ink-2 dark:text-ink-3">
                         <span>Allocated Margin:</span>
-                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="font-mono font-bold text-pos dark:text-pos">
                           {formatMargin(marginAvailable)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                      <div className="flex items-center justify-between text-ink-2 dark:text-ink-3">
                         <span>Current Desk:</span>
                         <button
                           onClick={() => {
                             setShowMarketSelector(true);
                             setProfileDropdownOpen(false);
                           }}
-                          className="text-blue-600 dark:text-cyan-400 font-bold hover:underline"
+                          className="text-brand dark:text-brand font-bold hover:underline"
                         >
                           {marketMode === 'crypto' ? '🪙 Crypto Desk' : '🇮🇳 Indian NSE/BSE'}
                         </button>
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="pt-2 border-t border-line dark:border-line space-y-1">
                       <button
                         onClick={() => {
                           onSelectNav('profile');
                           setProfileDropdownOpen(false);
                         }}
-                        className="w-full flex items-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-left"
+                        className="w-full flex items-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-ink-2 dark:text-ink-3 hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer text-left"
                       >
-                        <User className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+                        <User className="w-3.5 h-3.5 text-brand dark:text-brand" />
                         <span>My Profile & Identities</span>
                       </button>
 
@@ -323,7 +326,7 @@ export const Header: React.FC<HeaderProps> = ({
                           signOut();
                           setProfileDropdownOpen(false);
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-neg hover:bg-surface-2 dark:hover:bg-neg-tint transition-colors cursor-pointer"
                       >
                         <LogOut className="w-3.5 h-3.5" />
                         <span>Sign Out</span>
@@ -335,7 +338,7 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <button
                 onClick={signInWithGoogle}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/25 transition-all hover:scale-[1.02] cursor-pointer"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-fill hover:bg-brand-fill text-on-brand   transition-all hover:scale-[1.02] cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Sign in with Google</span>

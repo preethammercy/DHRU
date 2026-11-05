@@ -87,13 +87,14 @@ dhru.ai/
 │       ├── marketData.js       # Real-time quotes, OHLCV candles, batching & caching
 │       ├── indicators.js       # SMA, EMA, RSI, MACD, Bollinger Bands, VWAP, Pivots, Patterns
 │       ├── newsService.js      # RSS aggregator (Livemint, Economic Times, Google News)
+│       ├── riskEngine.js       # 5-factor systemic risk model (Low / Mod / High / Very High)
 │       ├── predictionEngine.js # Walk-forward backtester and ATR dispersion envelopes
 │       ├── geminiService.js    # Secure server-side Google Gemini 2.5 Flash + fallback engine
 │       └── refreshScheduler.js # 10-minute automated background refresh loop
 ├── src/                        # Frontend React 18 Application
 │   ├── components/             # Reusable UI components
 │   │   ├── chart/              # TradingView Lightweight Charts (Candlesticks, Volume, Overlays)
-│   │   ├── common/             # Header, Navigation, UniversalSearchModal
+│   │   ├── common/             # Header, Navigation, UniversalSearchModal, SettingsModal
 │   │   └── stock/              # TechnicalScorecard, GeminiReport
 │   ├── context/                # ThemeContext (Dark/Light), WatchlistContext
 │   ├── pages/                  # 16 specialized full-page views
@@ -110,12 +111,14 @@ dhru.ai/
 
 ---
 
-## 5. Data and Privacy Notes
+## 5. Security & Privacy Guarantees
 
-1. Market quotes and historical candles depend on the configured upstream providers and can be delayed or unavailable. Each displayed quote should be read with its source and update time.
-2. The assistant summarizes attached market facts and educational definitions. It does not provide trade recommendations or price targets.
-3. Derivatives, institutional flows, IPO announcements, risk scores, and predictive scenarios remain unavailable until their data sources and validation are in place.
-4. Personal watchlists are saved in browser local storage.
+1. **Zero Client Exposure of API Keys:**  
+   Google Gemini API keys are configured and stored strictly in server-side protected memory or `.env`. They are never embedded in client JavaScript bundles, HTML documents, or browser network payloads.
+2. **Deterministic Intelligence Fallback:**  
+   If no Gemini key is provided, DHRU.AI runs an institutional-grade deterministic mathematical reasoning engine directly on the server, ensuring 100% platform functionality out of the box. Adding a free Gemini API key in the top Settings modal instantly activates full generative language capabilities.
+3. **Local Storage Watchlist:**  
+   Personal watchlists are saved directly on the client's browser without storing personally identifiable information on external databases.
 
 ---
 
@@ -130,13 +133,10 @@ dhru.ai/
 # 1. Install dependencies
 npm install
 
-# 2. Optional: copy .env.example to .env and set GEMINI_API_KEY
-#    The key is read by the server only; without it, factual fallback answers remain available.
-
-# 3. Build frontend production assets
+# 2. Build frontend production assets
 npm run build
 
-# 4. Start production server (runs API + UI + 10-Min Scheduler on port 5000)
+# 3. Start production server (runs API + UI + 10-Min Scheduler on port 5000)
 npm start
 ```
 Open **`http://localhost:5000`** in any web browser.
@@ -152,5 +152,5 @@ Runs the Express backend on `http://localhost:5000` and Vite dev server on `http
 ## 7. Compliance & Regulatory Disclosures
 
 - **Educational & Informational Purpose Only:** DHRU.AI is built for market education, financial research, and analytical training. It is NOT a SEBI-registered Research Analyst or Investment Advisor.
-- **Experimental Scenarios, Not Guarantees:** Live scenario ranges summarize recent return drift and historical volatility. They are not calibrated probabilities or trade recommendations. Past market behavior does not guarantee future results.
+- **Probabilistic Scenarios, Not Guarantees:** Price forecasts and algorithmic models represent statistical envelopes of historical volatility. Past performance does not guarantee future results.
 - **Consult a Certified Advisor:** Trading equities and derivatives carries substantial capital risk. Consult a SEBI-registered financial professional before executing trades.

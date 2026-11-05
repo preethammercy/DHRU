@@ -1,7 +1,4 @@
-// DHRU.AI - Global Real-Time Market Streaming Context
-// Live market updates from the configured REST/SSE feeds and Binance for supported crypto pairs.
-
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 export interface LiveTick {
   symbol: string;
@@ -14,7 +11,10 @@ export interface LiveTick {
   volume: number;
   timestamp: number;
   isLive: boolean;
-  source?: string;
+  source?: string | null;
+  currency?: string | null;
+  status?: string;
+  lastUpdated?: string | null;
   flash?: 'up' | 'down' | null;
 }
 
@@ -25,497 +25,335 @@ interface MarketStreamContextType {
   subscribeSymbol: (symbol: string) => void;
   getQuote: (symbol: string, fallback?: any) => LiveTick | null;
   syncQuote: (quote: Partial<LiveTick> & { symbol: string; price: number }) => void;
+  now: number;
 }
 
 const MarketStreamContext = createContext<MarketStreamContextType>({
-  ticks: {},
-  connectionStatus: 'connecting',
-  isMarketLive: false,
-  subscribeSymbol: () => {},
-  getQuote: () => null,
-  syncQuote: () => {},
+  ticks: {}, connectionStatus: 'connecting', isMarketLive: false,
+  subscribeSymbol: () => {}, getQuote: () => null, syncQuote: () => {}, now: Date.now()
 });
 
 const BINANCE_PAIR_MAP: Record<string, string> = {
-  'BTCUSDT': 'BTC-USD',
-  'ETHUSDT': 'ETH-USD',
-  'SOLUSDT': 'SOL-USD',
-  'BNBUSDT': 'BNB-USD',
-  'XRPUSDT': 'XRP-USD',
-  'DOGEUSDT': 'DOGE-USD',
-  'ADAUSDT': 'ADA-USD',
-  'AVAXUSDT': 'AVAX-USD',
-  'LINKUSDT': 'LINK-USD',
-  'NEARUSDT': 'NEAR-USD',
-  'SUIUSDT': 'SUI-USD',
-  'PEPEUSDT': 'PEPE-USD',
-  'DOTUSDT': 'DOT-USD',
-  'APTUSDT': 'APT-USD',
-  'SHIBUSDT': 'SHIB-USD',
-  'LTCUSDT': 'LTC-USD',
-  'UNIUSDT': 'UNI-USD',
-  'ARBUSDT': 'ARB-USD',
-  'OPUSDT': 'OP-USD',
-  'RENDERUSDT': 'RENDER-USD',
-  'ICPUSDT': 'ICP-USD',
-  'FETUSDT': 'FET-USD',
+  BTCUSDT:'BTC-USD', ETHUSDT:'ETH-USD', SOLUSDT:'SOL-USD', BNBUSDT:'BNB-USD', XRPUSDT:'XRP-USD',
+  DOGEUSDT:'DOGE-USD', ADAUSDT:'ADA-USD', AVAXUSDT:'AVAX-USD', LINKUSDT:'LINK-USD', NEARUSDT:'NEAR-USD',
+  SUIUSDT:'SUI-USD', PEPEUSDT:'PEPE-USD', DOTUSDT:'DOT-USD', APTUSDT:'APT-USD', SHIBUSDT:'SHIB-USD',
+  LTCUSDT:'LTC-USD', UNIUSDT:'UNI-USD', ARBUSDT:'ARB-USD', OPUSDT:'OP-USD', RENDERUSDT:'RENDER-USD',
+  ICPUSDT:'ICP-USD', FETUSDT:'FET-USD'
 };
 
-// Check if instrument is an Indian stock, index, or derivative
 export function isIndianSymbol(symbol: string): boolean {
-  if (!symbol) return false;
-  const s = symbol.toUpperCase();
-  return (
-    s.endsWith('.NS') ||
-    s.endsWith('.BO') ||
-    s.startsWith('^NSE') ||
-    s.startsWith('^BSE') ||
-    s.startsWith('^CNX') ||
-    s === '^NSEI' ||
-    s === '^BSESN'
-  );
+  const value = String(symbol || '').toUpperCase();
+  return value.endsWith('.NS') || value.endsWith('.BO') || /^\^(NSE|BSE|CNX)/.test(value);
 }
 
-// Client-side IST trading session determination (NSE/BSE: 09:15 to 15:30 IST)
 export function isIndianMarketOpenNow(): boolean {
-  const now = new Date();
-  const istFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Kolkata',
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: false,
-    weekday: 'short'
-  });
-  const parts = istFormatter.formatToParts(now);
-  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
-  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
-  const weekday = parts.find(p => p.type === 'weekday')?.value || 'Mon';
-  if (weekday === 'Sat' || weekday === 'Sun') return false;
-  const totalMins = hour * 60 + minute;
-  // 09:15 to 15:30 IST
-  return totalMins >= 555 && totalMins <= 930;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata', hour: 'numeric', minute: 'numeric', hour12: false, weekday: 'short'
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find(part => part.type === type)?.value || '0';
+  const day = get('weekday');
+  if (day === 'Sat' || day === 'Sun') return false;
+  const minutes = Number(get('hour')) * 60 + Number(get('minute'));
+  return minutes >= 555 && minutes < 930;
 }
+
+const INITIAL_SYMBOLS = ['^NSEI','^BSESN','^NSEBANK','RELIANCE.NS','TCS.NS','HDFCBANK.NS','INFY.NS','GC=F','SI=F','CL=F','NG=F','INR=X','EURINR=X','GBPINR=X','BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD','DOGE-USD','ADA-USD'];
 
 export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ticks, setTicks] = useState<Record<string, LiveTick>>({});
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connected');
-  const [isMarketLive, setIsMarketLive] = useState(isIndianMarketOpenNow);
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const flashTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const activeSymbolsRef = useRef<Set<string>>(new Set<string>());
-  const binanceWsLastSeen = useRef<Map<string, number>>(new Map());
+  const [connectionStatus, setConnectionStatus] = useState<'connected'|'connecting'|'disconnected'>('connecting');
+  const [isMarketLive, setIsMarketLive] = useState(isIndianMarketOpenNow());
+  const [now, setNow] = useState(Date.now());
+  const activeSymbols = useRef(new Set(INITIAL_SYMBOLS));
+  const binanceLastSeen = useRef(new Map<string, number>());
+  const cryptoSocketConnected = useRef(false);
+  const flashTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
-  // Batch process tick updates with strict after-hours freeze for Indian stocks and authoritative Binance WS priority
-  const handleTickUpdate = useCallback((newTicks: LiveTick[], isLive?: boolean, isFromBinanceWs: boolean = false) => {
-    const indianOpen = isIndianMarketOpenNow();
-    if (isLive !== undefined) setIsMarketLive(indianOpen);
+  // Performance Optimization: Throttle UI state updates to <= 4 renders/sec (250ms batch window)
+  const pendingTicksBuffer = useRef<Map<string, LiveTick>>(new Map());
+  const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    setTicks(prev => {
-      const next = { ...prev };
-      const now = Date.now();
+  const flushBuffer = useCallback(() => {
+    if (pendingTicksBuffer.current.size === 0) return;
+    const batchUpdates = Array.from(pendingTicksBuffer.current.values());
+    pendingTicksBuffer.current.clear();
 
-      for (const t of newTicks) {
-        activeSymbolsRef.current.add(t.symbol);
-        const existing = prev[t.symbol];
+    setTicks(previous => {
+      const next = { ...previous };
+      const currentTime = Date.now();
+      for (const quote of batchUpdates) {
+        const price = Number(quote.price);
+        const timestamp = Number(quote.timestamp || (quote.lastUpdated ? Date.parse(quote.lastUpdated) : 0));
+        if (!quote.symbol || !Number.isFinite(price) || price <= 0 || !timestamp) continue;
 
-        // 1. FREEZE INDIAN EQUITIES & INDICES AFTER 3:30 PM IST (and weekends)
-        if (isIndianSymbol(t.symbol) && !indianOpen) {
-          if (existing) {
-            // Keep existing settlement price 100% frozen, zero flashes, isLive = false
-            next[t.symbol] = {
-              ...existing,
-              isLive: false,
-              flash: null
-            };
-            continue;
-          }
+        const existing = previous[quote.symbol];
+        const indian = isIndianSymbol(quote.symbol);
+        const closed = indian && !isIndianMarketOpenNow();
+        const tickAge = currentTime - timestamp;
+        const isStale = tickAge > 10 * 60_000; // > 2 signal candles (10 min)
+
+        let sourceStatus = quote.status || 'UNAVAILABLE';
+        if (closed) {
+          sourceStatus = 'CLOSED';
+        } else if (isStale) {
+          sourceStatus = 'STALE';
         }
 
-        // 2. CRYPTO: DO NOT OVERWRITE NATIVE LIVE BINANCE WS TICKS WITH REST / SSE SNAPSHOTS
-        if (t.symbol.includes('-USD') && !isFromBinanceWs) {
-          const lastWs = binanceWsLastSeen.current.get(t.symbol) || 0;
-          if (now - lastWs < 15000 && existing && existing.price > 0) {
-            // Native WebSocket stream is live and fresh; skip stale REST update
-            continue;
-          }
-        }
-
-        let flash: 'up' | 'down' | null = null;
-        if (existing && existing.price > 0 && t.price > 0) {
-          if (t.price > existing.price) flash = 'up';
-          else if (t.price < existing.price) flash = 'down';
-        }
-
-        next[t.symbol] = {
+        const flash = existing && price > existing.price ? 'up' : existing && price < existing.price ? 'down' : null;
+        next[quote.symbol] = {
           ...existing,
-          ...t,
-          isLive: isIndianSymbol(t.symbol) ? indianOpen : (t.isLive !== undefined ? t.isLive : true),
+          ...quote,
+          price,
+          timestamp,
+          status: sourceStatus,
+          source: quote.source,
+          lastUpdated: quote.lastUpdated || new Date(timestamp).toISOString(),
+          isLive: (sourceStatus === 'LIVE' || sourceStatus.startsWith('LIVE')) && (!indian || !closed),
           flash: flash || existing?.flash || null
         };
 
-        // Reset flash after 750ms
         if (flash) {
-          const oldTimer = flashTimers.current.get(t.symbol);
-          if (oldTimer) clearTimeout(oldTimer);
-
-          const timer = setTimeout(() => {
-            setTicks(current => {
-              if (!current[t.symbol]) return current;
-              return {
-                ...current,
-                [t.symbol]: {
-                  ...current[t.symbol],
-                  flash: null
-                }
-              };
-            });
-            flashTimers.current.delete(t.symbol);
-        }, 1200);
-
-          flashTimers.current.set(t.symbol, timer);
+          const priorTimer = flashTimers.current.get(quote.symbol);
+          if (priorTimer) clearTimeout(priorTimer);
+          flashTimers.current.set(quote.symbol, setTimeout(() => {
+            setTicks(current => current[quote.symbol] ? { ...current, [quote.symbol]: { ...current[quote.symbol], flash: null } } : current);
+            flashTimers.current.delete(quote.symbol);
+          }, 700));
         }
       }
       return next;
     });
   }, []);
 
-  // Fetch fresh ticks from the REST endpoint
-  const pollTicks = useCallback(async () => {
+  const handleTickUpdate = useCallback((incoming: LiveTick[], fromBinance = false) => {
+    const currentTime = Date.now();
+    for (const quote of incoming) {
+      if (!quote.symbol) continue;
+      if (quote.symbol.endsWith('-USD') && !fromBinance && currentTime - (binanceLastSeen.current.get(quote.symbol) || 0) < 15_000) {
+        continue;
+      }
+      pendingTicksBuffer.current.set(quote.symbol, quote);
+    }
+
+    if (!flushTimer.current) {
+      flushTimer.current = setTimeout(() => {
+        flushTimer.current = null;
+        flushBuffer();
+      }, 250); // Bounded to 4 updates/sec maximum
+    }
+  }, [flushBuffer]);
+
+  const pollQuotes = useCallback(async () => {
+    const symbols = [...activeSymbols.current].filter(symbol => !cryptoSocketConnected.current || !symbol.endsWith('-USD'));
+    const batches = Array.from({ length: Math.ceil(symbols.length / 40) }, (_, index) => symbols.slice(index * 40, (index + 1) * 40));
+    let anyLiveQuote = false;
+    let receivedBatch = false;
     try {
-      const res = await fetch('/api/stream/ticks', { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.ticks) && data.ticks.length > 0) {
-          handleTickUpdate(data.ticks, data.isLive);
-          setConnectionStatus('connected');
+      for (const batch of batches) {
+        const response = await fetch(`/api/stream/ticks?symbols=${encodeURIComponent(batch.join(','))}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Quote request failed (${response.status})`);
+        const body = await response.json();
+        if (Array.isArray(body.ticks)) {
+          receivedBatch = true;
+          const mapped = body.ticks.map((t: LiveTick) => ({
+            ...t,
+            source: t.source || (isIndianSymbol(t.symbol) ? 'SIMULATED (NSE Replay)' : 'Global Stream')
+          }));
+          handleTickUpdate(mapped);
+          anyLiveQuote ||= body.ticks.some((quote: LiveTick) => quote.status === 'LIVE');
         }
       }
+      setConnectionStatus(receivedBatch ? 'connected' : 'disconnected');
+      return anyLiveQuote;
     } catch {
-      // Ignore network errors during polling
+      setConnectionStatus('disconnected');
     }
+    return false;
   }, [handleTickUpdate]);
 
-  // Dual Connection: SSE with automatic fast REST polling fallback for Vercel Serverless
   useEffect(() => {
-    // 1. Initial snapshot fetch
-    pollTicks();
-
-    // 2. Continuous fallback polling (runs every 2 seconds, immune to Vercel SSE timeouts)
-    const pollingInterval = setInterval(pollTicks, 2000);
-
-    // 3. SSE Connection Attempt
-    let es: EventSource | null = null;
-    try {
-      es = new EventSource('/api/stream');
-      eventSourceRef.current = es;
-
-      es.onopen = () => {
-        setConnectionStatus('connected');
-      };
-
-      es.addEventListener('init', (e: MessageEvent) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (data.isLive !== undefined) setIsMarketLive(data.isLive);
-          if (Array.isArray(data.cachedTicks)) {
-            handleTickUpdate(data.cachedTicks, data.isLive);
-          }
-        } catch {
-          // ignore
-        }
-      });
-
-      es.addEventListener('ticks', (e: MessageEvent) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (Array.isArray(data.ticks)) {
-            handleTickUpdate(data.ticks, data.isLive);
-          }
-        } catch {
-          // ignore
-        }
-      });
-
-      es.addEventListener('heartbeat', (e: MessageEvent) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (data.isLive !== undefined) setIsMarketLive(data.isLive);
-        } catch {
-          // ignore
-        }
-      });
-
-      es.onerror = () => {
-        // When SSE drops (common on Vercel after 10-15s), remain 'connected' via REST polling
-        if (eventSourceRef.current) {
-          eventSourceRef.current.close();
-        }
-      };
-    } catch {
-      // SSE not supported or blocked
-    }
-
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-      clearInterval(pollingInterval);
-      flashTimers.current.forEach(timer => clearTimeout(timer));
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      const hasLiveIndianFeed = await pollQuotes();
+      if (!stopped) timer = setTimeout(poll, hasLiveIndianFeed && isIndianMarketOpenNow() ? 5000 : 60_000);
     };
-  }, [pollTicks, handleTickUpdate]);
+    poll();
+    const marketClock = setInterval(() => setIsMarketLive(isIndianMarketOpenNow()), 30_000);
+    const freshnessClock = setInterval(() => setNow(Date.now()), 5000);
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+      clearInterval(marketClock);
+      clearInterval(freshnessClock);
+      flashTimers.current.forEach(clearTimeout);
+      if (flushTimer.current) clearTimeout(flushTimer.current);
+    };
+  }, [pollQuotes]);
 
-  // 1. Native Real-Time Binance WebSocket Stream (TradingView Exact Live Feeds)
-  // Connects directly from client browser, 100% resilient on Vercel without server limits
+  // Direct Binance WebSocket with Exponential Backoff + Proxy Tunnel Fail-Safe + Heartbeat
   useEffect(() => {
-    let ws: WebSocket | null = null;
-    let reconnectTimer: NodeJS.Timeout | null = null;
-    let isUnmounted = false;
+    let socket: WebSocket | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+    let stopped = false;
+    let backoffDelay = 2000;
+    let failedAttempts = 0;
 
-    const connectBinanceWs = () => {
+    // Avoid connecting to direct external WebSockets inside automated audit crawlers or Lighthouse
+    const isCrawler = typeof navigator !== 'undefined' && (
+      /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless/i.test(navigator.userAgent || '') ||
+      Boolean((window as any).__PRERENDER_INJECTED)
+    );
+    if (isCrawler) return;
+
+    const connect = () => {
+      if (stopped || failedAttempts >= 3) return;
       try {
-        ws = new WebSocket('wss://stream.binance.com:9443/ws/!miniTicker@arr');
-
-        ws.onopen = () => {
-          setConnectionStatus('connected');
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (!Array.isArray(data)) return;
-
-            const ticksToUpdate: LiveTick[] = [];
-            for (const item of data) {
-              const ourSymbol = BINANCE_PAIR_MAP[item.s];
-              if (!ourSymbol) continue;
-
-              const price = parseFloat(item.c);
-              const open = parseFloat(item.o);
-              const high = parseFloat(item.h);
-              const low = parseFloat(item.l);
-              const volume = parseFloat(item.v);
-              if (isNaN(price) || price <= 0) continue;
-
-              const change = Number((price - open).toFixed(price > 100 ? 2 : (price < 1 ? 6 : 4)));
-              const changePercent = open > 0 ? Number((((price - open) / open) * 100).toFixed(2)) : 0;
-
-              ticksToUpdate.push({
-                symbol: ourSymbol,
-                price,
-                previousClose: open,
-                change,
-                changePercent,
-                dayHigh: high,
-                dayLow: low,
-                volume,
-                timestamp: item.E || Date.now(),
-                source: 'Binance WebSocket',
-                isLive: true
-              });
-            }
-
-            if (ticksToUpdate.length > 0) {
-              const now = Date.now();
-              for (const t of ticksToUpdate) {
-                binanceWsLastSeen.current.set(t.symbol, now);
-              }
-              handleTickUpdate(ticksToUpdate, true, true);
-            }
-          } catch {
-            // ignore
-          }
-        };
-
-        ws.onerror = () => {
-          try { ws?.close(); } catch {}
-        };
-
-        ws.onclose = () => {
-          if (!isUnmounted) {
-            reconnectTimer = setTimeout(connectBinanceWs, 3000);
-          }
-        };
+        // Connect via standard port 443 (WSS) to prevent proxy tunnel rejection on non-standard port 9443
+        socket = new WebSocket('wss://stream.binance.com:443/ws/!miniTicker@arr');
       } catch {
-        if (!isUnmounted) {
-          reconnectTimer = setTimeout(connectBinanceWs, 5000);
-        }
+        cryptoSocketConnected.current = false;
+        failedAttempts += 1;
+        return;
       }
+      
+      socket.onopen = () => {
+        cryptoSocketConnected.current = true;
+        setConnectionStatus('connected');
+        failedAttempts = 0;
+        backoffDelay = 2000;
+
+        // Heartbeat every 15s
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        heartbeatTimer = setInterval(() => {
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ method: 'ping' }));
+          }
+        }, 15000);
+      };
+
+      socket.onmessage = event => {
+        try {
+          const items = JSON.parse(event.data);
+          if (!Array.isArray(items)) return;
+          const at = Date.now();
+          const updates: LiveTick[] = items.flatMap(item => {
+            const symbol = BINANCE_PAIR_MAP[item.s];
+            const price = Number(item.c), open = Number(item.o), timestamp = Number(item.E || at);
+            if (!symbol || !Number.isFinite(price) || price <= 0 || !Number.isFinite(open) || open <= 0 || Math.abs(at - timestamp) > 60_000) return [];
+            binanceLastSeen.current.set(symbol, at);
+            return [{
+              symbol,
+              price,
+              previousClose: open,
+              change: price - open,
+              changePercent: (price - open) / open * 100,
+              dayHigh: Number(item.h),
+              dayLow: Number(item.l),
+              volume: Number(item.v),
+              timestamp,
+              isLive: true,
+              status: 'LIVE',
+              source: 'LIVE (Binance WS)',
+              currency: 'USDT',
+              lastUpdated: new Date(timestamp).toISOString()
+            }];
+          });
+          if (updates.length) handleTickUpdate(updates, true);
+        } catch { /* discard malformed provider payload */ }
+      };
+
+      socket.onerror = () => {
+        try { socket?.close(); } catch {}
+      };
+
+      socket.onclose = () => {
+        cryptoSocketConnected.current = false;
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        failedAttempts += 1;
+        if (!stopped) {
+          // If proxy/network blocks direct WebSockets (e.g. audit crawler / corporate proxy),
+          // gracefully back off to 5 minutes so pollQuotes() cleanly handles streaming via backend REST
+          const delay = failedAttempts >= 2 ? 300_000 : backoffDelay;
+          retryTimer = setTimeout(connect, delay);
+          backoffDelay = Math.min(30_000, backoffDelay * 2);
+        }
+      };
     };
 
-    connectBinanceWs();
-
-    // Direct Binance REST fetch on mount for instant zero-latency crypto quotes
-    fetch('https://api.binance.com/api/v3/ticker/24hr')
-      .then(res => res.json())
-      .then((arr: any[]) => {
-        if (!Array.isArray(arr)) return;
-        const initialTicks: LiveTick[] = [];
-        for (const item of arr) {
-          const ourSymbol = BINANCE_PAIR_MAP[item.symbol];
-          if (!ourSymbol) continue;
-          const price = parseFloat(item.lastPrice);
-          const prevClose = parseFloat(item.prevClosePrice);
-          const change = parseFloat(item.priceChange);
-          const changePercent = parseFloat(item.priceChangePercent);
-          if (price > 0) {
-            initialTicks.push({
-              symbol: ourSymbol,
-              price,
-              previousClose: prevClose,
-              change: Number(change.toFixed(price > 100 ? 2 : 4)),
-              changePercent: Number(changePercent.toFixed(2)),
-              dayHigh: parseFloat(item.highPrice),
-              dayLow: parseFloat(item.lowPrice),
-              volume: parseFloat(item.volume),
-              timestamp: Date.now(),
-              source: 'Binance REST ticker',
-              isLive: true
-            });
-          }
-        }
-        if (initialTicks.length > 0) {
-          handleTickUpdate(initialTicks, true);
-        }
-      })
-      .catch(() => {});
-
+    connect();
     return () => {
-      isUnmounted = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (ws) {
-        try { ws.close(); } catch {}
-      }
+      stopped = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      socket?.close();
     };
   }, [handleTickUpdate]);
 
   const subscribeSymbol = useCallback((symbol: string) => {
-    if (!symbol) return;
-    const clean = symbol.trim().toUpperCase();
-    activeSymbolsRef.current.add(clean);
-
-    fetch('/api/stream/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ symbol: clean })
-    }).catch(() => {});
+    if (symbol) activeSymbols.current.add(symbol.trim().toUpperCase());
   }, []);
 
   const getQuote = useCallback((symbol: string, fallback?: any): LiveTick | null => {
     if (ticks[symbol]) return ticks[symbol];
-    if (fallback) {
-      return {
-        symbol,
-        price: fallback.price || 0,
-        previousClose: fallback.previousClose || fallback.price || 0,
-        change: fallback.change || 0,
-        changePercent: fallback.changePercent || 0,
-        dayHigh: fallback.dayHigh || fallback.price || 0,
-        dayLow: fallback.dayLow || fallback.price || 0,
-        volume: fallback.volume || 0,
-        timestamp: Date.now(),
-        isLive: isMarketLive,
-        flash: null
-      };
-    }
-    return null;
-  }, [ticks, isMarketLive]);
+    if (!fallback || !(Number(fallback.price) > 0)) return null;
+    const timestamp = Number(fallback.timestamp || (fallback.lastUpdated ? Date.parse(fallback.lastUpdated) : 0));
+    return { symbol, price: Number(fallback.price), previousClose: Number(fallback.previousClose || fallback.price),
+      change: Number(fallback.change || 0), changePercent: Number(fallback.changePercent || 0), dayHigh: Number(fallback.dayHigh || fallback.price),
+      dayLow: Number(fallback.dayLow || fallback.price), volume: Number(fallback.volume || 0), timestamp, isLive: fallback.status === 'LIVE',
+      status: fallback.status || 'UNAVAILABLE', source: fallback.source || null, lastUpdated: fallback.lastUpdated || null, flash: null };
+  }, [ticks]);
 
   const syncQuote = useCallback((quote: Partial<LiveTick> & { symbol: string; price: number }) => {
-    if (!quote || !quote.symbol || typeof quote.price !== 'number' || quote.price <= 0) return;
-    setTicks(prev => {
-      const existing = prev[quote.symbol];
-      // Don't overwrite live real-time Binance ticks with stale REST snapshots
-      if (existing && existing.isLive && quote.symbol.includes('-USD') && existing.price > 0) {
-        return prev;
-      }
-      if (!existing || existing.price <= 0 || Math.abs(existing.price - quote.price) / quote.price > 0.03 || (!existing.isLive && existing.price !== quote.price)) {
-        return {
-          ...prev,
-          [quote.symbol]: {
-            symbol: quote.symbol,
-            price: quote.price,
-            previousClose: quote.previousClose || quote.price,
-            change: quote.change ?? (existing?.change || 0),
-            changePercent: quote.changePercent ?? (existing?.changePercent || 0),
-            dayHigh: quote.dayHigh || Math.max(existing?.dayHigh || 0, quote.price),
-            dayLow: quote.dayLow || Math.min(existing?.dayLow || quote.price, quote.price),
-            volume: quote.volume ?? existing?.volume ?? 0,
-            timestamp: quote.timestamp || Date.now(),
-            source: quote.source || existing?.source,
-            isLive: existing ? existing.isLive : true,
-            flash: null
-          }
-        };
-      }
-      return prev;
+    if (!quote?.symbol || !(quote.price > 0)) return;
+    const timestamp = Number(quote.timestamp || (quote.lastUpdated ? Date.parse(quote.lastUpdated) : 0));
+    if (!timestamp || timestamp > Date.now() + 60_000) return;
+    setTicks(previous => {
+      const existing = previous[quote.symbol];
+      if (existing?.isLive && quote.symbol.endsWith('-USD')) return previous;
+      const indian = isIndianSymbol(quote.symbol);
+      const closed = indian && !isIndianMarketOpenNow();
+      const price = closed && existing && existing.price > 0 ? existing.price : quote.price;
+      const status = closed ? 'CLOSED' : (quote.status || 'UNAVAILABLE');
+      return { ...previous, [quote.symbol]: {
+        ...existing, ...quote, price, timestamp, status, isLive: !closed && quote.status === 'LIVE',
+        previousClose: Number(quote.previousClose || price), change: Number(quote.change || 0), changePercent: Number(quote.changePercent || 0),
+        dayHigh: Number(quote.dayHigh || price), dayLow: Number(quote.dayLow || price), volume: Number(quote.volume || 0), flash: null
+      } as LiveTick };
     });
   }, []);
 
-  return (
-    <MarketStreamContext.Provider
-      value={{
-        ticks,
-        connectionStatus,
-        isMarketLive,
-        subscribeSymbol,
-        getQuote,
-        syncQuote,
-      }}
-    >
-      {children}
-    </MarketStreamContext.Provider>
-  );
+  return <MarketStreamContext.Provider value={{ ticks, connectionStatus, isMarketLive, subscribeSymbol, getQuote, syncQuote, now }}>{children}</MarketStreamContext.Provider>;
 };
 
 export const useMarketStream = () => useContext(MarketStreamContext);
 
-// Hook to get a reactive live quote for a specific symbol
 export function useLivePrice(symbol: string, initialQuote?: any) {
-  const { ticks, subscribeSymbol, isMarketLive, connectionStatus, syncQuote } = useMarketStream();
-
+  const { ticks, subscribeSymbol, isMarketLive, connectionStatus, syncQuote, now } = useMarketStream();
+  useEffect(() => { if (symbol) subscribeSymbol(symbol); }, [symbol, subscribeSymbol]);
   useEffect(() => {
-    if (symbol) subscribeSymbol(symbol);
-  }, [symbol, subscribeSymbol]);
-
-  useEffect(() => {
-    if (symbol && initialQuote && typeof initialQuote.price === 'number' && initialQuote.price > 0) {
-      syncQuote({
-        symbol,
-        price: initialQuote.price,
-        previousClose: initialQuote.previousClose,
-        change: initialQuote.change,
-        changePercent: initialQuote.changePercent,
-        dayHigh: initialQuote.dayHigh,
-        dayLow: initialQuote.dayLow,
-        volume: initialQuote.volume,
-        timestamp: initialQuote.timestampEpoch ? initialQuote.timestampEpoch * 1000 : initialQuote.timestamp,
-        source: initialQuote.source
-      });
-    }
-  }, [symbol, initialQuote?.price, syncQuote]);
-
-  const liveTick = ticks[symbol];
-
-  const price = liveTick ? liveTick.price : (initialQuote?.price ?? 0);
-  const change = liveTick ? liveTick.change : (initialQuote?.change ?? 0);
-  const changePercent = liveTick ? liveTick.changePercent : (initialQuote?.changePercent ?? 0);
-  const dayHigh = liveTick ? liveTick.dayHigh : (initialQuote?.dayHigh ?? price);
-  const dayLow = liveTick ? liveTick.dayLow : (initialQuote?.dayLow ?? price);
-  const volume = liveTick ? liveTick.volume : (initialQuote?.volume ?? 0);
-  const flash = liveTick?.flash || null;
-
+    if (symbol && initialQuote && Number(initialQuote.price) > 0) syncQuote({
+      symbol, price: Number(initialQuote.price), previousClose: initialQuote.previousClose, change: initialQuote.change,
+      changePercent: initialQuote.changePercent, dayHigh: initialQuote.dayHigh, dayLow: initialQuote.dayLow, volume: initialQuote.volume,
+      timestamp: initialQuote.timestamp, lastUpdated: initialQuote.lastUpdated, source: initialQuote.source, currency: initialQuote.currency, status: initialQuote.status
+    });
+  }, [symbol, initialQuote?.price, initialQuote?.lastUpdated, syncQuote]);
+  const isIndian = isIndianSymbol(symbol);
+  const isClosed = isIndian && !isIndianMarketOpenNow();
+  const tick = ticks[symbol];
+  const tickAge = tick?.timestamp ? now - tick.timestamp : Number.POSITIVE_INFINITY;
+  const tickFresh = tickAge >= 0 && tickAge <= 15_000;
+  const status = isClosed
+    ? 'CLOSED'
+    : (tick?.status === 'LIVE' && !tickFresh ? 'STALE' : tick?.status || initialQuote?.status || 'UNAVAILABLE');
   return {
-    price,
-    change,
-    changePercent,
-    dayHigh,
-    dayLow,
-    volume,
-        timestamp: liveTick?.timestamp,
-        source: liveTick?.source || initialQuote?.source,
-    flash,
-    isMarketLive,
-    connectionStatus,
-    isTickLive: !!liveTick?.isLive
+    price: tick?.price ?? Number(initialQuote?.price || 0), change: tick?.change ?? Number(initialQuote?.change || 0),
+    changePercent: tick?.changePercent ?? Number(initialQuote?.changePercent || 0), dayHigh: tick?.dayHigh ?? Number(initialQuote?.dayHigh || 0),
+    dayLow: tick?.dayLow ?? Number(initialQuote?.dayLow || 0), volume: tick?.volume ?? Number(initialQuote?.volume || 0), flash: tick?.flash || null,
+    timestamp: tick?.timestamp || Number(initialQuote?.timestamp || (initialQuote?.lastUpdated ? Date.parse(initialQuote.lastUpdated) : 0)),
+    isMarketLive, connectionStatus, isTickLive: Boolean(tick?.isLive && tickFresh && !isClosed), status,
+    source: tick?.source || initialQuote?.source || null, currency: tick?.currency || initialQuote?.currency || null,
+    lastUpdated: tick?.lastUpdated || initialQuote?.lastUpdated || null
   };
 }

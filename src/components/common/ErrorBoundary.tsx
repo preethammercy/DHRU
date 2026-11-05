@@ -44,21 +44,21 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen w-full flex items-center justify-center p-6 bg-[#F8FAFC] dark:bg-[#070B14] text-slate-900 dark:text-white">
-          <div className="max-w-md w-full bg-white dark:bg-[#0A101D] border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-2xl text-center space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400">
+        <div className="min-h-screen w-full flex items-center justify-center p-6 bg-surface dark:bg-surface text-ink dark:text-ink">
+          <div className="max-w-md w-full bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-8  text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-surface-2 dark:bg-surface-2 border border-line dark:border-line flex items-center justify-center text-warn dark:text-warn">
               <AlertTriangle className="w-7 h-7" />
             </div>
 
             <div className="space-y-1">
               <h2 className="text-xl font-black tracking-tight">Session Recovery Active</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-ink-2 dark:text-ink-3">
                 A temporary interface render issue was caught safely to preserve your account and margin data.
               </p>
             </div>
 
             {this.state.error && (
-              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl text-left font-mono text-[11px] text-slate-600 dark:text-slate-400 max-h-24 overflow-y-auto border border-slate-200 dark:border-slate-800">
+              <div className="p-3 bg-surface-2 dark:bg-surface-2 rounded-xl text-left font-mono text-ink-2 dark:text-ink-3 max-h-24 overflow-y-auto border border-line dark:border-line">
                 {this.state.error.message}
               </div>
             )}
@@ -66,7 +66,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 onClick={this.handleReload}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-brand-fill hover:bg-brand-fill text-on-brand font-bold text-xs transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Reload Dashboard</span>
@@ -74,7 +74,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
               <button
                 onClick={this.handleReset}
-                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold text-xs transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-line dark:border-line text-ink-2 dark:text-ink-3 hover:bg-surface-2 dark:hover:bg-surface-2 font-semibold text-xs transition-colors cursor-pointer"
               >
                 <Home className="w-3.5 h-3.5" />
                 <span>Reset View</span>

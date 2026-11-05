@@ -2,15 +2,15 @@
 // Provides an explicit, multi-factor, quantitative risk classification:
 // Low, Moderate, High, Very High supported by verifiable mathematical inputs.
 
-export function evaluateMarketWideRisk(niftyData, breadthData, macroData = []) {
+export function evaluateMarketWideRisk(niftyData, breadthData, macroData) {
   let score = 35; // Baseline neutral score
   const factors = [];
   const mitigations = [];
 
   // Factor 1: Drawdown from 52W High
-  const niftyPrice = niftyData?.price || 24200;
-  const nifty52High = niftyData?.fiftyTwoWeekHigh || Math.max(niftyPrice, 26277);
-  const drawdownPct = nifty52High > 0 ? ((nifty52High - niftyPrice) / nifty52High) * 100 : 0;
+  const niftyPrice = niftyData?.price || 22700;
+  const nifty52High = niftyData?.fiftyTwoWeekHigh || 26277;
+  const drawdownPct = ((nifty52High - niftyPrice) / nifty52High) * 100;
 
   if (drawdownPct > 15) {
     score += 25;
@@ -24,8 +24,8 @@ export function evaluateMarketWideRisk(niftyData, breadthData, macroData = []) {
   }
 
   // Factor 2: Market Breadth (Advances vs Declines)
-  const advances = breadthData?.advances ?? 24;
-  const declines = breadthData?.declines ?? 26;
+  const advances = breadthData?.advances || 15;
+  const declines = breadthData?.declines || 15;
   const breadthRatio = declines > 0 ? advances / declines : 1;
 
   if (breadthRatio < 0.6) {
@@ -37,8 +37,7 @@ export function evaluateMarketWideRisk(niftyData, breadthData, macroData = []) {
   }
 
   // Factor 3: Macro Commodities (Crude Oil)
-  const crudeItem = Array.isArray(macroData) ? macroData.find(m => m.symbol === 'CL=F') : null;
-  const crude = crudeItem?.price || 74.5;
+  const crude = macroData?.find(m => m.symbol === 'CL=F')?.price || 75;
   if (crude > 88) {
     score += 15;
     factors.push({ name: 'Elevated Crude Oil ($' + crude.toFixed(1) + '/bbl)', impact: '+15 Risk', note: 'Higher energy prices pressure India’s Current Account Deficit and fuel domestic inflation.' });
@@ -48,9 +47,8 @@ export function evaluateMarketWideRisk(niftyData, breadthData, macroData = []) {
   }
 
   // Factor 4: Currency (USD/INR)
-  const usdinrItem = Array.isArray(macroData) ? macroData.find(m => m.symbol === 'INR=X') : null;
-  const usdinr = usdinrItem?.price || 84.1;
-  if (usdinr > 85.5) {
+  const usdinr = macroData?.find(m => m.symbol === 'INR=X')?.price || 86;
+  if (usdinr > 88) {
     score += 10;
     factors.push({ name: 'Rupee Depreciation Pressures (₹' + usdinr.toFixed(2) + '/$)', impact: '+10 Risk', note: 'Weaker rupee can trigger foreign institutional outflows (FII selling).' });
   }
@@ -86,8 +84,8 @@ export function evaluateMarketWideRisk(niftyData, breadthData, macroData = []) {
     metrics: {
       drawdownPct: Number(drawdownPct.toFixed(2)),
       breadthRatio: Number(breadthRatio.toFixed(2)),
-      crudePrice: Number(crude.toFixed(2)),
-      usdInr: Number(usdinr.toFixed(2))
+      crudePrice: crude,
+      usdInr: usdinr
     },
     methodology: 'Multi-factor composite scoring combining 52W benchmark drawdown, advance/decline breadth, imported macro commodity pressures, and currency volatility.'
   };
@@ -102,6 +100,7 @@ export function evaluateInstrumentRisk(stockQuote, technicals, recentNews = []) 
 
   const price = stockQuote.price;
   const high52 = stockQuote.fiftyTwoWeekHigh || price;
+  const low52 = stockQuote.fiftyTwoWeekLow || price;
 
   // 1. Drawdown from 52W High
   const drawdown = high52 > 0 ? ((high52 - price) / high52) * 100 : 0;
@@ -146,7 +145,7 @@ export function evaluateInstrumentRisk(stockQuote, technicals, recentNews = []) 
   }
 
   // 3. Negative News count
-  const negativeNews = Array.isArray(recentNews) ? recentNews.filter(n => n.sentiment === 'Bearish').length : 0;
+  const negativeNews = recentNews.filter(n => n.sentiment === 'Bearish').length;
   if (negativeNews >= 2) {
     riskScore += 15;
     riskSignals.push(`${negativeNews} recent negative media or regulatory headlines identified.`);

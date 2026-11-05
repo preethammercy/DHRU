@@ -11,6 +11,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { useMarketStream } from '../../context/MarketStreamContext';
 import { IndicatorConfig, DEFAULT_INDICATORS } from '../../types/indicators';
 import { IndicatorModal } from './IndicatorModal';
+import { motion } from 'motion/react';
+import { duration, ease } from '../../design/motion';
+import { getChartTheme } from '../../design/chartTheme';
 import {
   calculateSMA,
   calculateEMA,
@@ -110,6 +113,11 @@ function formatPrice(val?: number): string {
   return val.toFixed(8);
 }
 
+function designToken(name: string, fallback: string): string {
+  if (typeof document === 'undefined') return fallback;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+
 export const TradingViewChart: React.FC<ChartProps> = ({
   candles,
   volumeData: _volumeData,
@@ -121,9 +129,10 @@ export const TradingViewChart: React.FC<ChartProps> = ({
   const { theme } = useTheme();
   const { ticks } = useMarketStream();
   const isDark = theme === 'dark';
+  const chartColors = getChartTheme(isDark);
 
   const isUsd = symbol.includes('-USD') || (symbol.endsWith('=X') && !symbol.includes('INR'));
-  const currencySym = isUsd ? '$' : '₹';
+  const currencySym = symbol.endsWith('-USD') ? `${ticks[symbol]?.currency || 'USDT'} ` : isUsd ? '$' : '₹';
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const oscillatorContainerRef = useRef<HTMLDivElement>(null);
@@ -140,41 +149,27 @@ export const TradingViewChart: React.FC<ChartProps> = ({
   const [showVolume, setShowVolume] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [indicatorModalOpen, setIndicatorModalOpen] = useState(false);
+  const [seriesOpacity, setSeriesOpacity] = useState(1);
+  const previousIntervalRef = useRef(activeInterval);
+
+  useEffect(() => {
+    if (previousIntervalRef.current === activeInterval) return;
+    previousIntervalRef.current = activeInterval;
+    setSeriesOpacity(0);
+    const firstFrame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setSeriesOpacity(1));
+    });
+    return () => window.cancelAnimationFrame(firstFrame);
+  }, [activeInterval]);
 
   // Indicators state
   const [indicators, setIndicators] = useState<IndicatorConfig[]>(() => {
-    const storageKey = 'dhru_chart_indicators';
-    const migrationKey = 'dhru_chart_indicators_defaults_off_v1';
-    const defaults = DEFAULT_INDICATORS.map(indicator => ({ ...indicator, enabled: false }));
-    try {
-      const raw = localStorage.getItem(storageKey);
-      const saved = raw ? JSON.parse(raw) : [];
-      const savedById = new Map<string, IndicatorConfig>(
-        Array.isArray(saved) ? saved.filter((item: any) => item && typeof item.id === 'string').map((item: IndicatorConfig) => [item.id, item]) : []
-      );
-      const migrated = localStorage.getItem(migrationKey) !== '1';
-      const initial = defaults.map(indicator => {
-        const previous = savedById.get(indicator.id);
-        return previous
-          ? { ...indicator, ...previous, enabled: migrated ? false : previous.enabled === true }
-          : indicator;
-      });
-      if (migrated) {
-        localStorage.setItem(migrationKey, '1');
-        localStorage.setItem(storageKey, JSON.stringify(initial));
-      }
-      return initial;
-    } catch {
-      return defaults;
-    }
+    const saved = localStorage.getItem('dhru_chart_indicators');
+    return saved ? JSON.parse(saved) : DEFAULT_INDICATORS;
   });
 
   useEffect(() => {
-    try {
-      localStorage.setItem('dhru_chart_indicators', JSON.stringify(indicators));
-    } catch {
-      // Chart settings remain usable when browser storage is unavailable.
-    }
+    localStorage.setItem('dhru_chart_indicators', JSON.stringify(indicators));
   }, [indicators]);
 
   const [hoverData, setHoverData] = useState<{
@@ -227,22 +222,13 @@ export const TradingViewChart: React.FC<ChartProps> = ({
   // Synchronized Live LTP strictly matched with candlestick bar series
   const liveLtp = useMemo(() => {
     const tick = ticks[symbol];
-    if (tick && tick.price > 0) {
-      if (cleanCandles.length > 0) {
-        const last = cleanCandles[cleanCandles.length - 1];
-        const isCryptoSym = symbol.includes('-USD');
-        const maxVar = isCryptoSym ? 0.40 : 0.15;
-        if (last.close > 0 && Math.abs(tick.price - last.close) / last.close <= maxVar) {
-          return tick.price;
-        }
-      } else {
-        return tick.price;
-      }
+    if (tick?.isLive && tick.price > 0) {
+      return tick.price;
     }
-    if (cleanCandles.length > 0) {
+    if (!ticks[symbol]?.isLive && cleanCandles.length > 0) {
       return cleanCandles[cleanCandles.length - 1].close;
     }
-    return currentPrice;
+    return ticks[symbol]?.isLive ? currentPrice : 0;
   }, [ticks, symbol, cleanCandles, currentPrice]);
 
   // Active oscillators
@@ -255,6 +241,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
     const container = chartContainerRef.current;
     if (!container) return;
 
+    const compactChartHeight = window.matchMedia('(max-width: 767px)').matches ? 240 : 320;
+
     if (chartRef.current) {
       chartRef.current.remove();
       chartRef.current = null;
@@ -265,37 +253,39 @@ export const TradingViewChart: React.FC<ChartProps> = ({
 
     const chart = createChart(container, {
       width: container.clientWidth,
-      height: isFullscreen ? window.innerHeight - (activeOscillators.length > 0 ? 320 : 180) : 460,
+      height: isFullscreen ? window.innerHeight - (activeOscillators.length > 0 ? 320 : 180) : compactChartHeight,
       layout: {
-        background: { color: isDark ? '#0D1527' : '#FFFFFF' },
-        textColor: isDark ? '#94A3B8' : '#64748B',
+        background: { color: chartColors.surface },
+        textColor: chartColors.text2,
+        fontFamily: 'Geist, ui-sans-serif, system-ui, sans-serif',
+        fontSize: 12,
       },
       grid: {
-        vertLines: { color: isDark ? '#142036' : '#F1F5F9' },
-        horzLines: { color: isDark ? '#142036' : '#F1F5F9' },
+        vertLines: { color: chartColors.grid },
+        horzLines: { color: chartColors.grid },
       },
       crosshair: {
         mode: 1, // Normal crosshair
         vertLine: {
-          color: isDark ? '#38BDF8' : '#2563EB',
+          color: chartColors.focus,
           width: 1,
           style: LineStyle.Dashed,
         },
         horzLine: {
-          color: isDark ? '#38BDF8' : '#2563EB',
+          color: chartColors.focus,
           width: 1,
           style: LineStyle.Dashed,
         },
       },
       rightPriceScale: {
-        borderColor: isDark ? '#1E2D4A' : '#E2E8F0',
+        borderColor: chartColors.border,
         scaleMargins: {
           top: 0.08,
           bottom: showVolume ? 0.22 : 0.08,
         },
       },
       timeScale: {
-        borderColor: isDark ? '#1E2D4A' : '#E2E8F0',
+        borderColor: chartColors.border,
         timeVisible: true,
         secondsVisible: false,
       },
@@ -319,20 +309,20 @@ export const TradingViewChart: React.FC<ChartProps> = ({
     let mainSeries: ISeriesApi<any>;
     if (chartType === 'candlestick') {
       mainSeries = chart.addCandlestickSeries({
-        upColor: '#10B981',
-        downColor: '#EF4444',
-        borderUpColor: '#10B981',
-        borderDownColor: '#EF4444',
-        wickUpColor: '#10B981',
-        wickDownColor: '#EF4444',
+        upColor: chartColors.positive,
+        downColor: chartColors.negative,
+        borderUpColor: chartColors.positive,
+        borderDownColor: chartColors.negative,
+        wickUpColor: chartColors.positive,
+        wickDownColor: chartColors.negative,
         priceFormat: seriesPriceFormat,
       });
       mainSeries.setData(cleanCandles as any);
     } else {
       mainSeries = chart.addLineSeries({
-        color: '#2563EB',
+        color: chartColors.focus,
         lineWidth: 2,
-        priceLineColor: '#2563EB',
+        priceLineColor: chartColors.focus,
         priceFormat: seriesPriceFormat,
       });
       mainSeries.setData(cleanCandles.map(c => ({ time: c.time, value: c.close })) as any);
@@ -343,7 +333,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
     // Volume Series
     if (showVolume) {
       const volSeries = chart.addHistogramSeries({
-        color: '#26a69a',
+        color: chartColors.surface2,
         priceFormat: { type: 'volume' },
         priceScaleId: '',
       });
@@ -353,16 +343,15 @@ export const TradingViewChart: React.FC<ChartProps> = ({
       const volData = cleanCandles.map(c => ({
         time: c.time,
         value: c.volume || 0,
-        color: c.close >= c.open ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+        color: c.close >= c.open ? chartColors.positive : chartColors.negative,
       }));
       volSeries.setData(volData as any);
       volumeSeriesRef.current = volSeries;
     }
 
-    // Crosshair inspection listener
+    // Crosshair inspection listener (keeps tapped candle pinned on touch devices)
     chart.subscribeCrosshairMove(param => {
       if (!param || !param.time || !param.seriesData) {
-        setHoverData(null);
         return;
       }
 
@@ -384,6 +373,10 @@ export const TradingViewChart: React.FC<ChartProps> = ({
         });
       }
     });
+
+    const chartElem = chartContainerRef.current;
+    const handleMouseLeave = () => setHoverData(null);
+    chartElem?.addEventListener('mouseleave', handleMouseLeave);
 
     // Draw Overlay Indicators
     for (const ind of indicators) {
@@ -456,9 +449,9 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const mult = Number(ind.params.multiplier || 2);
           const bbData = calculateBollingerBands(cleanCandles, period, mult);
           if (bbData.length > 0) {
-            const upper = chart.addLineSeries({ color: 'rgba(37, 99, 235, 0.7)', lineWidth: 1, lineStyle: LineStyle.Dotted });
-            const mid = chart.addLineSeries({ color: ind.color, lineWidth: 2 });
-            const lower = chart.addLineSeries({ color: 'rgba(37, 99, 235, 0.7)', lineWidth: 1, lineStyle: LineStyle.Dotted });
+            const upper = chart.addLineSeries({ color: 'rgba(37, 99, 235, 0.7)', lineWidth: 1, lineStyle: LineStyle.Dotted, lastValueVisible: false, priceLineVisible: false });
+            const mid = chart.addLineSeries({ color: ind.color, lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+            const lower = chart.addLineSeries({ color: 'rgba(37, 99, 235, 0.7)', lineWidth: 1, lineStyle: LineStyle.Dotted, lastValueVisible: false, priceLineVisible: false });
             upper.setData(bbData.map(v => ({ time: v.time, value: v.upper })) as any);
             mid.setData(bbData.map(v => ({ time: v.time, value: v.middle })) as any);
             lower.setData(bbData.map(v => ({ time: v.time, value: v.lower })) as any);
@@ -471,9 +464,9 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const mult = Number(ind.params.multiplier || 2);
           const kcData = calculateKeltnerChannels(cleanCandles, period, mult);
           if (kcData.length > 0) {
-            const upper = chart.addLineSeries({ color: 'rgba(217, 119, 6, 0.6)', lineWidth: 1, lineStyle: LineStyle.Dotted });
-            const mid = chart.addLineSeries({ color: ind.color, lineWidth: 2 });
-            const lower = chart.addLineSeries({ color: 'rgba(217, 119, 6, 0.6)', lineWidth: 1, lineStyle: LineStyle.Dotted });
+            const upper = chart.addLineSeries({ color: 'rgba(217, 119, 6, 0.6)', lineWidth: 1, lineStyle: LineStyle.Dotted, lastValueVisible: false, priceLineVisible: false });
+            const mid = chart.addLineSeries({ color: ind.color, lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+            const lower = chart.addLineSeries({ color: 'rgba(217, 119, 6, 0.6)', lineWidth: 1, lineStyle: LineStyle.Dotted, lastValueVisible: false, priceLineVisible: false });
             upper.setData(kcData.map(v => ({ time: v.time, value: v.upper })) as any);
             mid.setData(kcData.map(v => ({ time: v.time, value: v.middle })) as any);
             lower.setData(kcData.map(v => ({ time: v.time, value: v.lower })) as any);
@@ -485,8 +478,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const period = Number(ind.params.period || 20);
           const dcData = calculateDonchianChannels(cleanCandles, period);
           if (dcData.length > 0) {
-            const upper = chart.addLineSeries({ color: 'rgba(2, 132, 199, 0.7)', lineWidth: 1 });
-            const lower = chart.addLineSeries({ color: 'rgba(2, 132, 199, 0.7)', lineWidth: 1 });
+            const upper = chart.addLineSeries({ color: chartColors.info, lineWidth: 1 });
+            const lower = chart.addLineSeries({ color: chartColors.info, lineWidth: 1 });
             upper.setData(dcData.map(v => ({ time: v.time, value: v.upper })) as any);
             lower.setData(dcData.map(v => ({ time: v.time, value: v.lower })) as any);
             overlaySeriesMap.current.set(`${ind.id}_upper`, upper);
@@ -513,26 +506,26 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const pivots = calculatePivotPoints(lastC.high, lastC.low, lastC.close);
           mainSeries.createPriceLine({
             price: pivots.r1,
-            color: '#EF4444',
+            color: chartColors.neg,
             lineWidth: 1,
             lineStyle: LineStyle.Dashed,
-            axisLabelVisible: true,
+            axisLabelVisible: false,
             title: `R1: ${currencySym}${pivots.r1}`,
           });
           mainSeries.createPriceLine({
             price: pivots.p,
-            color: '#3B82F6',
+            color: chartColors.primary,
             lineWidth: 1,
             lineStyle: LineStyle.Solid,
-            axisLabelVisible: true,
+            axisLabelVisible: false,
             title: `Pivot: ${currencySym}${pivots.p}`,
           });
           mainSeries.createPriceLine({
             price: pivots.s1,
-            color: '#10B981',
+            color: chartColors.pos,
             lineWidth: 1,
             lineStyle: LineStyle.Dashed,
-            axisLabelVisible: true,
+            axisLabelVisible: false,
             title: `S1: ${currencySym}${pivots.s1}`,
           });
         }
@@ -545,6 +538,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
               lineWidth: 2,
               lineStyle: LineStyle.Solid,
               title: 'Order Block',
+              lastValueVisible: false,
+              priceLineVisible: false,
             });
             series.setData(obData as any);
             overlaySeriesMap.current.set(ind.id, series);
@@ -557,6 +552,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
               lineWidth: 2,
               lineStyle: LineStyle.Dashed,
               title: 'FVG Imbalance',
+              lastValueVisible: false,
+              priceLineVisible: false,
             });
             series.setData(fvgData as any);
             overlaySeriesMap.current.set(ind.id, series);
@@ -564,8 +561,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
         } else if (ind.id === 'ichimoku') {
           const { tenkan, kijun } = calculateIchimoku(cleanCandles);
           if (tenkan.length > 0) {
-            const tSeries = chart.addLineSeries({ color: '#10B981', lineWidth: 2, title: 'Tenkan (9)' });
-            const kSeries = chart.addLineSeries({ color: '#EF4444', lineWidth: 2, title: 'Kijun (26)' });
+            const tSeries = chart.addLineSeries({ color: chartColors.pos, lineWidth: 2, title: 'Tenkan (9)', lastValueVisible: false, priceLineVisible: false });
+            const kSeries = chart.addLineSeries({ color: chartColors.neg, lineWidth: 2, title: 'Kijun (26)', lastValueVisible: false, priceLineVisible: false });
             tSeries.setData(tenkan as any);
             kSeries.setData(kijun as any);
             overlaySeriesMap.current.set(`${ind.id}_tenkan`, tSeries);
@@ -579,6 +576,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
               lineWidth: 2,
               lineStyle: LineStyle.Dashed,
               title: 'ATR Trail Stop',
+              lastValueVisible: false,
+              priceLineVisible: false,
             });
             series.setData(trailData as any);
             overlaySeriesMap.current.set(ind.id, series);
@@ -595,7 +594,7 @@ export const TradingViewChart: React.FC<ChartProps> = ({
       if (chartRef.current && container) {
         chartRef.current.applyOptions({
           width: container.clientWidth,
-          height: isFullscreen ? window.innerHeight - (activeOscillators.length > 0 ? 320 : 180) : 460,
+          height: isFullscreen ? window.innerHeight - (activeOscillators.length > 0 ? 320 : 180) : compactChartHeight,
         });
       }
     };
@@ -626,17 +625,19 @@ export const TradingViewChart: React.FC<ChartProps> = ({
 
     const oscChart = createChart(container, {
       width: container.clientWidth,
-      height: 140,
+      height: 120,
       layout: {
-        background: { color: isDark ? '#070B14' : '#F8FAFC' },
-        textColor: isDark ? '#94A3B8' : '#64748B',
+        background: { color: chartColors.surface },
+        textColor: chartColors.text,
+        fontFamily: 'Geist, ui-sans-serif, system-ui, sans-serif',
+        fontSize: 12,
       },
       grid: {
-        vertLines: { color: isDark ? '#142036' : '#E2E8F0' },
-        horzLines: { color: isDark ? '#142036' : '#E2E8F0' },
+        vertLines: { color: chartColors.grid },
+        horzLines: { color: chartColors.grid },
       },
       rightPriceScale: {
-        borderColor: isDark ? '#1E2D4A' : '#E2E8F0',
+        borderColor: chartColors.border,
       },
       timeScale: {
         visible: false,
@@ -653,8 +654,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           if (rsiData.length > 0) {
             const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'RSI 14' });
             series.setData(rsiData as any);
-            series.createPriceLine({ price: 70, color: '#EF4444', lineWidth: 1, lineStyle: LineStyle.Dashed, title: 'Overbought (70)' });
-            series.createPriceLine({ price: 30, color: '#10B981', lineWidth: 1, lineStyle: LineStyle.Dashed, title: 'Oversold (30)' });
+            series.createPriceLine({ price: 70, color: chartColors.neg, lineWidth: 1, lineStyle: LineStyle.Dashed, title: 'Overbought (70)' });
+            series.createPriceLine({ price: 30, color: chartColors.pos, lineWidth: 1, lineStyle: LineStyle.Dashed, title: 'Oversold (30)' });
             oscSeriesMap.current.set(osc.id, series);
           }
         } else if (osc.id === 'macd') {
@@ -663,8 +664,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const signal = Number(osc.params.signal || 9);
           const macdData = calculateMACD(cleanCandles, fast, slow, signal);
           if (macdData.length > 0) {
-            const macdSeries = oscChart.addLineSeries({ color: '#2563EB', lineWidth: 2, title: 'MACD' });
-            const sigSeries = oscChart.addLineSeries({ color: '#EF4444', lineWidth: 2, title: 'Signal' });
+            const macdSeries = oscChart.addLineSeries({ color: chartColors.primary, lineWidth: 2, title: 'MACD' });
+            const sigSeries = oscChart.addLineSeries({ color: chartColors.neg, lineWidth: 2, title: 'Signal' });
             macdSeries.setData(macdData.map(v => ({ time: v.time, value: v.macd })) as any);
             sigSeries.setData(macdData.map(v => ({ time: v.time, value: v.signal })) as any);
           }
@@ -674,8 +675,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           const smoothD = Number(osc.params.smoothD || 3);
           const stochData = calculateStochastic(cleanCandles, period, smoothK, smoothD);
           if (stochData.length > 0) {
-            const kSeries = oscChart.addLineSeries({ color: '#0EA5E9', lineWidth: 2, title: '%K' });
-            const dSeries = oscChart.addLineSeries({ color: '#F59E0B', lineWidth: 2, title: '%D' });
+            const kSeries = oscChart.addLineSeries({ color: chartColors.info, lineWidth: 2, title: '%K' });
+            const dSeries = oscChart.addLineSeries({ color: chartColors.warn, lineWidth: 2, title: '%D' });
             kSeries.setData(stochData.map(v => ({ time: v.time, value: v.k })) as any);
             dSeries.setData(stochData.map(v => ({ time: v.time, value: v.d })) as any);
           }
@@ -685,8 +686,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           if (cciData.length > 0) {
             const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'CCI 20' });
             series.setData(cciData as any);
-            series.createPriceLine({ price: 100, color: '#EF4444', lineWidth: 1, lineStyle: LineStyle.Dashed });
-            series.createPriceLine({ price: -100, color: '#10B981', lineWidth: 1, lineStyle: LineStyle.Dashed });
+            series.createPriceLine({ price: 100, color: chartColors.neg, lineWidth: 1, lineStyle: LineStyle.Dashed });
+            series.createPriceLine({ price: -100, color: chartColors.pos, lineWidth: 1, lineStyle: LineStyle.Dashed });
           }
         } else if (osc.id === 'adx') {
           const period = Number(osc.params.period || 14);
@@ -694,28 +695,28 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           if (adxData.length > 0) {
             const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'ADX 14' });
             series.setData(adxData.map(v => ({ time: v.time, value: v.adx })) as any);
-            series.createPriceLine({ price: 25, color: '#3B82F6', lineWidth: 1, lineStyle: LineStyle.Dashed, title: 'Trend Threshold (25)' });
+            series.createPriceLine({ price: 25, color: chartColors.primary, lineWidth: 1, lineStyle: LineStyle.Dashed, title: 'Trend Threshold (25)' });
           }
         } else if (osc.id === 'cmf') {
           const cmfData = calculateCMF(cleanCandles);
           if (cmfData.length > 0) {
             const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'CMF (20)' });
             series.setData(cmfData as any);
-            series.createPriceLine({ price: 0, color: '#64748B', lineWidth: 1, lineStyle: LineStyle.Dashed });
+            series.createPriceLine({ price: 0, color: chartColors.neutral, lineWidth: 1, lineStyle: LineStyle.Dashed });
           }
         } else if (osc.id === 'aroon') {
           const aroonData = calculateAroon(cleanCandles);
           if (aroonData.length > 0) {
             const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'Aroon Osc' });
             series.setData(aroonData as any);
-            series.createPriceLine({ price: 0, color: '#64748B', lineWidth: 1, lineStyle: LineStyle.Dashed });
+            series.createPriceLine({ price: 0, color: chartColors.neutral, lineWidth: 1, lineStyle: LineStyle.Dashed });
           }
         } else if (osc.id === 'tsi') {
           const tsiData = calculateTSI(cleanCandles);
           if (tsiData.length > 0) {
             const series = oscChart.addLineSeries({ color: osc.color, lineWidth: 2, title: 'TSI' });
             series.setData(tsiData as any);
-            series.createPriceLine({ price: 0, color: '#64748B', lineWidth: 1, lineStyle: LineStyle.Dashed });
+            series.createPriceLine({ price: 0, color: chartColors.neutral, lineWidth: 1, lineStyle: LineStyle.Dashed });
           }
         }
       } catch (err) {
@@ -740,25 +741,37 @@ export const TradingViewChart: React.FC<ChartProps> = ({
   // 3. Non-Resetting Incremental Live Bar Updates
   useEffect(() => {
     const liveTick = ticks[symbol];
-    if (!liveTick || !mainSeriesRef.current || cleanCandles.length === 0) return;
+    if (!liveTick?.isLive || !liveTick.timestamp || !mainSeriesRef.current || cleanCandles.length === 0) return;
 
     const lastCandle = cleanCandles[cleanCandles.length - 1];
     const newPrice = liveTick.price;
     if (newPrice <= 0) return;
 
-    // Sanity check: ensure live price is within acceptable range of the last candle close
-    // For crypto assets, allow up to 40% variance to support volatile runs and wide daily swings
-    const isCryptoSym = symbol.includes('-USD');
-    const maxVar = isCryptoSym ? 0.40 : 0.15;
-    if (lastCandle.close > 0 && Math.abs(newPrice - lastCandle.close) / lastCandle.close > maxVar) {
-      return;
+    const interval = activeInterval.toLowerCase();
+    const epoch = Math.floor(liveTick.timestamp / 1000);
+    const minuteSize = interval === '60m' || interval === '1h' ? 60 : Number.parseInt(interval, 10);
+    let bucket = epoch;
+    if (Number.isFinite(minuteSize) && minuteSize > 0 && interval.endsWith('m')) bucket = Math.floor(epoch / (minuteSize * 60)) * minuteSize * 60;
+    else if (interval === '1d' || interval === '1w' || interval === '1wk') {
+      const isIndian = symbol.endsWith('.NS') || symbol.endsWith('.BO') || symbol.startsWith('^');
+      const sessionOffset = isIndian ? 3 * 3600 + 45 * 60 : 0;
+      const day = Math.floor((epoch - sessionOffset) / 86400) * 86400 + sessionOffset;
+      if (interval === '1d') bucket = day;
+      else {
+        const weekday = new Date(day * 1000).getUTCDay();
+        bucket = day - ((weekday + 6) % 7) * 86400;
+      }
     }
-
+    const lastTimeSeconds = typeof lastCandle.time === 'number'
+      ? lastCandle.time
+      : Math.floor(new Date(lastCandle.time).getTime() / 1000);
+    const bucketTime = Math.max(lastTimeSeconds, bucket);
+    const isSameBar = bucketTime === lastTimeSeconds;
     const updatedBar = {
-      time: lastCandle.time,
-      open: lastCandle.open,
-      high: Math.max(lastCandle.high, newPrice),
-      low: Math.min(lastCandle.low, newPrice),
+      time: bucketTime,
+      open: isSameBar ? lastCandle.open : lastCandle.close,
+      high: Math.max(isSameBar ? lastCandle.high : lastCandle.close, newPrice),
+      low: Math.min(isSameBar ? lastCandle.low : lastCandle.close, newPrice),
       close: newPrice,
       volume: liveTick.volume || lastCandle.volume || 0,
     };
@@ -767,20 +780,20 @@ export const TradingViewChart: React.FC<ChartProps> = ({
       if (chartType === 'candlestick') {
         mainSeriesRef.current.update(updatedBar as any);
       } else {
-        mainSeriesRef.current.update({ time: lastCandle.time, value: newPrice } as any);
+        mainSeriesRef.current.update({ time: bucketTime, value: newPrice } as any);
       }
 
       if (volumeSeriesRef.current) {
         volumeSeriesRef.current.update({
-          time: lastCandle.time,
+          time: bucketTime,
           value: updatedBar.volume,
-          color: updatedBar.close >= updatedBar.open ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)',
+          color: updatedBar.close >= updatedBar.open ? chartColors.positive : chartColors.negative,
         } as any);
       }
     } catch {
       // Ignore transient bar update collision
     }
-  }, [ticks, symbol, chartType, cleanCandles]);
+  }, [ticks, symbol, chartType, cleanCandles, activeInterval]);
 
   // Zoom / Pan actions
   const handleZoomIn = () => {
@@ -839,15 +852,15 @@ export const TradingViewChart: React.FC<ChartProps> = ({
   const activeIndicatorCount = indicators.filter(i => i.enabled).length;
 
   return (
-    <div className={`bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm transition-all ${
+    <div className={`bg-surface dark:bg-surface border border-line dark:border-line rounded-xl overflow-hidden  transition-all ${
       isFullscreen ? 'fixed inset-0 z-50 rounded-none p-4' : ''
     }`}>
       
       {/* 1. Terminal Top Control Bar: Strictly Single-Choice Period Selection */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#070B14]/80 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-line dark:border-line bg-surface-2 dark:bg-bg text-xs">
         
         {/* Left: Unified Single-Choice Timeframe Period Buttons (No dual selector!) */}
-        <div className="flex items-center gap-1 bg-slate-200/70 dark:bg-slate-800/80 p-0.5 rounded-lg overflow-x-auto scrollbar-none max-w-full">
+        <div className="flex items-center gap-0 bg-surface-2 dark:bg-surface-2 p-0.5 rounded-lg overflow-x-auto scrollbar-none max-w-full" role="group" aria-label="Chart timeframe">
           {UNIFIED_TIMEFRAMES.map(item => {
             const isActive = activeInterval === item.interval;
             return (
@@ -855,13 +868,14 @@ export const TradingViewChart: React.FC<ChartProps> = ({
                 key={item.label}
                 title={item.title}
                 onClick={() => onTimeframeChange?.(item.range, item.interval)}
-                className={`px-2.5 py-1 rounded font-semibold text-[11px] transition-all cursor-pointer whitespace-nowrap ${
+                className={`relative px-2.5 py-1 rounded font-semibold text-ink transition-all cursor-pointer whitespace-nowrap ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-xs font-bold'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/40 dark:hover:bg-slate-700/40'
+                    ? 'text-ink dark:text-ink-3 font-bold'
+                    : 'text-ink-2 dark:text-ink-2 hover:text-ink dark:hover:text-on-brand hover:bg-surface-2 dark:hover:bg-surface-2'
                 }`}
               >
-                {item.label}
+                {isActive && <motion.span layoutId="chart-timeframe-indicator" className="absolute inset-0 rounded-md bg-surface dark:bg-surface border border-line-strong dark:border-line" transition={{ duration: duration.base, ease: ease.out }} aria-hidden="true" />}
+                <span className="relative z-10">{item.label}</span>
               </button>
             );
           })}
@@ -873,24 +887,24 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           {/* Indicator Manager Modal Trigger */}
           <button
             onClick={() => setIndicatorModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium hover:border-blue-500 transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-surface dark:bg-surface border border-line dark:border-line-strong rounded-lg text-ink-2 dark:text-ink font-medium hover:border-brand transition-colors cursor-pointer "
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+            <Sparkles className="w-3.5 h-3.5 text-warn dark:text-warn" />
             <span>Indicators</span>
-            <span className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-[10px] flex items-center justify-center font-bold">
+            <span className="w-4 h-4 rounded-full bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand text-ink flex items-center justify-center font-bold">
               {activeIndicatorCount}
             </span>
           </button>
 
           {/* Candlestick vs Line Toggle */}
-          <div className="flex items-center bg-slate-200/70 dark:bg-slate-800/80 p-0.5 rounded-lg">
+          <div className="flex items-center bg-surface-2 dark:bg-surface-2 p-0.5 rounded-lg">
             <button
               onClick={() => setChartType('candlestick')}
               title="Candlestick Chart"
               className={`p-1 rounded transition-colors cursor-pointer ${
                 chartType === 'candlestick'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-cyan-400 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'bg-surface dark:bg-surface-2 text-brand dark:text-brand '
+                  : 'text-ink-3 hover:text-ink dark:hover:text-ink-3'
               }`}
             >
               <BarChart2 className="w-3.5 h-3.5" />
@@ -900,8 +914,8 @@ export const TradingViewChart: React.FC<ChartProps> = ({
               title="Line Chart"
               className={`p-1 rounded transition-colors cursor-pointer ${
                 chartType === 'line'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-cyan-400 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'bg-surface dark:bg-surface-2 text-brand dark:text-brand '
+                  : 'text-ink-3 hover:text-ink dark:hover:text-ink-3'
               }`}
             >
               <TrendingUp className="w-3.5 h-3.5" />
@@ -912,10 +926,10 @@ export const TradingViewChart: React.FC<ChartProps> = ({
           <button
             onClick={() => setShowVolume(!showVolume)}
             title="Toggle Volume Bars"
-            className={`px-2 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
+            className={`px-2 py-1 rounded-lg text-ink font-semibold border transition-colors cursor-pointer ${
               showVolume
-                ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-cyan-300'
-                : 'border-slate-200 dark:border-slate-700 text-slate-500'
+                ? 'bg-surface-2 dark:bg-brand-fill border-line dark:border-line text-brand dark:text-brand'
+                : 'border-line dark:border-line-strong text-ink-3'
             }`}
           >
             VOL
@@ -926,28 +940,28 @@ export const TradingViewChart: React.FC<ChartProps> = ({
             <button
               onClick={handleZoomIn}
               title="Zoom In"
-              className="p-1.5 bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-xs"
+              className="p-1.5 bg-surface dark:bg-surface border border-line dark:border-line-strong rounded-lg text-ink-2 dark:text-ink-2 hover:bg-surface-2 dark:hover:bg-surface-3 cursor-pointer "
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleZoomOut}
               title="Zoom Out"
-              className="p-1.5 bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-xs"
+              className="p-1.5 bg-surface dark:bg-surface border border-line dark:border-line-strong rounded-lg text-ink-2 dark:text-ink-2 hover:bg-surface-2 dark:hover:bg-surface-3 cursor-pointer "
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleResetZoom}
               title="Fit to Data"
-              className="p-1.5 bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-xs"
+              className="p-1.5 bg-surface dark:bg-surface border border-line dark:border-line-strong rounded-lg text-ink-2 dark:text-ink-2 hover:bg-surface-2 dark:hover:bg-surface-3 cursor-pointer "
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={toggleFullscreen}
               title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-              className="p-1.5 bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shadow-xs"
+              className="p-1.5 bg-surface dark:bg-surface border border-line dark:border-line-strong rounded-lg text-ink-2 dark:text-ink-2 hover:bg-surface-2 dark:hover:bg-surface-3 cursor-pointer "
             >
               {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
             </button>
@@ -956,54 +970,61 @@ export const TradingViewChart: React.FC<ChartProps> = ({
       </div>
 
       {/* 2. Interactive OHLC Inspection Banner with Precise Date & Time */}
-      <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800/60 bg-white/50 dark:bg-[#0D1527]/50 flex flex-wrap items-center justify-between text-xs font-mono">
+      <div className="px-4 py-2 border-b border-line dark:border-line bg-surface dark:bg-surface flex flex-wrap items-center justify-between text-xs font-mono">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-slate-900 dark:text-white font-sans text-sm">
+          <span className="font-bold text-ink dark:text-ink font-sans text-sm">
             {symbol}
           </span>
           {hoverData ? (
-            <div className="flex flex-wrap items-center gap-3 text-slate-600 dark:text-slate-300">
+            <div className="flex flex-wrap items-center gap-3 text-ink-2 dark:text-ink-2">
               {hoverData.time && (
-                <span className="text-[11px] font-sans px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-cyan-300 border border-blue-200/50 dark:border-blue-800/40">
+                <span className="text-ink font-sans px-2 py-0.5 rounded bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand border border-line dark:border-line">
                   📅 {formatCandleTime(hoverData.time, activeInterval)}
                 </span>
               )}
-              <span>O: <strong className="text-slate-900 dark:text-white">{currencySym}{formatPrice(hoverData.open)}</strong></span>
-              <span>H: <strong className="text-emerald-600 dark:text-emerald-400">{currencySym}{formatPrice(hoverData.high)}</strong></span>
-              <span>L: <strong className="text-rose-600 dark:text-rose-400">{currencySym}{formatPrice(hoverData.low)}</strong></span>
-              <span>C: <strong className="text-slate-900 dark:text-white">{currencySym}{formatPrice(hoverData.close)}</strong></span>
+              <span>O: <strong className="text-ink dark:text-ink">{currencySym}{formatPrice(hoverData.open)}</strong></span>
+              <span>H: <strong className="text-pos dark:text-pos">{currencySym}{formatPrice(hoverData.high)}</strong></span>
+              <span>L: <strong className="text-neg dark:text-neg">{currencySym}{formatPrice(hoverData.low)}</strong></span>
+              <span>C: <strong className="text-ink dark:text-ink">{currencySym}{formatPrice(hoverData.close)}</strong></span>
+              {hoverData.volume !== undefined && hoverData.volume > 0 && (
+                <span>Vol: <strong className="text-ink dark:text-ink">{hoverData.volume.toLocaleString()}</strong></span>
+              )}
               {hoverData.change !== undefined && (
-                <span className={hoverData.change >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+                <span className={hoverData.change >= 0 ? 'text-pos font-bold' : 'text-neg font-bold'}>
                   {hoverData.change >= 0 ? '+' : ''}{currencySym}{hoverData.change} ({hoverData.changePercent}%)
                 </span>
               )}
             </div>
           ) : (
-            <div className="text-slate-400 font-sans text-xs flex items-center gap-2">
-              <span>Live LTP: <strong className="text-slate-900 dark:text-white font-mono">{currencySym}{formatPrice(liveLtp)}</strong></span>
-              <span className="text-[11px] text-slate-400">(Hover on candle to inspect historical timestamp & OHLC)</span>
+            <div className="text-ink-3 font-sans text-xs flex items-center gap-2">
+              <span>Live LTP: <strong className="text-ink dark:text-ink font-mono">{currencySym}{formatPrice(liveLtp)}</strong></span>
+              <span className="text-ink-3">Tap or drag on chart (hover on desktop) to inspect timestamp & OHLC</span>
             </div>
           )}
         </div>
 
-        <div className="text-[11px] text-slate-400 font-sans hidden sm:flex items-center gap-2">
+        <div className="text-ink-3 font-sans hidden sm:flex items-center gap-2">
           <span>Candles: <strong>{cleanCandles.length}</strong></span>
           <span>•</span>
-          <span>Period: <strong className="text-blue-600 dark:text-cyan-400">{activeInterval}</strong></span>
+          <span>Period: <strong className="text-brand dark:text-brand">{activeInterval}</strong></span>
         </div>
       </div>
 
       {/* 3. Main Chart Canvas Container */}
-      <div className="relative">
-        <div ref={chartContainerRef} className="w-full" />
+      <div className="relative chart-first-draw">
+        <div
+          ref={chartContainerRef}
+          className="w-full"
+          style={{ opacity: seriesOpacity, transition: `opacity ${window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 120 : 200}ms cubic-bezier(.2, 0, 0, 1)` }}
+        />
       </div>
 
       {/* 4. Subchart Oscillator Panes (RSI, MACD, Stoch, CCI, ADX, CMF, Aroon, TSI) */}
       {activeOscillators.length > 0 && (
-        <div className="border-t border-slate-200 dark:border-slate-800">
-          <div className="px-4 py-1.5 bg-slate-50 dark:bg-[#070B14] border-b border-slate-200 dark:border-slate-800 text-[11px] font-semibold flex items-center justify-between text-slate-500">
+        <div className="border-t border-line dark:border-line">
+          <div className="px-4 py-1.5 bg-surface-2 dark:bg-bg border-b border-line dark:border-line text-ink font-semibold flex items-center justify-between text-ink-3">
             <span>Subchart Oscillators ({activeOscillators.map(o => o.shortName).join(' • ')})</span>
-            <span className="text-[10px] text-slate-400">Synchronized Time Axis</span>
+            <span className="text-ink-3">Synchronized Time Axis</span>
           </div>
           <div ref={oscillatorContainerRef} className="w-full" />
         </div>

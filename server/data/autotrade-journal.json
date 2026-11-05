@@ -1,0 +1,94 @@
+[
+  {
+    "id": "basket-BTC-USD-1793716443084",
+    "symbol": "BTC-USD",
+    "market": "crypto",
+    "side": "BUY",
+    "score": 0,
+    "confidence": 0,
+    "setupType": "Trend Following",
+    "entryFill": 60112.02,
+    "quantity": 0.03,
+    "netPnl": 7.21,
+    "totalFees": 1.81,
+    "rMultiple": 0.03,
+    "openedAt": 1793716443086,
+    "closedAt": 1793716443092,
+    "exitReason": "Test completed cleanup",
+    "legs": [
+      {
+        "tier": "scalp",
+        "quantity": 0.01,
+        "entryFill": 60112.02,
+        "exitFill": 61037.79,
+        "pnl": 8.65,
+        "exitReason": "Target (SCALP) Hit"
+      },
+      {
+        "tier": "swing",
+        "quantity": 0.01,
+        "entryFill": 60112.02,
+        "exitFill": 60099.997596,
+        "pnl": -0.72,
+        "exitReason": "Test completed cleanup"
+      },
+      {
+        "tier": "runner",
+        "quantity": 0.01,
+        "entryFill": 60112.02,
+        "exitFill": 60099.997596,
+        "pnl": -0.72,
+        "exitReason": "Test completed cleanup"
+      }
+    ]
+  },
+  {
+    "id": "basket-TIGHTEN-USD-1793716441889",
+    "symbol": "TIGHTEN-USD",
+    "market": "crypto",
+    "side": "BUY",
+    "score": 0,
+    "confidence": 0,
+    "setupType": "Trend Following",
+    "entryFill": 101.0202,
+    "quantity": 1,
+    "netPnl": -0.12,
+    "totalFees": 0.1,
+    "rMultiple": 0,
+    "openedAt": 1793716441890,
+    "closedAt": 1793716441891,
+    "exitReason": "Test finished",
+    "legs": [
+      {
+        "tier": "scalp",
+        "quantity": 0.333333,
+        "entryFill": 101.0202,
+        "exitFill": 100.999996,
+        "pnl": -0.04,
+        "exitReason": "Test finished"
+      },
+      {
+        "tier": "swing",
+        "quantity": 0.333333,
+        "entryFill": 101.0202,
+        "exitFill": 100.999996,
+        "pnl": -0.04,
+        "exitReason": "Test finished"
+      },
+      {
+        "tier": "runner",
+        "quantity": 0.333334,
+        "entryFill": 101.0202,
+        "exitFill": 100.999996,
+        "pnl": -0.04,
+        "exitReason": "Test finished"
+      }
+    ]
+  },
+  {
+    "symbol": "LOSS-USD",
+    "market": "crypto",
+    "netPnl": -100,
+    "closedAt": "2026-11-03T14:34:01.889Z"
+  }
+]

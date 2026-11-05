@@ -22,6 +22,12 @@ import {
   Sparkles
 } from 'lucide-react';
 
+function maskId(id: string): string {
+  if (!id) return '***';
+  if (id.length <= 6) return id.slice(0, 2) + '***' + id.slice(-1);
+  return id.slice(0, 3) + '***' + id.slice(-4);
+}
+
 export const ProfilePage: React.FC = () => {
   const { user, updateUserProfile, marketMode, setMarketMode } = useAuth();
   const {
@@ -82,48 +88,56 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-16">
+    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-32 lg:pb-16">
       
+      {/* Paper Trading Simulation Compliance Banner */}
+      <div className="rounded-2xl p-4 bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-start gap-3 text-xs leading-relaxed">
+        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+        <div>
+          <span className="font-bold">Paper Trading Simulation Environment:</span> DHRU.AI is a financial market intelligence and simulation research platform. Virtual balances and simulated order books carry zero real-world financial liability. DHRU.AI is not a SEBI-registered broker or registered investment advisor.
+        </div>
+      </div>
+
       {/* Top Profile Summary Header Card */}
-      <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-3xl p-6 sm:p-8 shadow-card zoom-card">
+      <div className="bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-6 sm:p-8  zoom-card">
         <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
             {user?.photoURL ? (
               <img
                 src={user.photoURL}
                 alt={user.displayName}
-                className="w-20 h-20 rounded-2xl object-cover ring-4 ring-blue-500/20 shadow-md"
+                className="w-20 h-20 rounded-2xl object-cover ring-4 ring-brand "
               />
             ) : (
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <div className="w-20 h-20 rounded-2xl bg-brand-fill    text-on-brand font-black text-2xl flex items-center justify-center  ">
                 {(displayName || 'T').charAt(0).toUpperCase()}
               </div>
             )}
 
             <div>
               <div className="flex items-center justify-center sm:justify-start gap-2">
-                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                <h1 className="text-2xl font-black text-ink dark:text-ink tracking-tight">
                   {displayName || 'Trader Profile'}
                 </h1>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  Tier 3 KYC Verified
+                  Paper Simulation Account (Active)
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
-                Trader UID: {user?.uid || 'GUEST-8842'} • Exchange License ID: DHRU-IN-847291
+              <p className="text-xs text-ink-2 dark:text-ink-3 mt-1 font-mono">
+                Trader UID: {maskId(user?.uid || 'GUEST-8842')} • Paper Sim ID: {maskId('DHRU-IN-847291')}
               </p>
-              <div className="mt-2.5 inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 font-medium">
-                <Briefcase className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+              <div className="mt-2.5 inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-surface-2 dark:bg-surface-2 text-xs text-ink-2 dark:text-ink-3 font-medium">
+                <Briefcase className="w-3.5 h-3.5 text-brand dark:text-brand" />
                 <span>{traderIdentity}</span>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
-            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-[#1A2744] text-right w-full sm:w-48">
-              <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">Allocated Margin</span>
-              <span className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">
+            <div className="p-3 rounded-2xl bg-surface-2 dark:bg-surface border border-line dark:border-line text-right w-full sm:w-48">
+              <span className="text-ink-3 uppercase font-mono tracking-wider block">Allocated Margin</span>
+              <span className="text-lg font-black font-mono text-pos dark:text-pos">
                 {marketMode === 'crypto' ? `$${(marginAvailable / 85).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `₹${marginAvailable.toLocaleString()}`}
               </span>
             </div>
@@ -135,14 +149,14 @@ export const ProfilePage: React.FC = () => {
       <form onSubmit={handleSave} className="space-y-6">
         
         {/* Section 1: Trader Identity & Personal Info */}
-        <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-3xl p-6 sm:p-8 shadow-card space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+        <div className="bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-6 sm:p-8  space-y-6">
+          <div className="flex items-center justify-between border-b border-line dark:border-line pb-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <User className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+              <h2 className="text-lg font-bold text-ink dark:text-ink flex items-center gap-2">
+                <User className="w-5 h-5 text-brand dark:text-brand" />
                 Personal Information & Identities
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-ink-2 dark:text-ink-3 mt-0.5">
                 Update your public trader name, verified contact points, and trading persona.
               </p>
             </div>
@@ -150,7 +164,7 @@ export const ProfilePage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-ink-2 dark:text-ink-3 mb-1.5">
                 Full Display Name
               </label>
               <div className="relative">
@@ -159,13 +173,13 @@ export const ProfilePage: React.FC = () => {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="e.g. Niranjan Trader"
-                  className="w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-[#070B14] border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-slate-900 dark:text-white"
+                  className="w-full px-4 py-2.5 text-xs bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-xl focus:outline-none focus:ring-2 focus:ring-brand font-semibold text-ink dark:text-ink"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-ink-2 dark:text-ink-3 mb-1.5">
                 Primary Account Email
               </label>
               <div className="relative">
@@ -173,14 +187,14 @@ export const ProfilePage: React.FC = () => {
                   type="email"
                   value={email}
                   disabled
-                  className="w-full px-4 py-2.5 text-xs bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 font-mono cursor-not-allowed"
+                  className="w-full px-4 py-2.5 text-xs bg-surface-2 dark:bg-surface-2 border border-line dark:border-line rounded-xl text-ink-2 font-mono cursor-not-allowed"
                 />
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">Authenticated via Google Account Services</p>
+              <p className="text-ink-3 mt-1">Authenticated via Google Account Services</p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-ink-2 dark:text-ink-3 mb-1.5">
                 Registered Contact Number
               </label>
               <input
@@ -188,18 +202,18 @@ export const ProfilePage: React.FC = () => {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+91 98450 12890"
-                className="w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-[#070B14] border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-medium text-slate-900 dark:text-white"
+                className="w-full px-4 py-2.5 text-xs bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-xl focus:outline-none focus:ring-2 focus:ring-brand font-mono font-medium text-ink dark:text-ink"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-ink-2 dark:text-ink-3 mb-1.5">
                 Trader Style & Desk Identity
               </label>
               <select
                 value={traderIdentity}
                 onChange={(e) => setTraderIdentity(e.target.value)}
-                className="w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-[#070B14] border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-900 dark:text-white cursor-pointer"
+                className="w-full px-4 py-2.5 text-xs bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-xl focus:outline-none focus:ring-2 focus:ring-brand font-medium text-ink dark:text-ink cursor-pointer"
               >
                 <option value="Intraday & Algorithmic Momentum Trader">Intraday & Algorithmic Momentum Trader</option>
                 <option value="High-Frequency Scalper (1m - 5m)">High-Frequency Scalper (1m - 5m)</option>
@@ -213,14 +227,14 @@ export const ProfilePage: React.FC = () => {
         </div>
 
         {/* Section 2: Trading Currency & Risk Management Rules */}
-        <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-3xl p-6 sm:p-8 shadow-card space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+        <div className="bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-6 sm:p-8  space-y-6">
+          <div className="flex items-center justify-between border-b border-line dark:border-line pb-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              <h2 className="text-lg font-bold text-ink dark:text-ink flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-warn" />
                 Risk Parameters & Capital Controls
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-ink-2 dark:text-ink-3 mt-0.5">
                 Configure your circuit breakers, maximum order allocation, and preferred base denomination.
               </p>
             </div>
@@ -228,7 +242,7 @@ export const ProfilePage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-ink-2 dark:text-ink-3 mb-1.5">
                 Base Trading Currency
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -237,8 +251,8 @@ export const ProfilePage: React.FC = () => {
                   onClick={() => setBaseCurrency('INR')}
                   className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-2 ${
                     baseCurrency === 'INR'
-                      ? 'bg-blue-50 dark:bg-cyan-500/15 border-blue-600 text-blue-700 dark:text-cyan-400 shadow-xs'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                      ? 'bg-surface-2 dark:bg-brand-fill border-line text-brand dark:text-brand '
+                      : 'border-line dark:border-line text-ink-2 dark:text-ink-3 hover:bg-surface-2'
                   }`}
                 >
                   <span>🇮🇳</span>
@@ -250,8 +264,8 @@ export const ProfilePage: React.FC = () => {
                   onClick={() => setBaseCurrency('USD')}
                   className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-2 ${
                     baseCurrency === 'USD'
-                      ? 'bg-blue-50 dark:bg-cyan-500/15 border-blue-600 text-blue-700 dark:text-cyan-400 shadow-xs'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                      ? 'bg-surface-2 dark:bg-brand-fill border-line text-brand dark:text-brand '
+                      : 'border-line dark:border-line text-ink-2 dark:text-ink-3 hover:bg-surface-2'
                   }`}
                 >
                   <span>🪙</span>
@@ -261,53 +275,53 @@ export const ProfilePage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-ink-2 dark:text-ink-3 mb-1.5">
                 Max Daily Loss Limit ({baseCurrency === 'USD' ? '$' : '₹'})
               </label>
               <input
                 type="number"
                 value={maxDailyLoss}
                 onChange={(e) => setMaxDailyLoss(Number(e.target.value))}
-                className="w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-[#070B14] border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold text-slate-900 dark:text-white"
+                className="w-full px-4 py-2.5 text-xs bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-xl focus:outline-none focus:ring-2 focus:ring-brand font-mono font-bold text-ink dark:text-ink"
               />
-              <p className="text-[10px] text-slate-400 mt-1">Trading desk automatically halts if intraday drawdown exceeds this</p>
+              <p className="text-ink-3 mt-1">Trading desk automatically halts if intraday drawdown exceeds this</p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-ink-2 dark:text-ink-3 mb-1.5">
                 Max Single Order Value ({baseCurrency === 'USD' ? '$' : '₹'})
               </label>
               <input
                 type="number"
                 value={maxOrderValue}
                 onChange={(e) => setMaxOrderValue(Number(e.target.value))}
-                className="w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-[#070B14] border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold text-slate-900 dark:text-white"
+                className="w-full px-4 py-2.5 text-xs bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-xl focus:outline-none focus:ring-2 focus:ring-brand font-mono font-bold text-ink dark:text-ink"
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line">
               <div>
-                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Require Order Confirmation</h4>
-                <p className="text-[11px] text-slate-400 mt-0.5">Show confirmation modal before sending to order book</p>
+                <h4 className="text-xs font-bold text-ink dark:text-ink-3">Require Order Confirmation</h4>
+                <p className="text-ink-3 mt-0.5">Show confirmation modal before sending to order book</p>
               </div>
               <input
                 type="checkbox"
                 checked={requireConfirmation}
                 onChange={(e) => setRequireConfirmation(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded cursor-pointer accent-blue-600"
+                className="w-4 h-4 text-brand rounded cursor-pointer accent-blue-600"
               />
             </div>
           </div>
         </div>
 
         {/* Section 3: Paper Capital Reset */}
-        <div className="bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-[#1A2744] rounded-3xl p-6 sm:p-8 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-6 sm:p-8  flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-sm font-bold text-ink dark:text-ink flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-pos" />
               Reset Virtual Trading Capital
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-ink-2 dark:text-ink-3 mt-0.5">
               Restore your balance to fresh starting margin of ₹10,00,000 (or $12,000 USD).
             </p>
           </div>
@@ -315,7 +329,7 @@ export const ProfilePage: React.FC = () => {
           <button
             type="button"
             onClick={handleResetCapital}
-            className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-2 cursor-pointer shrink-0"
+            className="px-4 py-2.5 rounded-xl border border-line dark:border-line hover:bg-surface-2 dark:hover:bg-surface-2 text-xs font-bold text-ink-2 dark:text-ink-3 transition-colors flex items-center gap-2 cursor-pointer shrink-0"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>{resetFeedback ? 'Capital Restored!' : 'Reset to ₹10 Lakhs'}</span>
@@ -326,7 +340,7 @@ export const ProfilePage: React.FC = () => {
         <div className="flex items-center justify-between pt-2">
           <div>
             {savedFeedback && (
-              <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-pos dark:text-pos animate-in fade-in">
                 <CheckCircle2 className="w-4 h-4" />
                 Profile, identities and risk parameters saved successfully!
               </span>
@@ -335,7 +349,7 @@ export const ProfilePage: React.FC = () => {
 
           <button
             type="submit"
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            className="px-6 py-3 rounded-2xl bg-brand-fill     text-on-brand font-bold text-xs   transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
           >
             <Save className="w-4 h-4" />
             Save Profile & Settings

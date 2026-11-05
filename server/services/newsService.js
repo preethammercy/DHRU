@@ -1,33 +1,77 @@
-// DHRU.AI - Financial News Aggregator & Verification Engine
-// Consumes public RSS feeds from leading Indian financial publications
-// Deduplicates, extracts timestamps, matches instruments, and scores sentiment.
+// DHRU.AI - Multi-Market Financial News Aggregator & Verification Engine
+// Consumes public RSS feeds for NSE/Indian Equities, 24/7 Global Crypto, and Macro Markets
+// Deduplicates, filters by strict <= 48h freshness (with 7-day fallback), extracts entities, and scores sentiment.
 
 import { XMLParser } from 'fast-xml-parser';
-import { randomUUID } from 'node:crypto';
 
 let cachedNews = [];
 let lastFetchedAt = null;
 
 const RSS_FEEDS = [
+  // --- INDIAN EQUITIES & INDICES (NSE / BSE) ---
   {
+    market: 'NSE',
     name: 'Livemint Markets',
     url: 'https://www.livemint.com/rss/markets',
     type: 'Financial Daily'
   },
   {
+    market: 'NSE',
     name: 'Economic Times Markets',
     url: 'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',
     type: 'Financial Daily'
   },
   {
+    market: 'NSE',
     name: 'Google News - Indian Markets',
     url: 'https://news.google.com/rss/search?q=NIFTY+Sensex+Indian+stock+market&hl=en-IN&gl=IN&ceid=IN:en',
     type: 'News Aggregator'
   },
   {
+    market: 'NSE',
     name: 'Google News - Corporate India',
     url: 'https://news.google.com/rss/search?q=Reliance+TCS+Tata+Infosys+HDFC+SEBI+RBI&hl=en-IN&gl=IN&ceid=IN:en',
     type: 'News Aggregator'
+  },
+
+  // --- GLOBAL CRYPTOCURRENCIES (24/7 BINANCE & LIQUIDITY) ---
+  {
+    market: 'CRYPTO',
+    name: 'CoinDesk',
+    url: 'https://www.coindesk.com/arc/outboundfeeds/rss/',
+    type: 'Crypto Specialist'
+  },
+  {
+    market: 'CRYPTO',
+    name: 'Cointelegraph',
+    url: 'https://cointelegraph.com/rss',
+    type: 'Crypto Specialist'
+  },
+  {
+    market: 'CRYPTO',
+    name: 'Google News - Crypto Markets',
+    url: 'https://news.google.com/rss/search?q=Bitcoin+Ethereum+Crypto+market&hl=en-US&gl=US&ceid=US:en',
+    type: 'Crypto Aggregator'
+  },
+  {
+    market: 'CRYPTO',
+    name: 'Google News - Altcoins & Solana',
+    url: 'https://news.google.com/rss/search?q=Solana+XRP+Binance+crypto+trading&hl=en-US&gl=US&ceid=US:en',
+    type: 'Crypto Aggregator'
+  },
+
+  // --- GLOBAL MACRO & US EQUITIES ---
+  {
+    market: 'GLOBAL',
+    name: 'Google News - Global Macro',
+    url: 'https://news.google.com/rss/search?q=Wall+Street+Federal+Reserve+SP500+Nasdaq&hl=en-US&gl=US&ceid=US:en',
+    type: 'Macro Feed'
+  },
+  {
+    market: 'GLOBAL',
+    name: 'Yahoo Finance News',
+    url: 'https://finance.yahoo.com/news/rssindex',
+    type: 'Global Finance'
   }
 ];
 
@@ -38,31 +82,29 @@ const parser = new XMLParser({
   trimValues: true
 });
 
-export async function fetchAllMarketNews(forceRefresh = false) {
-  const tenMinutesMs = 10 * 60 * 1000;
-  if (!forceRefresh && cachedNews.length > 0 && lastFetchedAt && (Date.now() - lastFetchedAt < tenMinutesMs)) {
-    return cachedNews;
+export async function fetchAllMarketNews(forceRefresh = false, targetMarket = 'ALL') {
+  // Freshness interval: 120 seconds cache for high-frequency live updates
+  const cacheTtlMs = 120 * 1000;
+  if (!forceRefresh && cachedNews.length > 0 && lastFetchedAt && (Date.now() - lastFetchedAt < cacheTtlMs)) {
+    return filterByMarket(cachedNews, targetMarket);
   }
 
   const allArticles = [];
   const seenUrls = new Set();
   const seenTitles = new Set();
 
-  for (const feed of RSS_FEEDS) {
+  // Fetch all RSS feeds in parallel with 2.0s timeout per feed
+  await Promise.allSettled(RSS_FEEDS.map(async (feed) => {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-
       const res = await fetch(feed.url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
           'Accept': 'application/rss+xml, application/xml, text/xml, */*'
         },
-        signal: controller.signal
+        signal: AbortSignal.timeout(2000)
       });
-      clearTimeout(timeout);
 
-      if (!res.ok) continue;
+      if (!res.ok) return;
 
       const xmlText = await res.text();
       const parsed = parser.parse(xmlText);
@@ -73,29 +115,33 @@ export async function fetchAllMarketNews(forceRefresh = false) {
         if (!item) continue;
         const rawTitle = typeof item.title === 'string' ? item.title : (item.title?.['#text'] || '');
         const rawLink = typeof item.link === 'string' ? item.link : (item.link?.['#text'] || '');
-        const pubDate = item.pubDate || new Date().toISOString();
+        const pubDateRaw = item.pubDate || new Date().toISOString();
         const description = typeof item.description === 'string' ? stripHtml(item.description) : '';
 
         // Deduplication by URL and normalized title
         const cleanTitle = normalizeTitle(rawTitle);
-        if (!cleanTitle || seenTitles.has(cleanTitle) || seenUrls.has(rawLink)) continue;
+        if (!cleanTitle || cleanTitle.length < 8 || seenTitles.has(cleanTitle) || (rawLink && seenUrls.has(rawLink))) continue;
+
+        const pubDateParsed = new Date(pubDateRaw);
+        const validPubDate = isNaN(pubDateParsed.getTime()) ? new Date().toISOString() : pubDateParsed.toISOString();
 
         seenTitles.add(cleanTitle);
         if (rawLink) seenUrls.add(rawLink);
 
         // Identify matched instruments & sectors
-        const matched = extractMatchedEntities(rawTitle + ' ' + description);
+        const matched = extractMatchedEntities(rawTitle + ' ' + description, feed.market);
         const sentiment = scoreNewsSentiment(rawTitle + ' ' + description);
 
         allArticles.push({
-          id: `news_${randomUUID()}`,
+          id: `news_${feed.market.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           title: cleanTitle,
           link: rawLink,
           publisher: feed.name,
           sourceType: feed.type,
-          pubDate: new Date(pubDate).toISOString(),
+          market: feed.market, // 'NSE', 'CRYPTO', 'GLOBAL'
+          pubDate: validPubDate,
           retrievedAt: new Date().toISOString(),
-          summary: description ? description.substring(0, 220) + (description.length > 220 ? '...' : '') : cleanTitle,
+          summary: description ? description.substring(0, 240) + (description.length > 240 ? '...' : '') : cleanTitle,
           relatedInstruments: matched.instruments,
           relatedSectors: matched.sectors,
           sentiment: sentiment.label, // 'Bullish', 'Bearish', 'Neutral'
@@ -103,25 +149,55 @@ export async function fetchAllMarketNews(forceRefresh = false) {
           verified: true
         });
       }
-    } catch (err) {
-      console.warn(`[NewsService] Warning fetching feed ${feed.name}:`, err.message);
+    } catch {
+      // Non-blocking feed timeout or format error
     }
+  }));
+
+  // --- STRICT FRESHNESS FILTER: <= 48 Hours ---
+  const now = Date.now();
+  const ms48Hours = 48 * 60 * 60 * 1000;
+  const ms7Days = 7 * 24 * 60 * 60 * 1000;
+
+  let freshArticles = allArticles.filter(a => {
+    const age = now - new Date(a.pubDate).getTime();
+    return age >= 0 && age <= ms48Hours;
+  });
+
+  // Fallback to 7 days if < 5 items pass the 48h filter
+  if (freshArticles.length < 5) {
+    freshArticles = allArticles.filter(a => {
+      const age = now - new Date(a.pubDate).getTime();
+      return age >= 0 && age <= ms7Days;
+    });
   }
 
-  // Sort by pubDate desc
-  allArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  if (freshArticles.length === 0) {
+    freshArticles = allArticles;
+  }
 
-  if (allArticles.length > 0) {
-    cachedNews = allArticles.slice(0, 100);
+  // Sort strictly pubDate DESC
+  freshArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+
+  if (freshArticles.length > 0) {
+    cachedNews = freshArticles.slice(0, 150);
     lastFetchedAt = Date.now();
   }
 
-  return cachedNews;
+  return filterByMarket(cachedNews, targetMarket);
+}
+
+function filterByMarket(newsList, targetMarket) {
+  if (!targetMarket || targetMarket === 'ALL') {
+    return newsList;
+  }
+  const cleanMarket = targetMarket.toUpperCase();
+  return newsList.filter(item => item.market === cleanMarket);
 }
 
 export async function fetchStockSpecificNews(symbol) {
-  const allNews = await fetchAllMarketNews();
-  const cleanSym = symbol.replace('.NS', '').replace('.BO', '').toUpperCase();
+  const allNews = await fetchAllMarketNews(false, 'ALL');
+  const cleanSym = symbol.replace('.NS', '').replace('.BO', '').replace('-USD', '').replace('USDT', '').toUpperCase();
 
   // Filter in cached news
   const matching = allNews.filter(n => 
@@ -136,12 +212,15 @@ export async function fetchStockSpecificNews(symbol) {
 
   // If not enough found in generic feed, query Google News RSS specifically for this symbol
   try {
-    const queryUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(cleanSym + ' stock share NSE India')}&hl=en-IN&gl=IN&ceid=IN:en`;
+    const isCrypto = symbol.includes('USD') || ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'BNB', 'ADA'].includes(cleanSym);
+    const queryTerm = isCrypto ? `${cleanSym} crypto price market news` : `${cleanSym} stock share NSE India`;
+    const queryUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(queryTerm)}&hl=en-IN&gl=IN&ceid=IN:en`;
     const res = await fetch(queryUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'application/rss+xml, text/xml, */*'
-      }
+      },
+      signal: AbortSignal.timeout(1500)
     });
 
     if (res.ok) {
@@ -158,16 +237,17 @@ export async function fetchStockSpecificNews(symbol) {
         const sentiment = scoreNewsSentiment(title);
 
         specific.push({
-          id: `specific_${cleanSym}_${randomUUID()}`,
+          id: `specific_${cleanSym}_${Math.random().toString(36).substring(2, 7)}`,
           title,
           link,
-          publisher: 'Financial Media',
-          sourceType: 'Public Article',
+          publisher: 'Verified Media Feed',
+          sourceType: 'Real-Time Wire',
+          market: isCrypto ? 'CRYPTO' : 'NSE',
           pubDate: new Date(pubDate).toISOString(),
           retrievedAt: new Date().toISOString(),
           summary: title,
           relatedInstruments: [cleanSym, symbol],
-          relatedSectors: [],
+          relatedSectors: isCrypto ? ['Layer 1 / Cryptocurrencies'] : [],
           sentiment: sentiment.label,
           sentimentScore: sentiment.score,
           verified: true
@@ -175,7 +255,7 @@ export async function fetchStockSpecificNews(symbol) {
       }
 
       if (specific.length > 0) {
-        return [...specific, ...matching].slice(0, 12);
+        return [...specific, ...matching].slice(0, 15);
       }
     }
   } catch (e) {
@@ -187,7 +267,7 @@ export async function fetchStockSpecificNews(symbol) {
 
 function stripHtml(str) {
   if (!str) return '';
-  return str.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+  return str.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#8217;/g, "'").replace(/&#8216;/g, "'").trim();
 }
 
 function normalizeTitle(title) {
@@ -195,12 +275,13 @@ function normalizeTitle(title) {
   return stripHtml(title).replace(/\s+/g, ' ').trim();
 }
 
-function extractMatchedEntities(text) {
+function extractMatchedEntities(text, market) {
   const t = text.toUpperCase();
   const instruments = [];
   const sectors = [];
 
   const KNOWN_MAP = [
+    // NSE / Indian Equities
     { key: 'RELIANCE', sym: 'RELIANCE' },
     { key: 'TCS', sym: 'TCS' },
     { key: 'INFOSYS', sym: 'INFY' },
@@ -229,6 +310,27 @@ function extractMatchedEntities(text) {
     { key: 'SENSEX', sym: 'BSE SENSEX' },
     { key: 'ZOMATO', sym: 'ZOMATO' },
     { key: 'ETERNAL', sym: 'ETERNAL' },
+
+    // Global Crypto Assets
+    { key: 'BITCOIN', sym: 'BTC-USD' },
+    { key: 'BTC', sym: 'BTC-USD' },
+    { key: 'ETHEREUM', sym: 'ETH-USD' },
+    { key: 'ETH', sym: 'ETH-USD' },
+    { key: 'SOLANA', sym: 'SOL-USD' },
+    { key: 'SOL', sym: 'SOL-USD' },
+    { key: 'RIPPLE', sym: 'XRP-USD' },
+    { key: 'XRP', sym: 'XRP-USD' },
+    { key: 'DOGECOIN', sym: 'DOGE-USD' },
+    { key: 'DOGE', sym: 'DOGE-USD' },
+    { key: 'BINANCE COIN', sym: 'BNB-USD' },
+    { key: 'BNB', sym: 'BNB-USD' },
+    { key: 'CARDANO', sym: 'ADA-USD' },
+    { key: 'ADA', sym: 'ADA-USD' },
+    { key: 'SUI', sym: 'SUI-USD' },
+    { key: 'AVALANCHE', sym: 'AVAX-USD' },
+    { key: 'AVAX', sym: 'AVAX-USD' },
+    { key: 'PEPE', sym: 'PEPE-USD' },
+    { key: 'SHIBA', sym: 'SHIB-USD' },
   ];
 
   for (const km of KNOWN_MAP) {
@@ -237,6 +339,9 @@ function extractMatchedEntities(text) {
     }
   }
 
+  if (market === 'CRYPTO' || t.includes('CRYPTO') || t.includes('BLOCKCHAIN')) {
+    sectors.push('Cryptocurrency & Web3');
+  }
   if (t.includes('BANK') || t.includes('LENDING') || t.includes('RBI')) sectors.push('Banking & Financials');
   if (t.includes('TECH') || t.includes('IT SECTOR') || t.includes('AI') || t.includes('SOFTWARE')) sectors.push('Information Technology');
   if (t.includes('AUTO') || t.includes('EV') || t.includes('CAR') || t.includes('VEHICLE')) sectors.push('Automobiles & EV');
@@ -254,13 +359,15 @@ function scoreNewsSentiment(text) {
   const bullishKeywords = [
     'surge', 'jump', 'rally', 'gain', 'profit', 'growth', 'all-time high', 'outperform',
     'record high', 'bull', 'bullish', 'dividend', 'order win', 'expansion', 'upgrade',
-    'soar', 'buy', 'positive', 'strong earnings', 'beat estimates', 'rebound'
+    'soar', 'buy', 'positive', 'strong earnings', 'beat estimates', 'rebound', 'breakout',
+    'inflows', 'etf approval', 'milestone', 'accumulation'
   ];
 
   const bearishKeywords = [
     'fall', 'crash', 'plunge', 'drop', 'loss', 'down', 'tumble', 'bear', 'bearish',
     'downgrade', 'penalty', 'slump', 'decline', 'inflation spike', 'war', 'tariff',
-    'probe', 'fraud', 'selloff', 'weak earnings', 'miss estimates', 'default'
+    'probe', 'fraud', 'selloff', 'weak earnings', 'miss estimates', 'default', 'outflow',
+    'sec crackdown', 'investigation', 'liquidation'
   ];
 
   let score = 0;
@@ -282,3 +389,33 @@ export function getNewsStatus() {
     lastFetchedAt: lastFetchedAt ? new Date(lastFetchedAt).toISOString() : null
   };
 }
+
+export function checkNewsRiskForSymbol(symbol, recentNews = []) {
+  if (!Array.isArray(recentNews) || recentNews.length === 0) {
+    return { veto: false, riskLevel: 'LOW', reason: null };
+  }
+
+  const cleanSym = String(symbol || '').replace(/\.(NS|BO)$/i, '').replace(/-USD$/i, '').toUpperCase();
+  const HIGH_IMPACT_PATTERN = /\b(fraud|scam|investigation|subpoena|sec crackdown|sebi probe|raid|arrest|insolven|bankrupt|default|hack|exploit|freeze|halt|plunge|crash|delist)\b/i;
+
+  const now = Date.now();
+  for (const article of recentNews) {
+    const pubTime = article.timestamp ? Number(article.timestamp) : (article.publishedAt ? Date.parse(article.publishedAt) : now);
+    const ageHours = (now - pubTime) / (3600 * 1000);
+    // Focus on recent high impact news in last 24 hours
+    if (ageHours <= 24) {
+      const title = article.title || '';
+      if (HIGH_IMPACT_PATTERN.test(title)) {
+        return {
+          veto: true,
+          riskLevel: 'HIGH',
+          reason: `High-impact news risk veto: "${title}" (${article.publisher || 'RSS'})`,
+          article
+        };
+      }
+    }
+  }
+
+  return { veto: false, riskLevel: 'LOW', reason: null };
+}
+

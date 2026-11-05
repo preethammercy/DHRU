@@ -1,60 +1,17 @@
 /** @type {import('tailwindcss').Config} */
+const semantic = {
+  bg:'var(--bg)', surface:'var(--surface)', 'surface-2':'var(--surface-2)', 'surface-3':'var(--surface-3)',
+  line:'var(--border)', 'line-strong':'var(--border-strong)', ink:'var(--text)', 'ink-2':'var(--text-2)', 'ink-3':'var(--text-3)',
+  brand:'var(--brand-text)', 'brand-fill':'var(--primary-fill)', 'brand-fill-hover':'var(--primary-fill-hover)', 'brand-hover':'var(--primary-fill-hover)', 'on-brand':'var(--on-primary)', 'brand-tint':'var(--primary-tint)',
+  pos:'var(--pos)', 'pos-fill':'var(--pos-fill)', 'pos-tint':'var(--pos-tint)', neg:'var(--neg)', 'neg-fill':'var(--neg-fill)', 'neg-tint':'var(--neg-tint)',
+  warn:'var(--warn)', 'warn-tint':'var(--warn-tint)', info:'var(--info)', 'info-tint':'var(--info-tint)', ai:'var(--ai)', 'ai-tint':'var(--ai-tint)',
+  neutral:'var(--neutral)', 'neutral-tint':'var(--neutral-tint)', 'gain-chart':'var(--pos-chart)', 'loss-chart':'var(--neg-chart)',
+  risk:{ low:'var(--risk-low)', moderate:'var(--risk-moderate)', high:'var(--risk-high)', 'very-high':'var(--risk-very-high)' },
+};
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  darkMode: 'class',
-  theme: {
-    extend: {
-      colors: {
-        fintrix: {
-          bg: '#FFFFFF',
-          bgSubtle: '#F8FAFC',
-          bgBlue: '#F0F6FF',
-          card: '#FFFFFF',
-          cardHover: '#F8FAFF',
-          border: '#E2E8F0',
-          borderBlue: '#DBEAFE',
-          text: '#0F172A',
-          textMuted: '#64748B',
-          primary: '#2563EB',
-          primaryHover: '#1D4ED8',
-          cyan: '#0284C7',
-          sky: '#38BDF8',
-          gain: '#059669',
-          gainBg: '#ECFDF5',
-          loss: '#DC2626',
-          lossBg: '#FEF2F2',
-          warning: '#D97706',
-          warningBg: '#FFFBEB',
-        },
-        dhru: {
-          bg: '#FFFFFF',
-          card: '#FFFFFF',
-          cardHover: '#F8FAFF',
-          border: '#E2E8F0',
-          borderLight: '#DBEAFE',
-          text: '#0F172A',
-          muted: '#64748B',
-          cyan: '#0284C7',
-          blue: '#2563EB',
-          gain: '#059669',
-          loss: '#DC2626',
-          warning: '#D97706',
-          purple: '#7C3AED',
-        }
-      },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
-      },
-      boxShadow: {
-        'card': '0 4px 20px -2px rgba(37, 99, 235, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03)',
-        'card-hover': '0 20px 35px -5px rgba(37, 99, 235, 0.12), 0 10px 15px -3px rgba(37, 99, 235, 0.06)',
-        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-      }
-    },
-  },
-  plugins: [],
-}
+  content:["./index.html","./src/**/*.{js,ts,jsx,tsx}"], darkMode:'class',
+  theme:{ extend:{ colors:{ ...semantic,
+    dhru:{ bg:'var(--bg)',card:'var(--surface)',cardHover:'var(--surface-2)',border:'var(--border)',borderLight:'var(--border)',text:'var(--text)',muted:'var(--text-2)',cyan:'var(--primary)',blue:'var(--primary)',gain:'var(--pos)',loss:'var(--neg)',warning:'var(--warn)',purple:'var(--ai)' },
+    fintrix:{ bg:'var(--bg)',bgSubtle:'var(--surface-2)',bgBlue:'var(--surface-2)',card:'var(--surface)',cardHover:'var(--surface-2)',border:'var(--border)',borderBlue:'var(--border)',text:'var(--text)',textMuted:'var(--text-2)',primary:'var(--primary)',primaryHover:'var(--primary-hover)',cyan:'var(--primary)',sky:'var(--info)',gain:'var(--pos)',gainBg:'var(--pos-tint)',loss:'var(--neg)',lossBg:'var(--neg-tint)',warning:'var(--warn)',warningBg:'var(--warn-tint)' }
+  }, fontFamily:{ sans:['Geist','Inter','system-ui','-apple-system','sans-serif'],mono:['Geist','ui-monospace','SFMono-Regular','monospace'] }, boxShadow:{ card:'none','card-hover':'none',glass:'none' } } }, plugins:[]
+};

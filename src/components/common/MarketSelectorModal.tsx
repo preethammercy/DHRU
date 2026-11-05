@@ -31,20 +31,20 @@ export const MarketSelectorModal: React.FC<MarketSelectorModalProps> = ({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-surface-2  animate-in fade-in duration-200"
       style={{ zIndex: 99999 }}
     >
       <div 
-        className="relative w-full max-w-2xl bg-white dark:bg-[#0A101D] border border-slate-200 dark:border-[#1E293B] rounded-3xl shadow-2xl overflow-hidden transition-all transform scale-100 z-10"
+        className="relative w-full max-w-2xl bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl  overflow-hidden transition-all transform scale-100 z-10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Glow */}
-        <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-blue-600 via-cyan-500 to-indigo-600" />
+        <div className="absolute top-0 inset-x-0 h-1.5 bg-brand-fill   " />
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          className="absolute top-5 right-5 p-2 rounded-full text-ink-3 hover:text-ink-2 dark:hover:text-ink-3 hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -52,21 +52,21 @@ export const MarketSelectorModal: React.FC<MarketSelectorModalProps> = ({
         <div className="p-6 sm:p-8">
           {/* Welcome User Banner */}
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-cyan-400 border border-blue-200/80 dark:border-blue-800/60">
-              <Zap className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400 fill-current" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand border border-line dark:border-line">
+              <Zap className="w-3.5 h-3.5 text-brand dark:text-brand fill-current" />
               {user ? `Active Trader: ${user.displayName}` : 'Active Gateway Session'}
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-1 text-ink font-mono font-medium text-pos dark:text-pos">
               <ShieldCheck className="w-3.5 h-3.5" />
-              ₹10,00,000 Paper Capital Allocated
+              {marketMode === 'crypto' ? '$12,000 USD paper capital' : '₹10,00,000 INR paper capital'}
             </span>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-black text-ink dark:text-ink tracking-tight">
             Choose Your Trading Desk
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
-            Switch between Indian equities & derivatives or international 24/7 cryptocurrency markets.
+          <p className="text-sm text-ink-2 dark:text-ink-3 mt-1 max-w-lg">
+            Choose an isolated Indian market portfolio in INR or a cryptocurrency portfolio in USD.
           </p>
 
           {/* Selection Cards */}
@@ -75,36 +75,36 @@ export const MarketSelectorModal: React.FC<MarketSelectorModalProps> = ({
             {/* Card 1: Indian Financial Markets */}
             <div
               onClick={() => handleSelect('indian')}
-              className={`group relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200 transform hover:-translate-y-1 hover:shadow-xl ${
+              className={`group relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200 transform hover:-translate-y-1 hover: ${
                 marketMode === 'indian'
-                  ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 ring-4 ring-blue-500/10'
-                  : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:border-blue-400'
+                  ? 'border-line bg-surface-2 dark:bg-brand-fill ring-4 ring-brand'
+                  : 'border-line dark:border-line bg-surface-2 dark:bg-surface-2 hover:border-line'
               }`}
             >
               {marketMode === 'indian' && (
-                <div className="absolute top-4 right-4 text-blue-600 dark:text-cyan-400">
-                  <CheckCircle2 className="w-5 h-5 fill-blue-600 text-white dark:fill-cyan-400 dark:text-slate-950" />
+                <div className="absolute top-4 right-4 text-brand dark:text-brand">
+                  <CheckCircle2 className="w-5 h-5 fill-blue-600 text-ink dark:fill-cyan-400 dark:text-ink" />
                 </div>
               )}
 
               {/* 3D-styled Badge */}
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 mb-4 group-hover:scale-105 transition-transform">
+              <div className="w-14 h-14 rounded-2xl bg-brand-fill    flex items-center justify-center text-on-brand   mb-4 group-hover:scale-105 transition-transform">
                 <span className="text-2xl font-black drop-shadow">🇮🇳</span>
               </div>
 
               <div className="space-y-1">
-                <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-orange-600 dark:text-orange-400">
+                <span className="text-ink uppercase font-mono font-bold tracking-wider text-warn dark:text-warn">
                   NSE & BSE DIRECT
                 </span>
-                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                <h3 className="text-lg font-extrabold text-ink dark:text-ink">
                   Indian Markets
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-xs text-ink-2 dark:text-ink-3 leading-relaxed">
                   Exclusively Nifty 50, Sensex, Bank Nifty, 2,600+ equities, F&O options, and Indian sector heatmaps in ₹ INR.
                 </p>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-xs font-bold text-blue-600 dark:text-cyan-400">
+              <div className="mt-4 pt-4 border-t border-line dark:border-line flex items-center justify-between text-xs font-bold text-brand dark:text-brand">
                 <span>Enter Indian Desk (₹)</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -113,36 +113,36 @@ export const MarketSelectorModal: React.FC<MarketSelectorModalProps> = ({
             {/* Card 2: Cryptocurrency 24/7 Global Desk */}
             <div
               onClick={() => handleSelect('crypto')}
-              className={`group relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200 transform hover:-translate-y-1 hover:shadow-xl ${
+              className={`group relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200 transform hover:-translate-y-1 hover: ${
                 marketMode === 'crypto'
-                  ? 'border-purple-600 bg-purple-50/50 dark:bg-purple-950/20 ring-4 ring-purple-500/10'
-                  : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:border-purple-400'
+                  ? 'border-line bg-surface-2 dark:bg-surface-2 ring-4 ring-ai'
+                  : 'border-line dark:border-line bg-surface-2 dark:bg-surface-2 hover:border-line'
               }`}
             >
               {marketMode === 'crypto' && (
-                <div className="absolute top-4 right-4 text-purple-600 dark:text-purple-400">
-                  <CheckCircle2 className="w-5 h-5 fill-purple-600 text-white dark:fill-purple-400 dark:text-slate-950" />
+                <div className="absolute top-4 right-4 text-ai dark:text-ai">
+                  <CheckCircle2 className="w-5 h-5 fill-purple-600 text-ink dark:fill-purple-400 dark:text-ink" />
                 </div>
               )}
 
               {/* 3D-styled Badge */}
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/20 mb-4 group-hover:scale-105 transition-transform">
+              <div className="w-14 h-14 rounded-2xl bg-brand-fill   to-pink-500 flex items-center justify-center text-on-brand   mb-4 group-hover:scale-105 transition-transform">
                 <Coins className="w-7 h-7 drop-shadow" />
               </div>
 
               <div className="space-y-1">
-                <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-purple-600 dark:text-purple-400">
+                <span className="text-ink uppercase font-mono font-bold tracking-wider text-ai dark:text-ai">
                   GLOBAL 24/7 TRADING
                 </span>
-                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                <h3 className="text-lg font-extrabold text-ink dark:text-ink">
                   Crypto Markets
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-xs text-ink-2 dark:text-ink-3 leading-relaxed">
                   Exclusively Bitcoin, Ethereum, Solana, XRP, BNB, Doge, SUI, Cardano, Avalanche, and 20+ cryptos in $ USD.
                 </p>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400">
+              <div className="mt-4 pt-4 border-t border-line dark:border-line flex items-center justify-between text-xs font-bold text-ai dark:text-ai">
                 <span>Enter Crypto Desk ($)</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -151,12 +151,12 @@ export const MarketSelectorModal: React.FC<MarketSelectorModalProps> = ({
           </div>
 
           {/* Quick Info Footer */}
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-ink-2 dark:text-ink-3 bg-surface-2 dark:bg-surface-2 p-3.5 rounded-xl border border-line dark:border-line">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Free Paper Margin: <strong>₹10,00,000 INR</strong> ($12,000 USD auto-converted for crypto)</span>
+              <span className="w-2 h-2 rounded-full bg-pos animate-pulse" />
+              <span>Separate paper balances: <strong>₹10,00,000 INR</strong> for India and <strong>$12,000 USD</strong> for crypto</span>
             </div>
-            <span className="font-mono text-[11px] text-slate-500">Instant toggle anytime from the top bar</span>
+            <span className="font-mono text-ink-2">Instant toggle anytime from the top bar</span>
           </div>
         </div>
       </div>

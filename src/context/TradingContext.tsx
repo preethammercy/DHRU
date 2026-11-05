@@ -4,6 +4,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useMarketStream } from './MarketStreamContext';
 import { useAuth } from './AuthContext';
+import { clearAutoTradePlans, removeAutoTradePlan } from '../services/autoTradePlans';
+import { dispatchTradeNotification } from '../components/common/TradeNotificationToast';
 
 export type ProductType = 'MIS' | 'CNC';
 export type OrderType = 'MARKET' | 'LIMIT' | 'SL' | 'SL-M';
@@ -23,6 +25,11 @@ export interface Position {
   pnlPercent: number;
   dayPnl: number;
   entryTime: string;
+  legId?: string;
+  tier?: 'scalp' | 'swing' | 'runner';
+  tierLabel?: string;
+  targetPrice?: number;
+  stopLoss?: number;
 }
 
 export interface ClosedPosition {
@@ -70,6 +77,11 @@ export interface Order {
   executedAt?: string;
   rejectionReason?: string;
   pnl?: number;
+  legId?: string;
+  tier?: 'scalp' | 'swing' | 'runner';
+  tierLabel?: string;
+  targetPrice?: number;
+  stopLoss?: number;
 }
 
 export interface BrokerConfig {
@@ -117,6 +129,11 @@ interface TradingContextType {
     quantity: number;
     price?: number;
     triggerPrice?: number;
+    legId?: string;
+    tier?: 'scalp' | 'swing' | 'runner';
+    tierLabel?: string;
+    targetPrice?: number;
+    stopLoss?: number;
   }) => { success: boolean; message: string };
 
   cancelOrder: (orderId: string) => void;
@@ -140,25 +157,33 @@ const INITIAL_POSITIONS: Position[] = [];
 
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { ticks } = useMarketStream();
-  const { user } = useAuth();
+  const { user, marketMode } = useAuth();
 
   const userKey = useCallback((key: string) => {
-    return user?.uid ? `dhru_user_${user.uid}_${key}` : `dhru_guest_${key}`;
-  }, [user?.uid]);
+    return user?.uid ? `dhru_user_${user.uid}_${marketMode}_${key}` : `dhru_guest_${marketMode}_${key}`;
+  }, [user?.uid, marketMode]);
+  const legacyUserKey = useCallback((key: string) => user?.uid ? `dhru_user_${user.uid}_${key}` : `dhru_guest_${key}`, [user?.uid]);
+  const readPortfolioValue = useCallback((key: string) => {
+    const current = localStorage.getItem(userKey(key));
+    if (current !== null) return current;
+    if (marketMode !== 'indian') return null;
+    return localStorage.getItem(legacyUserKey(key)) || localStorage.getItem(`dhru_${key}`);
+  }, [userKey, legacyUserKey, marketMode]);
+  const [storageReadyKey, setStorageReadyKey] = useState('');
 
-  // Cash & margin state - ₹10,00,000 (10 Lakh INR) free starting capital per user
+  // Each desk gets its own currency-native paper balance and portfolio storage.
   const [cashBalance, setCashBalance] = useState<number>(() => {
-    const saved = localStorage.getItem(userKey('cash_balance')) || localStorage.getItem('dhru_cash_balance');
-    return saved ? Number(saved) : 1000000;
+    const saved = readPortfolioValue('cash_balance');
+    return saved ? Number(saved) : marketMode === 'crypto' ? 12000 : 1000000;
   });
 
   const [realizedPnl, setRealizedPnl] = useState<number>(() => {
-    const saved = localStorage.getItem(userKey('realized_pnl')) || localStorage.getItem('dhru_realized_pnl');
+    const saved = readPortfolioValue('realized_pnl');
     return saved ? Number(saved) : 0;
   });
 
   const [positions, setPositions] = useState<Position[]>(() => {
-    const saved = localStorage.getItem(userKey('positions')) || localStorage.getItem('dhru_positions');
+    const saved = readPortfolioValue('positions');
     if (!saved) return [];
     try {
       const parsed = JSON.parse(saved);
@@ -170,7 +195,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [closedPositions, setClosedPositions] = useState<ClosedPosition[]>(() => {
-    const saved = localStorage.getItem(userKey('closed_positions')) || localStorage.getItem('dhru_closed_positions');
+    const saved = readPortfolioValue('closed_positions');
     if (!saved) return [];
     try {
       const parsed = JSON.parse(saved);
@@ -181,7 +206,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [holdings, setHoldings] = useState<Holding[]>(() => {
-    const saved = localStorage.getItem(userKey('holdings')) || localStorage.getItem('dhru_holdings');
+    const saved = readPortfolioValue('holdings');
     if (!saved) return [];
     try {
       const parsed = JSON.parse(saved);
@@ -193,17 +218,17 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem(userKey('orders')) || localStorage.getItem('dhru_orders');
+    const saved = readPortfolioValue('orders');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [tradeHistory, setTradeHistory] = useState<Order[]>(() => {
-    const saved = localStorage.getItem(userKey('trades')) || localStorage.getItem('dhru_trades');
+    const saved = readPortfolioValue('trades');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [brokerConfig, setBrokerConfig] = useState<BrokerConfig>(() => {
-    const saved = localStorage.getItem(userKey('broker_config'));
+    const saved = readPortfolioValue('broker_config');
     return saved ? JSON.parse(saved) : {
       broker: 'simulation',
       mode: 'simulation',
@@ -215,7 +240,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [riskSettings, setRiskSettings] = useState<RiskSettings>(() => {
-    const saved = localStorage.getItem(userKey('risk_settings'));
+    const saved = readPortfolioValue('risk_settings');
     return saved ? JSON.parse(saved) : {
       maxDailyLoss: 50000,
       maxOrderValue: 500000,
@@ -223,15 +248,15 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   });
 
-  // Reload user-isolated portfolio whenever authenticated user switches
+  // Reload the correct currency portfolio whenever user or market desk changes.
   useEffect(() => {
-    const savedBalance = localStorage.getItem(userKey('cash_balance')) || localStorage.getItem('dhru_cash_balance');
-    setCashBalance(savedBalance ? Number(savedBalance) : 1000000);
+    const savedBalance = readPortfolioValue('cash_balance');
+    setCashBalance(savedBalance ? Number(savedBalance) : marketMode === 'crypto' ? 12000 : 1000000);
 
-    const savedRealized = localStorage.getItem(userKey('realized_pnl')) || localStorage.getItem('dhru_realized_pnl');
+    const savedRealized = readPortfolioValue('realized_pnl');
     setRealizedPnl(savedRealized ? Number(savedRealized) : 0);
 
-    const savedPos = localStorage.getItem(userKey('positions')) || localStorage.getItem('dhru_positions');
+    const savedPos = readPortfolioValue('positions');
     if (savedPos) {
       try {
         const parsed = JSON.parse(savedPos);
@@ -243,7 +268,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setPositions([]);
     }
 
-    const savedClosed = localStorage.getItem(userKey('closed_positions')) || localStorage.getItem('dhru_closed_positions');
+    const savedClosed = readPortfolioValue('closed_positions');
     if (savedClosed) {
       try {
         const parsed = JSON.parse(savedClosed);
@@ -255,7 +280,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setClosedPositions([]);
     }
 
-    const savedHoldings = localStorage.getItem(userKey('holdings')) || localStorage.getItem('dhru_holdings');
+    const savedHoldings = readPortfolioValue('holdings');
     if (savedHoldings) {
       try {
         const parsed = JSON.parse(savedHoldings);
@@ -267,32 +292,35 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setHoldings([]);
     }
 
-    const savedOrders = localStorage.getItem(userKey('orders')) || localStorage.getItem('dhru_orders');
+    const savedOrders = readPortfolioValue('orders');
     setOrders(savedOrders ? JSON.parse(savedOrders) : []);
 
-    const savedTrades = localStorage.getItem(userKey('trades')) || localStorage.getItem('dhru_trades');
+    const savedTrades = readPortfolioValue('trades');
     setTradeHistory(savedTrades ? JSON.parse(savedTrades) : []);
-  }, [userKey]);
+    const savedBroker = readPortfolioValue('broker_config');
+    setBrokerConfig(savedBroker ? JSON.parse(savedBroker) : {
+      broker: 'simulation', mode: 'simulation',
+      clientId: user?.displayName ? `TRADER-${user.displayName.replace(/\s+/g, '').toUpperCase()}` : 'SIM-9824',
+      apiKey: '', connected: true, lastConnectedTime: new Date().toISOString()
+    });
+    const savedRisk = readPortfolioValue('risk_settings');
+    setRiskSettings(savedRisk ? JSON.parse(savedRisk) : { maxDailyLoss: 50000, maxOrderValue: 500000, requireConfirmation: true });
+    setStorageReadyKey(userKey('cash_balance'));
+  }, [userKey, readPortfolioValue, marketMode, user?.displayName]);
 
-  // Sync state to user-specific and fallback localStorage keys
+  // Persist only to the active desk's isolated storage namespace.
   useEffect(() => {
+    if (storageReadyKey !== userKey('cash_balance')) return;
     localStorage.setItem(userKey('cash_balance'), String(cashBalance));
-    localStorage.setItem('dhru_cash_balance', String(cashBalance));
     localStorage.setItem(userKey('realized_pnl'), String(realizedPnl));
-    localStorage.setItem('dhru_realized_pnl', String(realizedPnl));
     localStorage.setItem(userKey('positions'), JSON.stringify(positions));
-    localStorage.setItem('dhru_positions', JSON.stringify(positions));
     localStorage.setItem(userKey('closed_positions'), JSON.stringify(closedPositions));
-    localStorage.setItem('dhru_closed_positions', JSON.stringify(closedPositions));
     localStorage.setItem(userKey('holdings'), JSON.stringify(holdings));
-    localStorage.setItem('dhru_holdings', JSON.stringify(holdings));
     localStorage.setItem(userKey('orders'), JSON.stringify(orders));
-    localStorage.setItem('dhru_orders', JSON.stringify(orders));
     localStorage.setItem(userKey('trades'), JSON.stringify(tradeHistory));
-    localStorage.setItem('dhru_trades', JSON.stringify(tradeHistory));
     localStorage.setItem(userKey('broker_config'), JSON.stringify(brokerConfig));
     localStorage.setItem(userKey('risk_settings'), JSON.stringify(riskSettings));
-  }, [userKey, cashBalance, realizedPnl, positions, closedPositions, holdings, orders, tradeHistory, brokerConfig, riskSettings]);
+  }, [storageReadyKey, userKey, cashBalance, realizedPnl, positions, closedPositions, holdings, orders, tradeHistory, brokerConfig, riskSettings]);
 
   // Recalculate dynamic tick-by-tick P&L when prices stream in
   useEffect(() => {
@@ -407,7 +435,66 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (order.product === 'MIS') {
       // Intraday Position
       setPositions(prev => {
-        const existingIdx = prev.findIndex(p => p.symbol === order.symbol && p.product === 'MIS');
+        // Multi-Position Auto-Trade: If order carries a legId, maintain as independent position
+        if (order.legId) {
+          const matchIdx = prev.findIndex(p => p.legId === order.legId);
+          if (matchIdx >= 0) {
+            const existing = prev[matchIdx];
+            if (existing.side !== order.side) {
+              // Opposite side: Square off this individual trade leg!
+              const closedQty = order.quantity;
+              const bookedDiff = existing.side === 'BUY' ? (execPrice - existing.averagePrice) : (existing.averagePrice - execPrice);
+              let bookedProfit = Number((bookedDiff * closedQty).toFixed(2));
+              if (bookedProfit === 0 && existing.pnl !== 0 && existing.pnl !== undefined) {
+                bookedProfit = existing.pnl;
+              }
+              const closedPos: ClosedPosition = {
+                id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                symbol: existing.symbol,
+                name: existing.name,
+                product: existing.product,
+                side: existing.side,
+                quantity: closedQty,
+                entryPrice: existing.averagePrice,
+                exitPrice: execPrice,
+                pnl: bookedProfit,
+                pnlPercent: existing.averagePrice > 0 ? Number(((bookedProfit / (existing.averagePrice * closedQty)) * 100).toFixed(2)) : 0,
+                entryTime: existing.entryTime,
+                closedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+              };
+              setClosedPositions(cp => [closedPos, ...cp]);
+              setRealizedPnl(r => Number((r + bookedProfit).toFixed(2)));
+              setCashBalance(c => Number((c + bookedProfit).toFixed(2)));
+
+              // Remove this specific position
+              return prev.filter((_, idx) => idx !== matchIdx);
+            }
+          } else {
+            // New independent auto-trade position!
+            const newPos: Position = {
+              id: `pos_${order.legId}`,
+              symbol: order.symbol,
+              name: order.name,
+              product: order.product,
+              side: order.side,
+              quantity: order.quantity,
+              averagePrice: execPrice,
+              currentPrice: execPrice,
+              pnl: 0,
+              pnlPercent: 0,
+              dayPnl: 0,
+              entryTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              legId: order.legId,
+              tier: order.tier,
+              tierLabel: order.tierLabel,
+              targetPrice: order.targetPrice,
+              stopLoss: order.stopLoss
+            };
+            return [newPos, ...prev];
+          }
+        }
+
+        const existingIdx = prev.findIndex(p => p.symbol === order.symbol && p.product === 'MIS' && !p.legId);
         if (existingIdx >= 0) {
           const existing = prev[existingIdx];
           if (existing.side === order.side) {
@@ -436,7 +523,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 bookedProfit = existing.pnl;
               }
               const closedPos: ClosedPosition = {
-                id: `closed_${crypto.randomUUID()}`,
+                id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
                 symbol: existing.symbol,
                 name: existing.name,
                 product: existing.product,
@@ -464,7 +551,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
               order.pnl = bookedProfit;
 
               const closedPos: ClosedPosition = {
-                id: `closed_${crypto.randomUUID()}`,
+                id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
                 symbol: existing.symbol,
                 name: existing.name,
                 product: existing.product,
@@ -595,8 +682,27 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     quantity: number;
     price?: number;
     triggerPrice?: number;
+    legId?: string;
+    tier?: 'scalp' | 'swing' | 'runner';
+    tierLabel?: string;
+    targetPrice?: number;
+    stopLoss?: number;
   }) => {
-    const { symbol, name = symbol, side, product, orderType, quantity, price = 0, triggerPrice } = params;
+    const {
+      symbol,
+      name = symbol,
+      side,
+      product,
+      orderType,
+      quantity,
+      price = 0,
+      triggerPrice,
+      legId,
+      tier,
+      tierLabel,
+      targetPrice,
+      stopLoss
+    } = params;
 
     if (quantity <= 0) {
       return { success: false, message: 'Quantity must be greater than zero.' };
@@ -610,24 +716,25 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const US_STOCKS = ['AAPL', 'NFLX', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
     const isUsd = symbol.includes('-USD') || (symbol.includes('=X') && !symbol.includes('INR')) || symbol.includes('=F') || US_STOCKS.includes(symbol);
     const currSym = isUsd ? '$' : '₹';
-    const effectiveMaxOrderValue = isUsd ? Math.max(50000, riskSettings.maxOrderValue / 15) : riskSettings.maxOrderValue;
-    if (estValue > effectiveMaxOrderValue) {
+    const effectiveMaxOrderValue = isUsd ? Math.max(100000, riskSettings.maxOrderValue / 10) : Math.max(1000000, riskSettings.maxOrderValue);
+    if (!legId && estValue > effectiveMaxOrderValue) {
       return {
         success: false,
         message: `Order value ${currSym}${estValue.toLocaleString()} exceeds your configured max risk limit of ${currSym}${Math.round(effectiveMaxOrderValue).toLocaleString()}`
       };
     }
 
-    // Margin Check for Delivery Buy
+    // Margin Check for Buy
     const requiredMargin = product === 'MIS' ? estValue * 0.20 : estValue; // 5x leverage for Intraday MIS
-    if (side === 'BUY' && requiredMargin > cashBalance) {
+    const availablePool = Math.max(cashBalance, marginAvailable);
+    if (side === 'BUY' && requiredMargin > availablePool && !legId) {
       return {
         success: false,
-        message: `Insufficient margin. Required: ${currSym}${requiredMargin.toFixed(2)}, Available: ${currSym}${cashBalance.toFixed(2)}`
+        message: `Insufficient margin. Required: ${currSym}${requiredMargin.toFixed(2)}, Available: ${currSym}${availablePool.toFixed(2)}`
       };
     }
 
-    const orderId = `ORD_${crypto.randomUUID()}`;
+    const orderId = `ORD_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
     const newOrder: Order = {
       id: orderId,
@@ -642,19 +749,56 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       triggerPrice,
       status: orderType === 'MARKET' ? 'EXECUTED' : 'PENDING',
       placedAt: new Date().toLocaleTimeString(),
-      executedAt: orderType === 'MARKET' ? new Date().toLocaleTimeString() : undefined
+      executedAt: orderType === 'MARKET' ? new Date().toLocaleTimeString() : undefined,
+      legId,
+      tier,
+      tierLabel,
+      targetPrice,
+      stopLoss
     };
 
     if (orderType === 'MARKET') {
       handleOrderExecution(newOrder, ltp);
       setOrders(prev => [newOrder, ...prev]);
       setTradeHistory(prev => [newOrder, ...prev]);
+
+      dispatchTradeNotification({
+        id: orderId,
+        type: 'OPEN',
+        title: legId ? (tierLabel ? `Auto-Trade (${tierLabel}) Executed` : 'Auto-Trade Leg Executed') : 'Trade Executed Successfully',
+        side,
+        symbol,
+        name,
+        quantity,
+        price: ltp,
+        product,
+        status: 'EXECUTED',
+        stopLoss,
+        targetPrice
+      });
+
       return {
         success: true,
         message: `${side} order for ${quantity} units of ${symbol} executed at ${currSym}${ltp.toFixed(2)}`
       };
     } else {
       setOrders(prev => [newOrder, ...prev]);
+
+      dispatchTradeNotification({
+        id: orderId,
+        type: 'OPEN',
+        title: `${orderType} Order Placed`,
+        side,
+        symbol,
+        name,
+        quantity,
+        price: price || ltp,
+        product,
+        status: 'PENDING',
+        stopLoss,
+        targetPrice
+      });
+
       return {
         success: true,
         message: `${orderType} ${side} order placed for ${quantity} units at ${currSym}${(price || ltp).toFixed(2)}`
@@ -697,7 +841,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // Opposite order
     const closeOrder: Order = {
-      id: `SQ_${crypto.randomUUID()}`,
+      id: `SQ_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       symbol: pos.symbol,
       name: pos.name,
       side: pos.side === 'BUY' ? 'SELL' : 'BUY',
@@ -713,7 +857,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     const closedPos: ClosedPosition = {
-      id: `closed_${crypto.randomUUID()}`,
+      id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       symbol: pos.symbol,
       name: pos.name,
       product: pos.product,
@@ -733,11 +877,34 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setClosedPositions(cp => [closedPos, ...cp]);
     setOrders(o => [closeOrder, ...o]);
     setTradeHistory(th => [closeOrder, ...th]);
+
+    dispatchTradeNotification({
+      id: closeOrder.id,
+      type: bookedProfit >= 0 ? 'PROFIT' : 'LOSS',
+      title: bookedProfit >= 0 ? 'Target Reached / Position Closed' : 'Stop Loss / Position Closed',
+      side: closeOrder.side,
+      symbol: pos.symbol,
+      name: pos.name,
+      quantity: pos.quantity,
+      price: exitPrice,
+      product: pos.product,
+      status: 'CLOSED',
+      pnl: bookedProfit
+    });
+
+    // Only remove the entire auto plan if no open positions remain for this symbol
+    const remainingForSym = positions.filter(p => p.id !== positionId && p.symbol === pos.symbol);
+    if (remainingForSym.length === 0) {
+      removeAutoTradePlan(pos.symbol);
+    }
   }, [positions, ticks]);
 
   // Square off all open positions
   const squareOffAll = useCallback(() => {
-    if (positions.length === 0) return;
+    if (positions.length === 0) {
+      clearAutoTradePlans('All auto-trade plans cancelled.');
+      return;
+    }
     let totalBooked = 0;
     const closeOrders: Order[] = [];
     const closedList: ClosedPosition[] = [];
@@ -754,7 +921,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       totalBooked += bookedProfit;
 
       closeOrders.push({
-        id: `SQ_${crypto.randomUUID()}`,
+        id: `SQ_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         symbol: pos.symbol,
         name: pos.name,
         side: pos.side === 'BUY' ? 'SELL' : 'BUY',
@@ -770,7 +937,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
 
       closedList.push({
-        id: `closed_${crypto.randomUUID()}`,
+        id: `closed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         symbol: pos.symbol,
         name: pos.name,
         product: pos.product,
@@ -791,6 +958,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setClosedPositions(cp => [...closedList, ...cp]);
     setOrders(o => [...closeOrders, ...o]);
     setTradeHistory(th => [...closeOrders, ...th]);
+    clearAutoTradePlans('All positions and auto-trade plans closed.');
   }, [positions, ticks]);
 
   const updateBrokerConfig = useCallback((newConfig: Partial<BrokerConfig>) => {
@@ -802,14 +970,15 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const resetSimulationBalance = useCallback(() => {
-    setCashBalance(1000000);
+    clearAutoTradePlans('Simulation reset; all auto-trade plans were cleared.');
+    setCashBalance(marketMode === 'crypto' ? 12000 : 1000000);
     setRealizedPnl(0);
     setPositions([]);
     setClosedPositions([]);
     setHoldings(INITIAL_HOLDINGS);
     setOrders([]);
     setTradeHistory([]);
-  }, []);
+  }, [marketMode]);
 
   // Compute portfolio aggregates
   const totalInvested = useMemo(() => {

@@ -8,36 +8,40 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'light',
+  theme: 'dark',
   toggleTheme: () => {},
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    try {
-      const saved = localStorage.getItem('dhru_theme');
-      if (saved === 'dark' || saved === 'light') return saved;
-    } catch {
-      // Storage can be unavailable in private browsing contexts.
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const saved = localStorage.getItem('dhru_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return 'dark';
   });
-
   useEffect(() => {
-    try {
-      localStorage.setItem('dhru_theme', theme);
-    } catch {
-      // The selected theme still applies for this session when storage is blocked.
-    }
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+
     } else {
       document.documentElement.classList.remove('dark');
+
     }
   }, [theme]);
 
+  useEffect(() => {
+    if (localStorage.getItem('dhru_theme')) return;
+    const preference = window.matchMedia('(prefers-color-scheme: dark)');
+    const update = (event: MediaQueryListEvent) => setTheme(event.matches ? 'dark' : 'light');
+    preference.addEventListener('change', update);
+    return () => preference.removeEventListener('change', update);
+  }, []);
+
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    setTheme(prev => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      localStorage.setItem('dhru_theme', next);
+      return next;
+    });
   };
 
   return (

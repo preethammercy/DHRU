@@ -112,7 +112,7 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-surface-2  animate-in fade-in duration-200"
       style={{ zIndex: 999999 }}
     >
       {/* Backdrop tap to close */}
@@ -124,30 +124,30 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
 
       {/* Main Bottom Sheet (Mobile) / Dialog (Desktop) */}
       <div
-        className="relative w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[85vh] bg-white dark:bg-[#0A101D] border-t sm:border border-slate-200 dark:border-[#1E293B] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 z-10"
+        className="relative w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[85vh] bg-surface dark:bg-surface border-t sm:border border-line dark:border-line rounded-t-3xl sm:rounded-3xl  flex flex-col overflow-hidden text-ink dark:text-ink-3 z-10"
         onClick={e => e.stopPropagation()}
       >
         {/* Mobile Drag Indicator Handle */}
         <div className="w-full pt-2.5 pb-1 flex justify-center sm:hidden">
-          <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+          <div className="w-12 h-1.5 rounded-full bg-surface-2 dark:bg-surface-2" />
         </div>
 
         {/* 1. Modal Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#070B14]/80">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-line dark:border-line bg-surface-2 dark:bg-surface">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-cyan-400 shrink-0">
+            <div className="p-2 rounded-xl bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand shrink-0">
               <Sliders className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white truncate">
+                <h2 className="text-base sm:text-lg font-black text-ink dark:text-ink truncate">
                   Technical Indicators
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-cyan-300 shrink-0">
+                <span className="px-2 py-0.5 rounded-full text-ink font-mono font-bold bg-surface-2 text-brand dark:bg-brand-fill dark:text-brand shrink-0">
                   {activeCount} Active
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate hidden xs:block">
+              <p className="text-ink sm:text-xs text-ink-2 dark:text-ink-3 truncate hidden xs:block">
                 SMC Order Flow, Multi-Timeframe Overlays & Oscillators
               </p>
             </div>
@@ -155,7 +155,7 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 min-w-[38px] min-h-[38px] rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+            className="p-2 min-w-[38px] min-h-[38px] rounded-xl text-ink-3 hover:text-ink-2 dark:hover:text-ink hover:bg-surface-2 dark:hover:bg-surface-2 transition-colors flex items-center justify-center cursor-pointer shrink-0"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -163,27 +163,27 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
         </div>
 
         {/* 2. Mobile Quick Presets Strip */}
-        <div className="px-4 sm:px-6 py-2 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-[#070B14]/50 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-          <span className="text-[10px] font-mono uppercase font-bold text-slate-400 shrink-0 mr-1 hidden sm:inline">
+        <div className="px-4 sm:px-6 py-2 border-b border-line dark:border-line bg-surface-2 dark:bg-surface flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+          <span className="text-ink font-mono uppercase font-bold text-ink-3 shrink-0 mr-1 hidden sm:inline">
             Presets:
           </span>
           <button
             onClick={handleApplySmcPreset}
-            className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 text-[11px] font-bold shrink-0 flex items-center gap-1 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-surface-2 dark:bg-surface-2 text-warn dark:text-warn border border-line dark:border-line text-ink font-bold shrink-0 flex items-center gap-1 hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
-            <Sparkles className="w-3 h-3 text-amber-500" />
+            <Sparkles className="w-3 h-3 text-warn" />
             <span>SMC Suite</span>
           </button>
           <button
             onClick={handleApplyTrendPreset}
-            className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-blue-800/60 text-[11px] font-bold shrink-0 flex items-center gap-1 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-surface-2 dark:bg-brand-fill text-brand dark:text-brand border border-line dark:border-line text-ink font-bold shrink-0 flex items-center gap-1 hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             <TrendingUp className="w-3 h-3" />
             <span>Trend Flow</span>
           </button>
           <button
             onClick={handleApplyMomentumPreset}
-            className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 text-[11px] font-bold shrink-0 flex items-center gap-1 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-surface-2 dark:bg-surface-2 text-ai dark:text-ai border border-line dark:border-line text-ink font-bold shrink-0 flex items-center gap-1 hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             <Activity className="w-3 h-3" />
             <span>Momentum</span>
@@ -191,7 +191,7 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
           {activeCount > 0 && (
             <button
               onClick={handleClearAll}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[11px] font-bold shrink-0 hover:text-rose-600 transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-surface-2 dark:bg-surface-2 text-ink-2 dark:text-ink-3 border border-line dark:border-line text-ink font-bold shrink-0 hover:text-neg transition-colors cursor-pointer"
             >
               Clear All
             </button>
@@ -199,20 +199,20 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
         </div>
 
         {/* 3. Search & Category Tabs */}
-        <div className="px-4 sm:px-6 py-2.5 border-b border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row gap-2.5 items-center justify-between">
+        <div className="px-4 sm:px-6 py-2.5 border-b border-line dark:border-line flex flex-col sm:flex-row gap-2.5 items-center justify-between">
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-ink-3" />
             <input
               type="text"
               placeholder="Search indicators (SMC, EMA, RSI)..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-8 py-1.5 text-xs bg-slate-100 dark:bg-[#070B14] border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              className="w-full pl-8 pr-8 py-1.5 text-xs bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-xl focus:outline-none focus:ring-2 focus:ring-brand font-medium"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                className="absolute right-2.5 top-2 text-ink-3 hover:text-ink-2 dark:hover:text-ink"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -224,8 +224,8 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
               onClick={() => setActiveTab('all')}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'all'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                  ? 'bg-brand-fill text-on-brand '
+                  : 'bg-surface-2 dark:bg-surface-2 text-ink-2 dark:text-ink-3 hover:bg-surface-2'
               }`}
             >
               All ({indicators.length})
@@ -234,8 +234,8 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
               onClick={() => setActiveTab('premium')}
               className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'premium'
-                  ? 'bg-amber-500 text-white shadow-xs'
-                  : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40'
+                  ? 'bg-surface-2 text-ink '
+                  : 'bg-surface-2 dark:bg-surface-2 text-warn dark:text-warn border border-line dark:border-line'
               }`}
             >
               <Sparkles className="w-3 h-3" />
@@ -245,8 +245,8 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
               onClick={() => setActiveTab('overlay')}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'overlay'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                  ? 'bg-brand-fill text-on-brand '
+                  : 'bg-surface-2 dark:bg-surface-2 text-ink-2 dark:text-ink-3 hover:bg-surface-2'
               }`}
             >
               Overlays
@@ -255,8 +255,8 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
               onClick={() => setActiveTab('oscillator')}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'oscillator'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                  ? 'bg-brand-fill text-on-brand '
+                  : 'bg-surface-2 dark:bg-surface-2 text-ink-2 dark:text-ink-3 hover:bg-surface-2'
               }`}
             >
               Oscillators
@@ -267,7 +267,7 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
         {/* 4. Scrollable Indicator Cards List */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-2.5 divide-y-0 -webkit-overflow-scrolling-touch">
           {filtered.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 text-xs sm:text-sm">
+            <div className="text-center py-12 text-ink-3 text-xs sm:text-sm">
               No matching indicators found for "{searchQuery}"
             </div>
           ) : (
@@ -280,8 +280,8 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                   key={ind.id}
                   className={`p-3 rounded-2xl border transition-all ${
                     ind.enabled
-                      ? 'bg-blue-50/40 dark:bg-blue-950/20 border-blue-300/80 dark:border-blue-800/60 shadow-xs'
-                      : 'bg-white dark:bg-[#070B14] border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
+                      ? 'bg-surface-2 dark:bg-brand-fill border-line dark:border-line '
+                      : 'bg-surface dark:bg-surface border-line dark:border-line hover:border-line dark:hover:border-line'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -295,8 +295,8 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                       <div
                         className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-all ${
                           ind.enabled
-                            ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/30'
-                            : 'border-2 border-slate-300 dark:border-slate-600 hover:border-blue-400 bg-white dark:bg-slate-900'
+                            ? 'bg-brand-fill text-on-brand  '
+                            : 'border-2 border-line dark:border-line hover:border-line bg-surface dark:bg-surface-2'
                         }`}
                       >
                         {ind.enabled && <Check className="w-3.5 h-3.5 stroke-[3]" />}
@@ -304,21 +304,21 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white">
+                          <span className="font-extrabold text-xs sm:text-sm text-ink dark:text-ink">
                             {ind.name}
                           </span>
                           {ind.badge && (
-                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-300/50">
+                            <span className="text-ink font-mono font-bold px-1.5 py-0.2 rounded-full bg-surface-2 dark:bg-surface-2 text-warn dark:text-warn border border-line">
                               {ind.badge}
                             </span>
                           )}
-                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">
+                          <span className="text-ink font-mono uppercase px-1.5 py-0.2 rounded bg-surface-2 dark:bg-surface-2 text-ink-2 font-semibold">
                             {ind.category}
                           </span>
                         </div>
 
                         {ind.description && (
-                          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 line-clamp-1 sm:line-clamp-2 mt-0.5">
+                          <p className="text-ink sm:text-xs text-ink-2 dark:text-ink-3 line-clamp-1 sm:line-clamp-2 mt-0.5">
                             {ind.description}
                           </p>
                         )}
@@ -329,7 +329,7 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                     <div className="flex items-center gap-2 shrink-0">
                       {/* Color Picker Swatch */}
                       <label
-                        className="relative w-6 h-6 rounded-full cursor-pointer border-2 border-white dark:border-slate-800 shadow-xs overflow-hidden flex items-center justify-center shrink-0 ring-1 ring-slate-300 dark:ring-slate-700"
+                        className="relative w-6 h-6 rounded-full cursor-pointer border-2 border-white dark:border-line  overflow-hidden flex items-center justify-center shrink-0 ring-1 ring-slate-300 dark:ring-slate-700"
                         style={{ backgroundColor: ind.color }}
                         title="Change indicator line color"
                       >
@@ -347,8 +347,8 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                           onClick={() => setEditingId(isEditing ? null : ind.id)}
                           className={`px-2 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
                             isEditing
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                              : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-400 bg-slate-50 dark:bg-slate-800/80'
+                              ? 'bg-brand-fill text-on-brand border-line '
+                              : 'border-line dark:border-line text-ink-2 dark:text-ink-3 hover:border-line bg-surface-2 dark:bg-surface-2'
                           }`}
                           title="Configure indicator parameters"
                         >
@@ -361,10 +361,10 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
 
                   {/* 5. Parameter Tuning Drawer (Mobile-Compact with Steppers) */}
                   {isEditing && (
-                    <div className="mt-3 p-3 bg-slate-50 dark:bg-[#070B14] border border-slate-200 dark:border-slate-800 rounded-xl space-y-2.5 animate-in slide-in-from-top-2 duration-150">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase font-mono">
+                    <div className="mt-3 p-3 bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-xl space-y-2.5 animate-in slide-in-from-top-2 duration-150">
+                      <div className="flex items-center justify-between text-ink font-bold text-ink-2 uppercase font-mono">
                         <span>Parameter Tuning</span>
-                        <span className="text-[10px] text-blue-600 dark:text-cyan-400 lowercase font-normal">
+                        <span className="text-ink text-brand dark:text-brand lowercase font-normal">
                           auto-saves instantly
                         </span>
                       </div>
@@ -377,9 +377,9 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                           return (
                             <div
                               key={key}
-                              className="p-2 rounded-lg bg-white dark:bg-[#0D1527] border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2"
+                              className="p-2 rounded-lg bg-surface dark:bg-surface border border-line dark:border-line flex items-center justify-between gap-2"
                             >
-                              <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 capitalize truncate">
+                              <label className="text-ink font-semibold text-ink-2 dark:text-ink-3 capitalize truncate">
                                 {key.replace(/([A-Z])/g, ' $1')}
                               </label>
 
@@ -391,7 +391,7 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                                       const newVal = Math.max(0.01, Number(val) - step);
                                       onUpdateParams(ind.id, { [key]: parseFloat(newVal.toFixed(2)) });
                                     }}
-                                    className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
+                                    className="w-6 h-6 rounded bg-surface-2 dark:bg-surface-2 hover:bg-surface-2 flex items-center justify-center font-bold text-ink-2 dark:text-ink-3 cursor-pointer"
                                   >
                                     <Minus className="w-3 h-3" />
                                   </button>
@@ -405,7 +405,7 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                                         onUpdateParams(ind.id, { [key]: num });
                                       }
                                     }}
-                                    className="w-14 px-1.5 py-0.5 text-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-mono font-bold text-xs"
+                                    className="w-14 px-1.5 py-0.5 text-center bg-surface-2 dark:bg-surface-2 border border-line dark:border-line rounded font-mono font-bold text-xs"
                                   />
                                   <button
                                     type="button"
@@ -413,7 +413,7 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                                       const newVal = Number(val) + step;
                                       onUpdateParams(ind.id, { [key]: parseFloat(newVal.toFixed(2)) });
                                     }}
-                                    className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
+                                    className="w-6 h-6 rounded bg-surface-2 dark:bg-surface-2 hover:bg-surface-2 flex items-center justify-center font-bold text-ink-2 dark:text-ink-3 cursor-pointer"
                                   >
                                     <Plus className="w-3 h-3" />
                                   </button>
@@ -425,7 +425,7 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                                   onChange={e => {
                                     onUpdateParams(ind.id, { [key]: e.target.value });
                                   }}
-                                  className="w-24 px-2 py-0.5 text-right bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-mono text-xs"
+                                  className="w-24 px-2 py-0.5 text-right bg-surface-2 dark:bg-surface-2 border border-line dark:border-line rounded font-mono text-xs"
                                 />
                               )}
                             </div>
@@ -442,10 +442,10 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
         </div>
 
         {/* 6. Mobile Safe Footer */}
-        <div className="px-4 sm:px-6 py-3 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-[#070B14] flex items-center justify-between gap-3 text-xs safe-area-bottom">
+        <div className="px-4 sm:px-6 py-3 border-t border-line dark:border-line bg-surface-2 dark:bg-surface flex items-center justify-between gap-3 text-xs safe-area-bottom">
           <button
             onClick={onResetDefaults}
-            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold cursor-pointer transition-colors py-2"
+            className="flex items-center gap-1.5 text-ink-2 hover:text-ink dark:hover:text-ink-3 font-semibold cursor-pointer transition-colors py-2"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Defaults</span>
@@ -453,10 +453,10 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
 
           <button
             onClick={onClose}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-xl shadow-xs shadow-blue-500/25 transition-all cursor-pointer flex items-center gap-2"
+            className="px-5 py-2.5 bg-brand-fill hover:bg-brand-fill active:scale-95 text-on-brand font-bold rounded-xl   transition-all cursor-pointer flex items-center gap-2"
           >
             <span>Apply & Close</span>
-            <span className="w-5 h-5 rounded-full bg-white/20 text-white font-mono text-[11px] flex items-center justify-center font-bold">
+            <span className="w-5 h-5 rounded-full bg-surface text-ink font-mono text-ink flex items-center justify-center font-bold">
               {activeCount}
             </span>
           </button>

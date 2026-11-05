@@ -102,6 +102,7 @@ export interface NewsItem {
   link: string;
   publisher: string;
   sourceType: string;
+  market?: 'NSE' | 'CRYPTO' | 'GLOBAL';
   pubDate: string;
   retrievedAt: string;
   summary: string;
@@ -161,6 +162,8 @@ export interface TradeSetup {
   action: 'BUY' | 'SELL' | 'WAIT';
   entryZone: string;
   entryPrice: number;
+  entryMin?: number;
+  entryMax?: number;
   stopLoss: number;
   target1: number;
   target2: number;
@@ -171,6 +174,11 @@ export interface TradeSetup {
 }
 
 export interface AiReport {
+  symbol?: string;
+  dataTimestamp?: string | number | null;
+  dataSource?: string;
+  dataStatus?: 'LIVE' | 'DELAYED' | 'CLOSED' | 'UNKNOWN' | string;
+  candlesUsed?: number;
   direction: 'Bullish' | 'Bearish' | 'Sideways';
   trendStrength: 'Weak' | 'Moderate' | 'Strong';
   trendEvidence: string;
@@ -190,6 +198,43 @@ export interface AiReport {
   confidenceRating: 'High' | 'Moderate' | 'Low';
   engine: string;
   modelTimestamp: string;
+  asOf?: string;
+  score?: any;
+  confidence?: any;
+  structure?: any;
+  council?: {
+    summary: string;
+    consensusDirection: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+    agreementPercent: number;
+    agents: Array<{
+      id: string;
+      name: string;
+      role: string;
+      vote: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+      weight: number;
+      conviction: number;
+      insight: string;
+    }>;
+  };
+  quantMetrics?: {
+    kellyFraction: number;
+    expectedValueR: number;
+    riskRewardRatio: string;
+    volatilityRegime: string;
+    liquidityScore: number;
+  };
+  backtest?: {
+    winRate: number | null;
+    samples: number;
+    status: string;
+    profitFactor?: number;
+    avgR?: number;
+  };
+  newsRisk?: {
+    veto: boolean;
+    reason: string;
+    riskLevel: string;
+  };
 }
 
 export interface BacktestResult {

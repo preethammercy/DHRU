@@ -168,16 +168,22 @@ export function detectCandlestickPatterns(candles) {
       patterns.push({
         name: 'Dragonfly Doji',
         type: 'Bullish Reversal',
+        strength: 'Moderate',
+        explanation: 'Buyers pushed back aggressively against intraday selling, rejecting lower prices.'
       });
     } else if (upperShadowCurr >= rangeCurr * 0.6 && lowerShadowCurr <= rangeCurr * 0.1) {
       patterns.push({
         name: 'Gravestone Doji',
         type: 'Bearish Reversal',
+        strength: 'Moderate',
+        explanation: 'Intraday rally was completely erased by aggressive sellers near resistance.'
       });
     } else {
       patterns.push({
         name: 'Standard Doji',
         type: 'Indecision',
+        strength: 'Neutral',
+        explanation: 'Open and close are virtually equal, reflecting market equilibrium and hesitation.'
       });
     }
   }
@@ -188,11 +194,15 @@ export function detectCandlestickPatterns(candles) {
       patterns.push({
         name: 'Hammer',
         type: 'Bullish Reversal',
+        strength: 'High',
+        explanation: 'Strong intraday recovery after a downward drift shows institutional buying support.'
       });
     } else {
       patterns.push({
         name: 'Hanging Man',
         type: 'Bearish Warning',
+        strength: 'Moderate',
+        explanation: 'Formed at highs; signifies buyers are losing grip as sellers easily push down intraday.'
       });
     }
   }
@@ -203,11 +213,15 @@ export function detectCandlestickPatterns(candles) {
       patterns.push({
         name: 'Shooting Star',
         type: 'Bearish Reversal',
+        strength: 'High',
+        explanation: 'Sellers rejected price at recent highs and hammered price back down to the session low.'
       });
     } else {
       patterns.push({
         name: 'Inverted Hammer',
         type: 'Bullish Reversal',
+        strength: 'Moderate',
+        explanation: 'Test of higher prices after a pullback; indicates early buying interest.'
       });
     }
   }
@@ -217,6 +231,8 @@ export function detectCandlestickPatterns(candles) {
     patterns.push({
       name: 'Bullish Engulfing',
       type: 'Bullish Reversal',
+      strength: 'High',
+      explanation: 'Green candle completely wraps around prior red candle, indicating decisive shift to buyers.'
     });
   }
 
@@ -225,6 +241,8 @@ export function detectCandlestickPatterns(candles) {
     patterns.push({
       name: 'Bearish Engulfing',
       type: 'Bearish Reversal',
+      strength: 'High',
+      explanation: 'Red candle completely overwhelms preceding green candle, signaling severe profit-taking.'
     });
   }
 
@@ -233,6 +251,8 @@ export function detectCandlestickPatterns(candles) {
     patterns.push({
       name: 'Morning Star',
       type: 'Bullish Reversal',
+      strength: 'Very High',
+      explanation: 'Three-candle pattern where exhaustion selling is followed by a strong recovery candle.'
     });
   }
 
@@ -242,11 +262,15 @@ export function detectCandlestickPatterns(candles) {
       patterns.push({
         name: 'Bullish Marubozu',
         type: 'Bullish Continuation',
+        strength: 'High',
+        explanation: 'Full-bodied green candle with almost no wicks; shows buyers controlled every minute.'
       });
     } else {
       patterns.push({
         name: 'Bearish Marubozu',
         type: 'Bearish Continuation',
+        strength: 'High',
+        explanation: 'Full-bodied red candle with almost no wicks; shows uninterrupted institutional selling.'
       });
     }
   }
@@ -314,7 +338,7 @@ export function computeTechnicalSummary(candles) {
   return {
     lastPrice: lastClose,
     sma: { sma20, sma50, sma200 },
-    ema: { ema9, ema21 },
+    ema: { ema9, ema21, ema50: calculateEMA(closes, 50) },
     rsi,
     macd,
     bollinger: bb,
@@ -327,3 +351,205 @@ export function computeTechnicalSummary(candles) {
     signals
   };
 }
+
+export function calculateATR(candles, period = 14) {
+  if (!candles || candles.length <= period) return null;
+  const trs = [];
+  for (let i = 1; i < candles.length; i++) {
+    const high = candles[i].high;
+    const low = candles[i].low;
+    const prevClose = candles[i - 1].close;
+    const tr = Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
+    trs.push(tr);
+  }
+  if (trs.length < period) return null;
+
+  // Wilder's smoothing
+  let atr = trs.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < trs.length; i++) {
+    atr = (atr * (period - 1) + trs[i]) / period;
+  }
+  const lastClose = candles[candles.length - 1].close;
+  const atrPct = lastClose > 0 ? (atr / lastClose) * 100 : 0;
+
+  return {
+    atr: Number(atr.toFixed(lastClose > 100 ? 2 : (lastClose < 1 ? 6 : 4))),
+    atrPct: Number(atrPct.toFixed(3))
+  };
+}
+
+export function calculateADX(candles, period = 14) {
+  if (!candles || candles.length <= period * 2) return null;
+  const trs = [];
+  const plusDMs = [];
+  const minusDMs = [];
+
+  for (let i = 1; i < candles.length; i++) {
+    const curr = candles[i];
+    const prev = candles[i - 1];
+
+    const tr = Math.max(
+      curr.high - curr.low,
+      Math.abs(curr.high - prev.close),
+      Math.abs(curr.low - prev.close)
+    );
+    trs.push(tr);
+
+    const upMove = curr.high - prev.high;
+    const downMove = prev.low - curr.low;
+
+    plusDMs.push(upMove > downMove && upMove > 0 ? upMove : 0);
+    minusDMs.push(downMove > upMove && downMove > 0 ? downMove : 0);
+  }
+
+  if (trs.length < period) return null;
+
+  // Initial sums
+  let smoothTR = trs.slice(0, period).reduce((a, b) => a + b, 0);
+  let smoothPlusDM = plusDMs.slice(0, period).reduce((a, b) => a + b, 0);
+  let smoothMinusDM = minusDMs.slice(0, period).reduce((a, b) => a + b, 0);
+
+  const dxList = [];
+  for (let i = period; i < trs.length; i++) {
+    smoothTR = smoothTR - (smoothTR / period) + trs[i];
+    smoothPlusDM = smoothPlusDM - (smoothPlusDM / period) + plusDMs[i];
+    smoothMinusDM = smoothMinusDM - (smoothMinusDM / period) + minusDMs[i];
+
+    const plusDI = smoothTR > 0 ? (smoothPlusDM / smoothTR) * 100 : 0;
+    const minusDI = smoothTR > 0 ? (smoothMinusDM / smoothTR) * 100 : 0;
+    const diSum = plusDI + minusDI;
+    const dx = diSum > 0 ? (Math.abs(plusDI - minusDI) / diSum) * 100 : 0;
+    dxList.push(dx);
+  }
+
+  if (dxList.length < period) return null;
+
+  // Wilder's smooth of DX
+  let adx = dxList.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < dxList.length; i++) {
+    adx = (adx * (period - 1) + dxList[i]) / period;
+  }
+
+  return Number(adx.toFixed(2));
+}
+
+export function calculateOBV(candles) {
+  if (!candles || candles.length < 2) return { obv: 0, slope: 0, trend: 'neutral' };
+  let currentObv = 0;
+  const history = [0];
+
+  for (let i = 1; i < candles.length; i++) {
+    const vol = Number(candles[i].volume) || 0;
+    if (candles[i].close > candles[i - 1].close) {
+      currentObv += vol;
+    } else if (candles[i].close < candles[i - 1].close) {
+      currentObv -= vol;
+    }
+    history.push(currentObv);
+  }
+
+  // Calculate slope over last 14 bars
+  const windowSize = Math.min(14, history.length - 1);
+  const delta = history[history.length - 1] - history[history.length - 1 - windowSize];
+  const slope = windowSize > 0 ? delta / windowSize : 0;
+  const trend = slope > 100 ? 'rising' : slope < -100 ? 'falling' : 'flat';
+
+  return {
+    obv: Math.round(currentObv),
+    slope: Number(slope.toFixed(2)),
+    trend
+  };
+}
+
+export function calculateRelVolume(candles, period = 20) {
+  if (!candles || candles.length < period + 1) return 1.0;
+  const currentVol = Number(candles[candles.length - 1].volume) || 0;
+  const recentSlice = candles.slice(-period - 1, -1);
+  const sum = recentSlice.reduce((acc, c) => acc + (Number(c.volume) || 0), 0);
+  const avg = sum / period;
+  if (avg <= 0) return 1.0;
+  return Number((currentVol / avg).toFixed(2));
+}
+
+export function validateCandles(candles, isCrypto = false) {
+  const warnings = [];
+  const gaps = [];
+  if (!Array.isArray(candles) || candles.length === 0) {
+    return { ok: false, candles: [], warnings: ['Candle array is empty or invalid.'], gaps: [] };
+  }
+
+  const valid = [];
+  const seenTimes = new Set();
+
+  for (let i = 0; i < candles.length; i++) {
+    const c = candles[i];
+    const open = Number(c.open);
+    const high = Number(c.high);
+    const low = Number(c.low);
+    const close = Number(c.close);
+    const volume = Number(c.volume) || 0;
+    const time = Number(c.time);
+
+    if (!Number.isFinite(open) || !Number.isFinite(high) || !Number.isFinite(low) || !Number.isFinite(close)) {
+      warnings.push(`Bar #${i} invalid OHLC values dropped.`);
+      continue;
+    }
+    if (open <= 0 || high <= 0 || low <= 0 || close <= 0) {
+      warnings.push(`Bar #${i} non-positive prices dropped.`);
+      continue;
+    }
+    if (high < low) {
+      warnings.push(`Bar #${i} High (${high}) < Low (${low}) invalid bar dropped.`);
+      continue;
+    }
+    // High sanity: high >= max(open, close) with tiny floating tolerance
+    const maxOC = Math.max(open, close);
+    const minOC = Math.min(open, close);
+    if (high < maxOC - 1e-4) {
+      warnings.push(`Bar #${i} High (${high}) < Max(O, C) (${maxOC}). Adjusted.`);
+    }
+    if (low > minOC + 1e-4) {
+      warnings.push(`Bar #${i} Low (${low}) > Min(O, C) (${minOC}). Adjusted.`);
+    }
+
+    if (seenTimes.has(time)) {
+      warnings.push(`Bar #${i} duplicate timestamp ${time} dropped.`);
+      continue;
+    }
+    seenTimes.add(time);
+
+    valid.push({
+      time,
+      open,
+      high: Math.max(high, maxOC),
+      low: Math.min(low, minOC),
+      close,
+      volume
+    });
+  }
+
+  // Check temporal ordering
+  valid.sort((a, b) => a.time - b.time);
+
+  // Check gaps
+  if (valid.length >= 2) {
+    for (let i = 1; i < valid.length; i++) {
+      const dt = valid[i].time - valid[i - 1].time;
+      if (dt <= 0) {
+        warnings.push(`Non-increasing timestamp at bar ${i}.`);
+      }
+      // For 5m bars, expected dt is 300s. Gaps > 30 min during continuous market
+      if (isCrypto && dt > 1800) {
+        gaps.push(`Gap of ${Math.round(dt / 60)}m between ${valid[i - 1].time} and ${valid[i].time}`);
+      }
+    }
+  }
+
+  return {
+    ok: valid.length >= 25,
+    candles: valid,
+    warnings,
+    gaps
+  };
+}
+
