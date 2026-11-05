@@ -142,9 +142,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInLocalBypass = () => {
     const localUser: DhruUser = {
-      uid: 'dhru-local-trader',
-      displayName: 'Preetham (Local Trader)',
-      email: 'preetham@dhru.ai',
+      uid: 'dhru-super-trader',
+      displayName: 'Preetham R',
+      email: 'preethamjee2008@gmail.com',
       traderIdentity: 'DHRU-QUANT-001',
       kycStatus: 'verified',
       baseCurrency: 'INR'

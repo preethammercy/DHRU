@@ -29,7 +29,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
         setError(null);
       } else if (e.code === 'auth/unauthorized-domain') {
-        setError('This domain is not authorized in Firebase. Add localhost or your domain in Firebase Console → Authentication → Settings → Authorized domains.');
+        setError('This domain is not authorized in Firebase. Add your domain in Firebase Console → Authentication → Settings → Authorized domains.');
       } else if (e.code === 'auth/network-request-failed') {
         setError('Network error. Please check your internet connection and try again.');
       } else {
@@ -114,17 +114,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
               <div className="relative my-4 flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-line"></div></div>
-                <div className="relative bg-surface px-3 text-xs uppercase font-mono text-ink-3">or convenient localhost access</div>
+                <div className="relative bg-surface px-3 text-xs uppercase font-mono text-ink-3">or instant guest access</div>
               </div>
 
-              {/* Instant Localhost / Guest Login Bypass Button */}
+              {/* Instant Guest Login Bypass Button */}
               <button
                 type="button"
                 onClick={handleLocalBypassLogin}
                 className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-surface-2 hover:bg-surface border border-line hover:border-brand px-6 py-3 font-bold text-sm text-ink shadow-sm active:scale-[0.99] transition-all cursor-pointer"
               >
                 <Zap className="w-4 h-4 text-amber-400" />
-                <span>⚡ 1-Click Localhost Access (100 Free Credits Included)</span>
+                <span>⚡ 1-Click Instant Access (100 Free AI Credits Included)</span>
               </button>
 
               {error && (

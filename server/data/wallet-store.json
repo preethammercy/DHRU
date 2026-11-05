@@ -1,11 +1,18 @@
 {
   "users": {
     "active-trader": {
-      "credits": 5,
+      "credits": 0,
       "tradingBalance": 0,
       "totalCreditsPurchased": 0,
       "premiumUnlocked": false,
       "history": [
+        {
+          "id": "tx-1793899825864",
+          "type": "REPORT_CONSUME",
+          "credits": -5,
+          "symbol": "ETH-USD",
+          "at": "2026-11-05T17:30:25.864Z"
+        },
         {
           "id": "tx-1793890921538",
           "type": "AUTOTRADE_CONSUME",
