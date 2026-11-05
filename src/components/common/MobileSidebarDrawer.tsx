@@ -34,6 +34,7 @@ import {
   ArrowDownLeft
 } from 'lucide-react';
 import { DhruLogo } from './DhruLogo';
+import { AccountTypeSwitcher } from './AccountTypeSwitcher';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useWatchlist } from '../../context/WatchlistContext';
@@ -157,6 +158,16 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
         {/* Scrollable Body Content */}
         <div className="flex-1 overflow-y-auto p-3.5 space-y-4 divide-y divide-line dark:divide-line">
           
+          {/* Active Account Switcher (Demo vs Real) */}
+          <div className="pt-1">
+            <span className="text-ink font-mono uppercase tracking-wider text-ink-3 px-1 font-bold block mb-2 text-[10px]">
+              Active Trading Mode
+            </span>
+            <div className="w-full flex justify-center">
+              <AccountTypeSwitcher />
+            </div>
+          </div>
+
           {/* Quick-Access Horizontal Jump Strip */}
           <div className="pt-1">
             <span className="text-ink font-mono uppercase tracking-wider text-ink-3 px-1 font-bold block mb-2">

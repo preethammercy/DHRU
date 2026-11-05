@@ -584,9 +584,9 @@ export function AutoTradePage() {
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black text-ink tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-3xl font-black text-ink tracking-tight flex flex-wrap items-center gap-2">
               <span>Auto-Trade Desk</span>
-              <span className="text-xs px-2.5 py-1 rounded-xl bg-surface-2 border border-line font-mono text-ink-2 font-normal">
+              <span className="text-[11px] sm:text-xs px-2.5 py-1 rounded-xl bg-surface-2 border border-line font-mono text-ink-2 font-normal">
                 Multi-Agent Quantitative Edition
               </span>
             </h1>
@@ -624,38 +624,38 @@ export function AutoTradePage() {
         </div>
 
         {/* Market Category Selector Tabs (Indian Equities vs Crypto 24/7) */}
-        <div className="mt-6 pt-5 border-t border-line flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center p-1 rounded-2xl bg-surface-2 border border-line text-xs font-mono font-bold">
+        <div className="mt-6 pt-5 border-t border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center p-1 rounded-2xl bg-surface-2 border border-line text-xs font-mono font-bold overflow-x-auto scrollbar-none max-w-full">
             <button
               type="button"
               onClick={() => setSelectedMarket('indian')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 selectedMarket === 'indian'
                   ? 'bg-brand-fill text-on-brand shadow-sm font-black'
                   : 'text-ink-2 hover:text-ink'
               }`}
             >
-              <span>🇮🇳 Indian Equities (NSE/BSE)</span>
+              <span>🇮🇳 Indian Equities</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded bg-surface text-ink-2 font-mono">10 Stocks</span>
             </button>
             <button
               type="button"
               onClick={() => setSelectedMarket('crypto')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 selectedMarket === 'crypto'
                   ? 'bg-brand-fill text-on-brand shadow-sm font-black'
                   : 'text-ink-2 hover:text-ink'
               }`}
             >
-              <span>🪙 Crypto Markets (24/7 Global)</span>
+              <span>🪙 Crypto Markets (24/7)</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded bg-surface text-ink-2 font-mono">10 Pairs</span>
             </button>
           </div>
 
           {/* Available Balance & Top-Up Pill */}
-          <div className="flex items-center gap-2 text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
             <div className="px-3.5 py-1.5 rounded-xl bg-surface-2 border border-line flex items-center gap-2">
-              <span className="text-ink-2">Available Capital:</span>
+              <span className="text-ink-2">Available:</span>
               <strong className="text-ink font-extrabold text-sm">
                 {currencySymbol}{cashBalance.toLocaleString(isUSD ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}
               </strong>
@@ -678,7 +678,7 @@ export function AutoTradePage() {
       </div>
 
       {/* 2. Adaptive Daily Risk & Real-time Stop-Loss Protection Meter */}
-      <div className="rounded-3xl border border-line bg-surface p-5 sm:p-6 shadow-sm">
+      <div className="rounded-3xl border border-line bg-surface p-4 sm:p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
           <div>
             <div className="flex items-center gap-2">
@@ -690,7 +690,7 @@ export function AutoTradePage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className={`px-2.5 py-1 rounded-xl text-xs font-mono font-bold uppercase tracking-wider border ${
               stopRegime === 'CIRCUIT_BREAKER'
                 ? 'bg-rose-500/20 text-rose-600 border-rose-500/40'
@@ -719,7 +719,7 @@ export function AutoTradePage() {
 
         {/* Real-time Dynamic Risk Bar */}
         <div className="mt-4 space-y-2">
-          <div className="flex items-center justify-between text-xs font-mono">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono gap-1">
             <span className="text-rose-500 font-bold">Daily Loss Limit: -{maxDailyLossPct}% (Exit All)</span>
             <span className="text-ink font-bold">
               Today's Realized P&L: {todayRealizedPnl >= 0 ? '+' : ''}{currencySymbol}{todayRealizedPnl.toFixed(2)} ({dayPnlPct.toFixed(2)}%)
@@ -741,7 +741,7 @@ export function AutoTradePage() {
             <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-ink-2" />
           </div>
 
-          <div className="flex justify-between text-[11px] font-mono text-ink-3">
+          <div className="flex flex-col sm:flex-row justify-between text-[10px] sm:text-[11px] font-mono text-ink-3 gap-1">
             <span>DEFENSIVE RATIO: Auto-tightens stops by 40% as loss grows</span>
             <span>CAPITAL PRESERVATION GUARANTEE</span>
             <span>PROTECT RATIO: Locks 50% gain at TP1</span>
@@ -750,7 +750,7 @@ export function AutoTradePage() {
       </div>
 
       {/* 3. Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-line pb-2">
+      <div className="flex items-center gap-2 border-b border-line pb-2 overflow-x-auto scrollbar-none">
         <button
           type="button"
           onClick={() => setActiveTab('opportunities')}

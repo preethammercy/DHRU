@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#0a0f1d" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>DHRU.AI — Institutional Financial Intelligence & Auto-Trade Desk</title>
     <script>
       try {
         const saved = localStorage.getItem('dhru_theme');
@@ -17,7 +26,7 @@
       } catch (_) {}
     </script>
   </head>
-  <body class="font-sans antialiased min-h-screen overflow-x-hidden">
+  <body class="font-sans antialiased min-h-screen overflow-x-hidden selection:bg-brand selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

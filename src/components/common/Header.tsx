@@ -171,8 +171,10 @@ export const Header: React.FC<HeaderProps> = ({
             </kbd>
           </button>
 
-          {/* Demo vs Real Account Switcher */}
-          <AccountTypeSwitcher compact />
+          {/* Demo vs Real Account Switcher (Desktop & Tablets) */}
+          <div className="hidden sm:inline-flex shrink-0">
+            <AccountTypeSwitcher compact />
+          </div>
 
           {/* Wallet Credits & Real Funds / Add Funds Button */}
           <button
