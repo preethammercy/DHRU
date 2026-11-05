@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTrading, OrderSide, ProductType, OrderType } from '../context/TradingContext';
 import { useMarketStream, useLivePrice } from '../context/MarketStreamContext';
 import { useAuth } from '../context/AuthContext';
+import { useWallet } from '../context/WalletContext';
 import { TradingViewChart } from '../components/chart/TradingViewChart';
 import { QuoteFreshness } from '../components/market/QuoteFreshness';
 import { getStockCandles, getStockDetails } from '../services/api';
@@ -29,7 +30,8 @@ import {
   ExternalLink,
   Settings,
   RefreshCw,
-  Coins
+  Coins,
+  Wallet
 } from 'lucide-react';
 
 interface TerminalProps {
@@ -122,6 +124,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
   const { isMarketLive, connectionStatus } = useMarketStream();
   const live = useLivePrice(activeSymbol);
   const currency = isCrypto ? '$' : activeSymbol.includes('INR') ? '₹' : activeSymbol.includes('=X') || activeSymbol.includes('=F') || US_STOCKS.includes(activeSymbol) ? '$' : '₹';
+  const { wallet, openDepositModal } = useWallet();
 
   // Trading context
   const {
@@ -326,6 +329,28 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
             <strong className={realizedPnl >= 0 ? 'text-pos font-bold' : 'text-neg font-bold'}>
               {realizedPnl >= 0 ? '+' : ''}{currency}{realizedPnl.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}
             </strong>
+          </div>
+
+          {/* Quick Add Funds & Buy Credits Buttons */}
+          <div className="flex items-center gap-1.5 font-sans">
+            <button
+              type="button"
+              onClick={() => openDepositModal('funds')}
+              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              title="Deposit Real Funds via UPI"
+            >
+              <Wallet className="w-3 h-3" />
+              <span>+ Add Funds</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openDepositModal('credits')}
+              className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              title="Buy AI Credits (Unlock SMC Indicators)"
+            >
+              <Zap className="w-3 h-3 fill-current" />
+              <span>{wallet.credits} Cr</span>
+            </button>
           </div>
 
           {/* Broker Badge */}

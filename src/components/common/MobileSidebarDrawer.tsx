@@ -38,6 +38,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useTrading } from '../../context/TradingContext';
 import { useMarketStream } from '../../context/MarketStreamContext';
+import { useWallet } from '../../context/WalletContext';
 
 interface MobileSidebarDrawerProps {
   isOpen: boolean;
@@ -61,6 +62,7 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
   const { watchlist } = useWatchlist();
   const { marginAvailable, positions } = useTrading();
   const { isMarketLive } = useMarketStream();
+  const { wallet, openDepositModal } = useWallet();
 
   const isCrypto = marketMode === 'crypto';
 
@@ -277,6 +279,56 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
                 <span>Sign In with Google</span>
               </button>
             )}
+          </div>
+
+          {/* Quantitative Credits & Real Funds Mobile Card */}
+          <div className="pt-3">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500/10 via-surface-2 to-emerald-500/10 border border-line space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-ink-2">DHRU Wallet</span>
+                <span className={`text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded-full border ${
+                  wallet.premiumUnlocked ? 'bg-pos-tint text-pos border-pos/30' : 'bg-warn-tint text-warn border-warn/30'
+                }`}>
+                  {wallet.premiumUnlocked ? '✨ SMC Active' : 'Standard'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 rounded-xl bg-surface border border-line">
+                  <span className="text-[10px] text-ink-3 uppercase block font-mono">Credits</span>
+                  <span className="text-base font-black font-mono text-amber-500">{wallet.credits}</span>
+                </div>
+                <div className="p-2 rounded-xl bg-surface border border-line">
+                  <span className="text-[10px] text-ink-3 uppercase block font-mono">Real Funds</span>
+                  <span className="text-base font-black font-mono text-emerald-600 dark:text-emerald-400">₹{wallet.tradingBalance.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    openDepositModal('credits');
+                    onClose();
+                  }}
+                  className="py-1.5 px-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+                >
+                  <Zap className="w-3 h-3 fill-current" />
+                  <span>Buy Credits</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    openDepositModal('funds');
+                    onClose();
+                  }}
+                  className="py-1.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+                >
+                  <Wallet className="w-3 h-3" />
+                  <span>+ Add Funds</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* 1. Core Platform Pages */}

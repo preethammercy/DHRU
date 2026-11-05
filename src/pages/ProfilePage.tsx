@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTrading } from '../context/TradingContext';
+import { useWallet } from '../context/WalletContext';
 import {
   User,
   ShieldCheck,
@@ -19,7 +20,8 @@ import {
   Zap,
   Globe2,
   Layers,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 
 function maskId(id: string): string {
@@ -30,6 +32,7 @@ function maskId(id: string): string {
 
 export const ProfilePage: React.FC = () => {
   const { user, updateUserProfile, marketMode, setMarketMode } = useAuth();
+  const { wallet, openDepositModal } = useWallet();
   const {
     cashBalance,
     marginAvailable,
@@ -143,6 +146,176 @@ export const ProfilePage: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Real Money Funds & AI Credits Wallet Section */}
+      <div className="bg-surface border border-line rounded-3xl p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <h2 className="text-xl font-black text-ink tracking-tight">
+                Quantitative Wallet & Trading Funds
+              </h2>
+            </div>
+            <p className="text-xs text-ink-2 mt-1">
+              Deposit real trading funds via UPI, purchase AI Intelligence credits, or unlock institutional SMC indicators.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openDepositModal('credits')}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+            >
+              <Zap className="w-4 h-4 fill-current" />
+              <span>Buy Credits</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openDepositModal('funds')}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+            >
+              <Wallet className="w-4 h-4" />
+              <span>+ Add Funds (UPI)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Balance Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Card 1: AI Analysis & AutoTrade Credits */}
+          <div className="p-5 rounded-2xl bg-surface-2 border border-line flex flex-col justify-between space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-ink-2">AI Quantitative Credits</span>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-3xl font-black font-mono text-amber-500">{wallet.credits}</span>
+                  <span className="text-xs font-semibold text-ink-2">Available</span>
+                </div>
+              </div>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold font-mono border ${
+                wallet.premiumUnlocked
+                  ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+                  : 'bg-amber-500/10 text-amber-600 border-amber-500/30'
+              }`}>
+                {wallet.premiumUnlocked ? '✨ SMC Unlocked' : 'Standard Tier'}
+              </span>
+            </div>
+
+            <p className="text-xs text-ink-2 leading-relaxed">
+              Used for generating Gemini deep intelligence reports (5 credits) and arming autonomous multi-leg trade executions (10 credits).
+            </p>
+
+            <div className="pt-2 border-t border-line/60 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] text-ink-3">
+                {wallet.premiumUnlocked ? 'All Institutional & SMC Indicators active.' : 'Buy 1,000+ Credits to unlock SMC Suite.'}
+              </span>
+              <button
+                type="button"
+                onClick={() => openDepositModal('credits')}
+                className="text-xs font-bold text-brand hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>View Credit Packs</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Card 2: Real Money Trading Balance */}
+          <div className="p-5 rounded-2xl bg-surface-2 border border-line flex flex-col justify-between space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-ink-2">Real Trading Funds Balance</span>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-3xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    ₹{wallet.tradingBalance.toLocaleString()}
+                  </span>
+                  <span className="text-xs font-semibold text-ink-2">INR</span>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold font-mono bg-emerald-500/10 text-emerald-600 border border-emerald-500/30">
+                UPI Instant
+              </span>
+            </div>
+
+            <p className="text-xs text-ink-2 leading-relaxed">
+              Deposit capital via UPI to <strong className="font-mono text-ink">preethamrishu@axl</strong>. Funds reflect in your trading balance with instantaneous UTR verification.
+            </p>
+
+            <div className="pt-2 border-t border-line/60 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] text-ink-3">
+                10-Minute expiry timer with QR code generator.
+              </span>
+              <button
+                type="button"
+                onClick={() => openDepositModal('funds')}
+                className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Deposit via UPI</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Quick Deposit & Buy Shortcut Buttons */}
+        <div className="p-4 rounded-2xl bg-surface-2/60 border border-line flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-ink-2">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span>Popular Credit Packs: <strong>500 Cr (₹499)</strong> • <strong>1,000 Cr (₹899 - Unlocks SMC)</strong> • <strong>2,500 Cr (₹1,999)</strong></span>
+          </div>
+          <button
+            type="button"
+            onClick={() => openDepositModal('credits')}
+            className="px-3 py-1.5 rounded-lg bg-surface border border-line hover:border-brand font-bold text-xs text-brand hover:bg-surface-2 transition-all cursor-pointer whitespace-nowrap"
+          >
+            Recharge Now
+          </button>
+        </div>
+
+        {/* Wallet Transaction History */}
+        {wallet.history && wallet.history.length > 0 && (
+          <div className="space-y-2 pt-2">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-ink-2 block">
+              Recent Wallet Activity
+            </span>
+            <div className="divide-y divide-line border border-line rounded-2xl overflow-hidden bg-surface">
+              {wallet.history.slice(0, 5).map((tx) => (
+                <div key={tx.id} className="p-3 flex items-center justify-between text-xs hover:bg-surface-2 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-1.5 rounded-lg ${
+                      tx.type.includes('BONUS') || tx.type.includes('PURCHASE') || tx.type.includes('DEPOSIT')
+                        ? 'bg-pos-tint text-pos'
+                        : 'bg-neg-tint text-neg'
+                    }`}>
+                      {tx.type.includes('CREDIT') || tx.type.includes('BONUS') ? <Zap className="w-3.5 h-3.5" /> : <Wallet className="w-3.5 h-3.5" />}
+                    </div>
+                    <div>
+                      <p className="font-bold text-ink">{tx.note || tx.type}</p>
+                      <p className="text-[11px] text-ink-3 font-mono">{new Date(tx.at).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="text-right font-mono font-bold">
+                    {tx.credits ? (
+                      <span className={tx.credits > 0 ? 'text-pos' : 'text-neg'}>
+                        {tx.credits > 0 ? `+${tx.credits}` : tx.credits} Credits
+                      </span>
+                    ) : tx.amount ? (
+                      <span className="text-pos">
+                        +₹{tx.amount.toLocaleString()}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Settings Form */}

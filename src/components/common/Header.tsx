@@ -22,6 +22,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTrading } from '../../context/TradingContext';
+import { useWallet } from '../../context/WalletContext';
 import { MarketStatus } from '../../types';
 import { DhruLogo } from './DhruLogo';
 
@@ -45,6 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { user, signInWithGoogle, signOut, marketMode, setShowMarketSelector } = useAuth();
   const { marginAvailable } = useTrading();
+  const { wallet, openDepositModal } = useWallet();
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -227,6 +229,27 @@ export const Header: React.FC<HeaderProps> = ({
             DHRU AI
           </button>
 
+          {/* Wallet Credits & Real Funds / Add Funds Button */}
+          <button
+            type="button"
+            onClick={() => openDepositModal('credits')}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95 group shrink-0"
+            title="Buy AI Credits or Deposit Real Funds via UPI"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500 group-hover:scale-110 transition-transform" />
+            <div className="flex items-center gap-1 font-mono text-ink dark:text-ink">
+              <strong className="text-amber-600 dark:text-amber-400 font-extrabold">{wallet.credits}</strong>
+              <span className="text-[10px] text-ink-2">Cr</span>
+            </div>
+            <span className="hidden sm:inline-block w-px h-3 bg-amber-500/20 mx-0.5" />
+            <span className="hidden md:inline font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+              ₹{wallet.tradingBalance.toLocaleString()}
+            </span>
+            <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-extrabold uppercase tracking-wide ml-0.5 shadow-sm">
+              + Top Up
+            </span>
+          </button>
+
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
@@ -265,7 +288,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Profile Dropdown Menu */}
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-surface dark:bg-surface border border-line dark:border-line rounded-2xl  py-3 px-4 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-72 bg-surface dark:bg-surface border border-line dark:border-line rounded-2xl py-3 px-4 z-50 animate-in fade-in slide-in-from-top-2 duration-150 shadow-xl">
                     <div className="flex items-center gap-3 pb-3 border-b border-line dark:border-line">
                       {user.photoURL ? (
                         <img
@@ -282,13 +305,25 @@ export const Header: React.FC<HeaderProps> = ({
                         <div className="font-extrabold text-sm text-ink dark:text-ink truncate">
                           {user.displayName}
                         </div>
-                        <div className="text-ink-2 truncate">
+                        <div className="text-ink-2 text-xs truncate">
                           {user.email || 'Google Account Active'}
                         </div>
                       </div>
                     </div>
 
                     <div className="py-2.5 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between text-ink-2 dark:text-ink-3">
+                        <span>AI Report Credits:</span>
+                        <span className="font-mono font-bold text-amber-500">
+                          {wallet.credits} Credits
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-ink-2 dark:text-ink-3">
+                        <span>Real Trading Funds:</span>
+                        <span className="font-mono font-bold text-pos">
+                          ₹{wallet.tradingBalance.toLocaleString()}
+                        </span>
+                      </div>
                       <div className="flex items-center justify-between text-ink-2 dark:text-ink-3">
                         <span>Allocated Margin:</span>
                         <span className="font-mono font-bold text-pos dark:text-pos">
@@ -309,7 +344,35 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-line dark:border-line space-y-1">
+                    <div className="pt-2 border-t border-line dark:border-line space-y-1.5">
+                      <button
+                        onClick={() => {
+                          openDepositModal('credits');
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-colors cursor-pointer text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                          <span>Buy Credits (Unlock SMC)</span>
+                        </div>
+                        <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-amber-500 text-white font-extrabold">UPI</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          openDepositModal('funds');
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors cursor-pointer text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Wallet className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Add Funds (Real Balance)</span>
+                        </div>
+                        <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-600 text-white font-extrabold">Instant</span>
+                      </button>
+
                       <button
                         onClick={() => {
                           onSelectNav('profile');

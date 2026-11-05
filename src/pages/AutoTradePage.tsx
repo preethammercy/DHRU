@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useWallet } from '../context/WalletContext';
 import {
   autoTradeApi,
   type Config,
@@ -40,6 +41,7 @@ const inr = (n: number) => `₹${n.toLocaleString('en-IN', { maximumFractionDigi
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong');
 
 export function AutoTradePage() {
+  const { wallet, openDepositModal, consumeCredits } = useWallet();
   const [state, setState] = useState<State | null>(null);
   const [report, setReport] = useState<Report | null>(null);
   const [draft, setDraft] = useState<Config | null>(null);
@@ -78,8 +80,14 @@ export function AutoTradePage() {
     }
   };
 
-  const onOpen = () => {
+  const onOpen = async () => {
     if (!symbol.trim()) return;
+    const creditRes = await consumeCredits('autotrade', 10, symbol.trim());
+    if (!creditRes.ok) {
+      setError(creditRes.error || 'Opening an auto-trade requires 10 Credits. Please recharge your wallet.');
+      openDepositModal('credits');
+      return;
+    }
     void act(() => autoTradeApi.open(symbol.trim()));
     setSymbol('');
   };
@@ -147,6 +155,47 @@ export function AutoTradePage() {
         <div className="glass h-48 shimmer" aria-label="Loading" />
       ) : (
         <>
+          {/* Quantitative Wallet & Credits Banner */}
+          <div className="glass p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0 font-bold">
+                ⚡
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold">DHRU Quantitative Wallet</h3>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                    wallet.premiumUnlocked ? 'bg-pos-tint text-pos border-pos/30' : 'bg-warn-tint text-warn border-warn/30'
+                  }`}>
+                    {wallet.premiumUnlocked ? '✨ SMC Unlocked' : 'Standard'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-xs mt-0.5">
+                  <span className="font-mono">Credits: <strong className="text-amber-500 font-bold">{wallet.credits}</strong></span>
+                  <span className="text-line">•</span>
+                  <span className="font-mono">Trading Funds: <strong className="text-emerald-500 font-bold">₹{wallet.tradingBalance.toLocaleString()}</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => openDepositModal('credits')}
+                className="btn btn-secondary flex-1 sm:flex-none text-xs font-bold"
+              >
+                ⚡ Buy Credits
+              </button>
+              <button
+                type="button"
+                onClick={() => openDepositModal('funds')}
+                className="btn btn-primary flex-1 sm:flex-none text-xs font-bold"
+              >
+                + Add Funds (UPI)
+              </button>
+            </div>
+          </div>
+
           {/* Stats */}
           <motion.div variants={stagger} initial="hidden" animate="show" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Stat label="Equity" value={state.equity} prefix="₹" />

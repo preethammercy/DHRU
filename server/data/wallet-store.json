@@ -1,0 +1,34 @@
+{
+  "users": {
+    "active-trader": {
+      "credits": 85,
+      "tradingBalance": 0,
+      "totalCreditsPurchased": 0,
+      "premiumUnlocked": false,
+      "history": [
+        {
+          "id": "tx-1793887189832",
+          "type": "REPORT_CONSUME",
+          "credits": -5,
+          "symbol": "ETH-USD",
+          "at": "2026-11-05T13:59:49.832Z"
+        },
+        {
+          "id": "tx-1793887016221",
+          "type": "REPORT_CONSUME",
+          "credits": -5,
+          "symbol": "RELIANCE.NS",
+          "at": "2026-11-05T13:56:56.221Z"
+        },
+        {
+          "id": "tx-1793886978855",
+          "type": "REPORT_CONSUME",
+          "credits": -5,
+          "symbol": "RELIANCE.NS",
+          "at": "2026-11-05T13:56:18.855Z"
+        }
+      ]
+    }
+  },
+  "orders": {}
+}
