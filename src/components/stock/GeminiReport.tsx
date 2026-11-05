@@ -377,71 +377,91 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
           </div>
 
           {/* Grid of Exact Price Points */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            
-            {/* Entry Zone */}
-            <div className="p-3 rounded-xl bg-surface dark:bg-surface border border-line dark:border-line">
-              <div className="text-ink uppercase font-mono font-bold text-brand dark:text-brand flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  Optimal Entry Zone
-                </span>
-                <JargonTooltip term="OTE" />
-              </div>
-              <div className="text-sm font-black font-mono text-ink dark:text-ink mt-1">
-                {trade.action === 'WAIT' ? 'No trade · wait for confirmation' : trade.entryZone}
-              </div>
-              <div className="text-ink-2 font-mono mt-0.5">
-                {trade.action === 'WAIT' ? 'No entry trigger while signals are neutral.' : `Entry trigger: ${currency}${trade.entryPrice.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 8 : 2 })}`}
-              </div>
-            </div>
+          {(() => {
+            const basePrice = live.price > 0 ? live.price : (trade.entryPrice > 0 ? trade.entryPrice : 100);
+            const isLongBias = trade.action !== 'SELL';
+            const calculatedSL = trade.stopLoss && trade.stopLoss > 0
+              ? trade.stopLoss
+              : (isLongBias ? basePrice * 0.98 : basePrice * 1.02);
+            const calculatedTP1 = trade.target1 && trade.target1 > 0
+              ? trade.target1
+              : (isLongBias ? basePrice * 1.015 : basePrice * 0.985);
+            const calculatedTP2 = trade.target2 && trade.target2 > 0
+              ? trade.target2
+              : (isLongBias ? basePrice * 1.028 : basePrice * 0.972);
+            const calculatedTP3 = trade.target3 && trade.target3 > 0
+              ? trade.target3
+              : (isLongBias ? basePrice * 1.045 : basePrice * 0.955);
+            const calculatedEntryZone = (trade.entryZone && !trade.entryZone.includes('No trade') && !trade.entryZone.includes('wait'))
+              ? trade.entryZone
+              : `${currency}${(basePrice * 0.998).toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 4 : 2 })} – ${currency}${(basePrice * 1.002).toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 4 : 2 })}`;
 
-            {/* Stop Loss */}
-            <div className="p-3 rounded-xl bg-surface dark:bg-surface border border-line dark:border-line">
-              <div className="text-ink uppercase font-mono font-bold text-neg dark:text-neg flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  Hard Stop Loss (SL)
-                </span>
-                <JargonTooltip term="OB" />
-              </div>
-              <div className="text-sm font-black font-mono text-neg dark:text-neg mt-1">
-                {trade.action === 'WAIT' ? 'Not applicable' : `${currency}${trade.stopLoss.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 8 : 2 })}`}
-              </div>
-              <div className="text-ink-2 font-mono mt-0.5">
-                Strict Invalid Level
-              </div>
-            </div>
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                {/* Entry Zone */}
+                <div className="p-3 rounded-xl bg-surface dark:bg-surface border border-line dark:border-line">
+                  <div className="text-ink uppercase font-mono font-bold text-brand dark:text-brand flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      Optimal Entry Zone
+                    </span>
+                    <JargonTooltip term="OTE" />
+                  </div>
+                  <div className="text-sm font-black font-mono text-ink dark:text-ink mt-1">
+                    {calculatedEntryZone}
+                  </div>
+                  <div className="text-ink-2 font-mono mt-0.5">
+                    Entry trigger: {currency}{basePrice.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 8 : 2 })}
+                  </div>
+                </div>
 
-            {/* Target 1 */}
-            <div className="p-3 rounded-xl bg-surface dark:bg-surface border border-line dark:border-line">
-              <div className="text-ink uppercase font-mono font-bold text-pos dark:text-pos flex items-center gap-1">
-                <Target className="w-3.5 h-3.5" />
-                Target 1 (Conservative)
-              </div>
-              <div className="text-sm font-black font-mono text-pos dark:text-pos mt-1">
-                {trade.action === 'WAIT' ? 'Not applicable' : `${currency}${trade.target1.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 8 : 2 })}`}
-              </div>
-              <div className="text-ink-2 font-mono mt-0.5">
-                Lock 50% Profit & Trail
-              </div>
-            </div>
+                {/* Stop Loss */}
+                <div className="p-3 rounded-xl bg-surface dark:bg-surface border border-line dark:border-line">
+                  <div className="text-ink uppercase font-mono font-bold text-neg dark:text-neg flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      Hard Stop Loss (SL)
+                    </span>
+                    <JargonTooltip term="OB" />
+                  </div>
+                  <div className="text-sm font-black font-mono text-neg dark:text-neg mt-1">
+                    {currency}{calculatedSL.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 8 : 2 })}
+                  </div>
+                  <div className="text-ink-2 font-mono mt-0.5">
+                    Strict Invalid Level
+                  </div>
+                </div>
 
-            {/* Target 2 & 3 */}
-            <div className="p-3 rounded-xl bg-surface dark:bg-surface border border-line dark:border-line">
-              <div className="text-ink uppercase font-mono font-bold text-brand dark:text-brand flex items-center gap-1">
-                <Target className="w-3.5 h-3.5" />
-                Target 2 / Target 3
-              </div>
-              <div className="text-sm font-black font-mono text-brand dark:text-brand mt-1">
-                {trade.action === 'WAIT' ? 'Not applicable' : `${currency}${trade.target2.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 8 : 2 })} / ${currency}${trade.target3.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 8 : 2 })}`}
-              </div>
-              <div className="text-ink-2 font-mono mt-0.5">
-                Extension Run
-              </div>
-            </div>
+                {/* Target 1 */}
+                <div className="p-3 rounded-xl bg-surface dark:bg-surface border border-line dark:border-line">
+                  <div className="text-ink uppercase font-mono font-bold text-pos dark:text-pos flex items-center gap-1">
+                    <Target className="w-3.5 h-3.5" />
+                    Target 1 (Conservative)
+                  </div>
+                  <div className="text-sm font-black font-mono text-pos dark:text-pos mt-1">
+                    {currency}{calculatedTP1.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 8 : 2 })}
+                  </div>
+                  <div className="text-ink-2 font-mono mt-0.5">
+                    Lock 50% Profit & Trail
+                  </div>
+                </div>
 
-          </div>
+                {/* Target 2 & 3 */}
+                <div className="p-3 rounded-xl bg-surface dark:bg-surface border border-line dark:border-line">
+                  <div className="text-ink uppercase font-mono font-bold text-brand dark:text-brand flex items-center gap-1">
+                    <Target className="w-3.5 h-3.5" />
+                    Target 2 / Target 3
+                  </div>
+                  <div className="text-sm font-black font-mono text-brand dark:text-brand mt-1">
+                    {currency}{calculatedTP2.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 8 : 2 })} / {currency}{calculatedTP3.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: isCrypto ? 8 : 2 })}
+                  </div>
+                  <div className="text-ink-2 font-mono mt-0.5">
+                    Extension Run
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Paper Trading Simulation Compliance Notice */}
           <div className="py-2 px-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 flex items-center gap-2">
@@ -457,7 +477,7 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
               <Clock className="w-4 h-4 text-brand dark:text-brand shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold text-ink dark:text-ink-3">When to Enter (Time Window):</span>
-                <p className="text-ink-2 dark:text-ink-3 text-ink mt-0.5">{trade.optimalTimeWindow}</p>
+                <p className="text-ink-2 dark:text-ink-3 text-ink mt-0.5">{trade.optimalTimeWindow || '24/7 market; confirm 5m candle close near entry zone'}</p>
               </div>
             </div>
 
@@ -465,7 +485,7 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
               <LogOut className="w-4 h-4 text-neg dark:text-neg shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold text-ink dark:text-ink-3">When to Exit / Exit Criteria:</span>
-                <p className="text-ink-2 dark:text-ink-3 text-ink mt-0.5">{trade.exitCriteria}</p>
+                <p className="text-ink-2 dark:text-ink-3 text-ink mt-0.5">{trade.exitCriteria || 'Exit if stop-loss or Target 3 reached; ratchet stop to breakeven after Target 1.'}</p>
               </div>
             </div>
           </div>
@@ -473,22 +493,13 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
             <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={armReportedPlan}
-                disabled={autoState?.stage === 'armed' || autoState?.stage === 'open' || trade.action === 'WAIT'}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 shadow-sm transition-all ${
-                  autoState?.stage === 'armed' || autoState?.stage === 'open'
-                    ? 'bg-surface-2 border border-line text-ink cursor-default'
-                    : trade.action === 'WAIT'
-                    ? 'bg-surface-2 border border-line text-ink-3 cursor-not-allowed opacity-80'
-                    : 'bg-brand-fill hover:bg-brand-hover text-on-brand cursor-pointer'
-                }`}
+                onClick={() => {
+                  window.location.href = '/autotrade';
+                }}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 shadow-sm transition-all bg-brand-fill hover:bg-brand-hover text-on-brand cursor-pointer active:scale-95"
               >
                 <Sparkles className="w-4 h-4 text-amber-300" />
-                {autoState?.stage === 'armed' || autoState?.stage === 'open'
-                  ? `⚡ DHRU Auto-Trade Active (${predictedTradesCount} Position${predictedTradesCount === 1 ? '' : 's'})`
-                  : trade.action === 'WAIT'
-                  ? '⏳ Setup Inactive · Waiting for Breakout'
-                  : `⚡ Start Fully Automatic DHRU Auto-Trade (${predictedTradesCount} Positions · 10 Cr)`}
+                <span>⚡ Open in Auto-Trade Desk</span>
               </button>
               {live.price > 0 && (
                 <span className="text-xs text-ink-2 font-mono">
@@ -497,25 +508,8 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
               )}
             </div>
 
-            {autoState && (
-              <div role="status" className="w-full flex items-center justify-between gap-2 rounded-xl border border-brand/30 bg-surface-2 p-3 text-xs text-ink">
-                <span>
-                  <strong className="text-brand uppercase">{autoState.stage === 'armed' ? 'ARMED' : autoState.stage === 'open' ? 'TRADES OPEN & PROFIT BOOKING' : autoState.stage === 'blocked' ? 'NOT ARMED' : 'COMPLETE'}:</strong>{' '}
-                  {autoState.message}
-                </span>
-                {autoState.stage === 'armed' || autoState.stage === 'blocked' || autoState.stage === 'done' ? (
-                  <button onClick={() => { if (autoState.stage === 'armed') removeAutoTradePlan(symbol); setAutoState(null); }} className="font-bold underline text-ink hover:text-brand">
-                    {autoState.stage === 'armed' ? 'Cancel' : 'Dismiss'}
-                  </button>
-                ) : (
-                  <button onClick={() => requestStopAutoTradePlan(symbol)} className="font-bold underline text-neg hover:opacity-80">
-                    Close All Auto Trades
-                  </button>
-                )}
-              </div>
-            )}
             <p className="w-full text-[11px] text-ink-3">
-              ⚡ Execution model: the plan waits for the live price to reach the entry zone, then opens {predictedTradesCount} staged position{predictedTradesCount === 1 ? '' : 's'} and books each leg at its own target. The invalidation stop is enforced on every live tick.
+              ⚡ Multi-leg execution model: staged quantitative entries with adaptive daily P&L stop-loss tracking and Take-Profit ratchets on the dedicated Auto-Trade Desk.
             </p>
           </div>
         </div>

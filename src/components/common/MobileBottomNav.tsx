@@ -76,15 +76,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               <button
                 key={item.id}
                 onClick={item.onClick}
-                className="relative -top-3 flex flex-col items-center justify-center p-2.5 rounded-2xl bg-brand-fill    text-on-brand ring-2 ring-line dark:ring-line pressable active:scale-90 transition-all cursor-pointer"
+                className="relative -top-3 flex flex-col items-center justify-center p-2.5 rounded-2xl bg-brand-fill text-white shadow-lg shadow-blue-500/25 ring-2 ring-line dark:ring-line pressable active:scale-90 transition-all cursor-pointer"
                 title="Open Live Trading Terminal"
               >
                 <div className="relative">
-                  <Icon className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-surface-2 animate-ping" />
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-surface-2" />
+                  <Icon className="w-5 h-5 text-white" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sky-300 animate-ping" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sky-300" />
                 </div>
-                <span className="text-ink font-black tracking-tight mt-0.5 font-mono uppercase">Trade</span>
+                <span className="text-[10px] text-white font-black tracking-tight mt-0.5 font-mono uppercase">Trade</span>
               </button>
             );
           }

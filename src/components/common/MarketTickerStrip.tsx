@@ -58,13 +58,13 @@ export const MarketTickerStrip: React.FC<Props> = ({ onSelectStock, onOpenPredic
   }, [tickerList, subscribeSymbol]);
 
   return (
-    <div className="w-full max-w-[100vw] bg-[#080d19] dark:bg-[#080d19] border-y border-[#1a263d] text-ink select-none relative z-20 overflow-hidden shadow-sm">
+    <div className="w-full max-w-[100vw] bg-surface-2 dark:bg-[#080d19] border-y border-line text-ink select-none relative z-20 overflow-hidden shadow-sm transition-colors">
       <div className="max-w-7xl mx-auto flex items-center h-8 sm:h-8.5 px-2 sm:px-4 min-w-0">
         
         {/* Left: AI Signals Badge */}
         <button
           onClick={onOpenPredictions}
-          className="shrink-0 flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm transition-all cursor-pointer mr-2 sm:mr-3 z-10 active:scale-95"
+          className="shrink-0 flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded bg-brand-fill hover:bg-brand-hover text-on-brand text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm transition-all cursor-pointer mr-2 sm:mr-3 z-10 active:scale-95"
           title="Open AI Prediction Signals"
         >
           <Zap className="w-3 h-3 fill-amber-300 text-amber-300 animate-pulse" />
@@ -93,16 +93,16 @@ export const MarketTickerStrip: React.FC<Props> = ({ onSelectStock, onOpenPredic
                 <button
                   key={`${item.symbol}-${idx}`}
                   onClick={() => onSelectStock && onSelectStock(item.symbol)}
-                  className="flex items-center gap-1.5 hover:bg-[#111c33] px-2 py-0.5 rounded transition-colors cursor-pointer group shrink-0"
+                  className="flex items-center gap-1.5 hover:bg-surface-3 dark:hover:bg-[#111c33] px-2 py-0.5 rounded transition-colors cursor-pointer group shrink-0"
                   title={`View ${item.label} real-time chart and intelligence`}
                 >
-                  <span className="font-bold text-[#cbd5e1] group-hover:text-[#38bdf8] transition-colors">
+                  <span className="font-bold text-ink-2 dark:text-[#cbd5e1] group-hover:text-brand dark:group-hover:text-[#38bdf8] transition-colors">
                     {item.label}
                   </span>
-                  <span className="font-semibold text-white">
+                  <span className="font-semibold text-ink dark:text-white">
                     {currSym}{formatPrice(price)}
                   </span>
-                  <span className={`text-[11px] font-bold flex items-center ${isPositive ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                  <span className={`text-[11px] font-bold flex items-center ${isPositive ? 'text-pos dark:text-[#22c55e]' : 'text-neg dark:text-[#ef4444]'}`}>
                     {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
                   </span>
                 </button>
@@ -112,11 +112,11 @@ export const MarketTickerStrip: React.FC<Props> = ({ onSelectStock, onOpenPredic
         </div>
 
         {/* Right: Live Market Desk Status */}
-        <div className={`shrink-0 hidden sm:flex items-center gap-1.5 pl-3 border-l border-[#1a263d] ml-2 text-[10px] sm:text-xs font-bold font-mono ${
-          isCrypto || isMarketLive ? 'text-[#22c55e]' : 'text-[#94a3b8]'
+        <div className={`shrink-0 hidden sm:flex items-center gap-1.5 pl-3 border-l border-line ml-2 text-[10px] sm:text-xs font-bold font-mono ${
+          isCrypto || isMarketLive ? 'text-pos dark:text-[#22c55e]' : 'text-ink-3 dark:text-[#94a3b8]'
         }`}>
           <span className={`w-1.5 h-1.5 rounded-full ${
-            isCrypto || isMarketLive ? 'bg-[#22c55e] animate-pulse' : 'bg-[#94a3b8]'
+            isCrypto || isMarketLive ? 'bg-pos dark:bg-[#22c55e] animate-pulse' : 'bg-surface-3 dark:bg-[#94a3b8]'
           }`} />
           <span className="tracking-wider uppercase">
             {isCrypto ? 'CRYPTO 24/7' : isMarketLive ? 'NSE/BSE LIVE' : 'NSE/BSE CLOSED (15:30 Close)'}

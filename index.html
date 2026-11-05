@@ -1,23 +1,18 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <script>try{if(localStorage.getItem('dhru_theme')!=='light')document.documentElement.classList.add('dark')}catch{document.documentElement.classList.add('dark')}</script>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    
-    <link rel="preload" href="/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <title>DHRU.AI — Indian & Global Financial Market Intelligence</title>
-    <meta name="description" content="AI-Powered Real-Time Indian & Global Financial Market Intelligence Platform. Understand Every Market. See Beyond the Numbers." />
     <script>
       try {
         const saved = localStorage.getItem('dhru_theme');
         const dark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
         if (dark) {
           document.documentElement.classList.add('dark');
-          
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.style.colorScheme = 'dark';
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.style.colorScheme = 'light';
         }
       } catch (_) {}
     </script>

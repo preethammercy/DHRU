@@ -84,7 +84,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }
                     : 'text-ink-2 dark:text-ink-3 hover:text-brand hover:bg-surface-2 dark:hover:bg-surface-2'
                 }`}
               >
-                {isActive && <motion.span layoutId="primary-nav-indicator" className="absolute bottom-0 left-2 right-2 h-[2px] bg-surface" transition={{ duration: duration.base, ease: ease.out }} aria-hidden="true" />}
+                {isActive && <motion.span layoutId="primary-nav-indicator" className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-brand-fill rounded-full" transition={{ duration: duration.base, ease: ease.out }} aria-hidden="true" />}
                 <Icon className={`relative z-10 w-3.5 h-3.5 ${isActive ? 'text-ink dark:text-ink-3' : 'text-ink-3 group-hover:text-brand'}`} />
                 <span className="relative z-10">{item.label}</span>
               </button>

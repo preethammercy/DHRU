@@ -145,20 +145,20 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Center: Universal Search Bar Trigger */}
-        <div className="flex-1 max-w-md mx-2 hidden xl:block">
+        <div className="flex-1 max-w-md mx-2 min-w-[220px] hidden 2xl:block">
           <button
             onClick={onOpenSearch}
-            className="w-full flex items-center justify-between px-4 py-2 text-xs text-ink-2 dark:text-ink-3 bg-surface-2 dark:bg-surface border border-line dark:border-line hover:border-line hover:bg-surface dark:hover:bg-surface rounded-xl transition-all  group hover:scale-[1.01]"
+            className="w-full flex items-center justify-between px-4 py-2 text-xs text-ink-2 dark:text-ink-3 bg-surface-2 dark:bg-surface border border-line dark:border-line hover:border-brand hover:bg-surface-3 dark:hover:bg-surface-2 rounded-xl transition-all group cursor-pointer"
           >
-            <div className="flex items-center gap-2.5">
-              <Search className="w-4 h-4 text-ink-3 group-hover:text-brand dark:group-hover:text-brand transition-colors" />
-              <span>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Search className="w-4 h-4 text-ink-3 group-hover:text-brand dark:group-hover:text-brand transition-colors shrink-0" />
+              <span className="truncate">
                 {marketMode === 'crypto'
                   ? 'Search 20+ cryptos: Bitcoin, Ethereum, Solana, XRP, SUI...'
                   : 'Search 2,600+ NSE stocks, indices, sectors...'}
               </span>
             </div>
-            <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-ink font-mono font-medium text-ink-2 bg-surface dark:bg-surface-2 rounded border border-line dark:border-line ">
+            <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium text-ink-2 bg-surface dark:bg-surface-2 rounded border border-line dark:border-line shrink-0 ml-2">
               Ctrl + K
             </kbd>
           </button>
@@ -166,6 +166,16 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Actions */}
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 xl:gap-2.5">
+          {/* Quick Search Button (visible below 2xl) */}
+          <button
+            onClick={onOpenSearch}
+            className="p-2 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line text-ink-2 dark:text-ink-3 hover:text-brand hover:border-line transition-colors cursor-pointer 2xl:hidden shrink-0"
+            type="button"
+            aria-label="Search markets (Ctrl+K)"
+            title="Search markets (Ctrl+K)"
+          >
+            <Search className="w-4 h-4" />
+          </button>
           
           {/* Market Status Pill */}
           <div className="hidden xl:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line text-xs font-medium">
@@ -258,12 +268,16 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl bg-surface dark:bg-surface border border-line dark:border-line text-ink-2 dark:text-ink-3 hover:text-brand hover:border-line transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line text-ink hover:text-brand transition-all cursor-pointer shadow-sm active:scale-95 shrink-0"
             type="button"
             aria-label={`Switch to ${theme === 'dark' ? 'day' : 'dark'} mode`}
-            title={`Switch to ${theme === 'dark' ? 'Day' : 'Dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'Day (Light)' : 'Dark'} mode`}
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4 text-warn" /> : <Moon className="w-4 h-4 text-ink-2" />}
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-600 hover:-rotate-12 transition-transform" />
+            )}
           </button>
 
           {/* User Profile / Firebase Google Login Button */}
