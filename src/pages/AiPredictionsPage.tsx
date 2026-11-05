@@ -7,6 +7,7 @@ import { getStockDetails } from '../services/api';
 import { useLivePrice } from '../context/MarketStreamContext';
 import { useAuth } from '../context/AuthContext';
 import { useTrading } from '../context/TradingContext';
+import { useWallet } from '../context/WalletContext';
 import { AutoTradePlan, calculateAutoTradeSize, isDailyLossLimitHit, readAutoTradeEventBlackout, readAutoTradePlans, removeAutoTradePlan, requestStopAutoTradePlan, splitAutoTradeLegs, summarizeLegTiers, upsertAutoTradePlan } from '../services/autoTradePlans';
 import {
   BrainCircuit,
@@ -82,6 +83,7 @@ const QUICK_INSTRUMENTS: QuickPick[] = [
 export const AiPredictionsPage: React.FC<Props> = ({ onSelectStock, onTradeStock }) => {
   const { marketMode } = useAuth();
   const { cashBalance, marginAvailable, riskSettings } = useTrading();
+  const { wallet, consumeCredits, openDepositModal } = useWallet();
   const defaultSymbol = marketMode === 'crypto' ? 'BTC-USD' : 'RELIANCE.NS';
   const storedSymbol = localStorage.getItem('dhru_ai_symbol');
   const initialSymbol = storedSymbol && QUICK_INSTRUMENTS.some(item => item.symbol === storedSymbol && item.category === marketMode) ? storedSymbol : defaultSymbol;
@@ -337,7 +339,7 @@ export const AiPredictionsPage: React.FC<Props> = ({ onSelectStock, onTradeStock
     Math.min(Math.max(0, cashBalance) * 0.05, marketMode === 'crypto' ? 250 : 5000)
   );
 
-  const armAutoTrade = () => {
+  const armAutoTrade = async () => {
     const isDirectional = model.direction === 'LONG' || model.direction === 'SHORT';
     if (!isDirectional) {
       const msg = 'DHRU is currently observing neutral range levels. Wait for directional breakout confirmation.';
@@ -386,6 +388,22 @@ export const AiPredictionsPage: React.FC<Props> = ({ onSelectStock, onTradeStock
         status: 'BLOCKED',
         reason: msg
       });
+      return;
+    }
+
+    // Require 10 credits to arm automatic multi-leg execution
+    const creditRes = await consumeCredits('autotrade', 10, symbol);
+    if (!creditRes.ok) {
+      const msg = creditRes.error || 'Arming DHRU Auto-Trade requires 10 Credits. Please recharge your wallet.';
+      setAutoState({ stage: 'blocked', message: msg });
+      dispatchTradeNotification({
+        type: 'REJECTED',
+        title: 'Insufficient Credits',
+        symbol,
+        status: 'BLOCKED',
+        reason: msg
+      });
+      openDepositModal('credits');
       return;
     }
 
@@ -828,7 +846,7 @@ export const AiPredictionsPage: React.FC<Props> = ({ onSelectStock, onTradeStock
                       ? '✕ Cancel Armed Auto-Trade'
                       : model.direction === 'WAIT'
                       ? '⏳ Setup Inactive · Waiting for Breakout'
-                      : `⚡ Start Fully Automatic DHRU Auto-Trade (${predictedTradesCount} Positions Predicted)`}
+                      : `⚡ Start Fully Automatic DHRU Auto-Trade (${predictedTradesCount} Positions · 10 Cr)`}
                 </button>
               {onTradeStock && (
                 <button

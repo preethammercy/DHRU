@@ -10,6 +10,8 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build": "vite build",
     "test": "node --test test/*.test.js",
+    "test:unit": "node --test server/services/autoTrader.test.js",
+    "release:zip": "node scripts/zip-release.mjs",
     "backtest": "node scripts/run-backtest.js",
     "verify:market-data": "node scripts/verify-market-data.js",
     "start": "node server/index.js"

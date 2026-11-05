@@ -6,6 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IndicatorConfig } from '../../types/indicators';
+import { useWallet } from '../../context/WalletContext';
+import { dispatchTradeNotification } from '../common/TradeNotificationToast';
 import {
   X,
   Search,
@@ -19,6 +21,8 @@ import {
   Activity,
   Layers,
   Zap,
+  Lock,
+  Wallet,
   SlidersHorizontal
 } from 'lucide-react';
 
@@ -41,8 +45,9 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
   onUpdateColor,
   onResetDefaults,
 }) => {
+  const { wallet, openDepositModal } = useWallet();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'premium' | 'overlay' | 'oscillator'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'free' | 'premium' | 'overlay' | 'oscillator'>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Lock body scroll on mobile while modal is open
@@ -61,7 +66,8 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
 
   const filtered = indicators.filter(ind => {
     let matchCat = true;
-    if (activeTab === 'premium') matchCat = ind.tier === 'premium';
+    if (activeTab === 'free') matchCat = ind.tier !== 'premium';
+    else if (activeTab === 'premium') matchCat = ind.tier === 'premium';
     else if (activeTab === 'overlay') matchCat = ind.category === 'overlay';
     else if (activeTab === 'oscillator') matchCat = ind.category === 'oscillator';
 
@@ -73,6 +79,21 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
   });
 
   const activeCount = indicators.filter(i => i.enabled).length;
+
+  const handleToggle = (ind: IndicatorConfig) => {
+    if (ind.tier === 'premium' && !wallet.premiumUnlocked) {
+      dispatchTradeNotification({
+        type: 'REJECTED',
+        title: 'Premium Indicator Locked',
+        symbol: ind.shortName,
+        status: 'BLOCKED',
+        reason: 'Hold 1,000+ Credits to unlock all Institutional & SMC Indicators.'
+      });
+      openDepositModal('credits');
+      return;
+    }
+    onToggleIndicator(ind.id);
+  };
 
   // Quick 1-tap preset handlers
   const handleApplySmcPreset = () => {
@@ -162,6 +183,31 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
           </button>
         </div>
 
+        {/* 1.5 Credits & Institutional Tier Status Banner */}
+        <div className="mx-4 sm:mx-6 mt-3 p-2.5 rounded-xl bg-surface-2 border border-line flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-brand" />
+            <span className="font-semibold text-ink">Credits: <strong className="font-mono text-brand">{wallet.credits}</strong></span>
+            {wallet.premiumUnlocked ? (
+              <span className="px-2 py-0.5 rounded-md bg-pos-tint text-pos font-bold text-[11px] flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> SMC & Quant Unlocked
+              </span>
+            ) : (
+              <span className="text-ink-2 text-[11px] hidden xs:inline">(1,000+ unlocks SMC & Institutional Suite)</span>
+            )}
+          </div>
+          {!wallet.premiumUnlocked && (
+            <button
+              type="button"
+              onClick={() => openDepositModal('credits')}
+              className="px-2.5 py-1 rounded-lg bg-brand-fill text-on-brand font-bold text-[11px] hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+            >
+              <Zap className="w-3 h-3 text-amber-400" />
+              <span>Unlock SMC</span>
+            </button>
+          )}
+        </div>
+
         {/* 2. Mobile Quick Presets Strip */}
         <div className="px-4 sm:px-6 py-2 border-b border-line dark:border-line bg-surface-2 dark:bg-surface flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           <span className="text-ink font-mono uppercase font-bold text-ink-3 shrink-0 mr-1 hidden sm:inline">
@@ -224,28 +270,38 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
               onClick={() => setActiveTab('all')}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'all'
-                  ? 'bg-brand-fill text-on-brand '
+                  ? 'bg-brand-fill text-on-brand'
                   : 'bg-surface-2 dark:bg-surface-2 text-ink-2 dark:text-ink-3 hover:bg-surface-2'
               }`}
             >
               All ({indicators.length})
             </button>
             <button
+              onClick={() => setActiveTab('free')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                activeTab === 'free'
+                  ? 'bg-brand-fill text-on-brand'
+                  : 'bg-surface-2 dark:bg-surface-2 text-ink-2 dark:text-ink-3 hover:bg-surface-2'
+              }`}
+            >
+              Free Standard
+            </button>
+            <button
               onClick={() => setActiveTab('premium')}
               className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'premium'
-                  ? 'bg-surface-2 text-ink '
+                  ? 'bg-brand-fill text-on-brand'
                   : 'bg-surface-2 dark:bg-surface-2 text-warn dark:text-warn border border-line dark:border-line'
               }`}
             >
               <Sparkles className="w-3 h-3" />
-              <span>SMC & Quant</span>
+              <span>SMC & Quant {wallet.premiumUnlocked ? '✨' : '🔒'}</span>
             </button>
             <button
               onClick={() => setActiveTab('overlay')}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'overlay'
-                  ? 'bg-brand-fill text-on-brand '
+                  ? 'bg-brand-fill text-on-brand'
                   : 'bg-surface-2 dark:bg-surface-2 text-ink-2 dark:text-ink-3 hover:bg-surface-2'
               }`}
             >
@@ -255,7 +311,7 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
               onClick={() => setActiveTab('oscillator')}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'oscillator'
-                  ? 'bg-brand-fill text-on-brand '
+                  ? 'bg-brand-fill text-on-brand'
                   : 'bg-surface-2 dark:bg-surface-2 text-ink-2 dark:text-ink-3 hover:bg-surface-2'
               }`}
             >
@@ -274,13 +330,16 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
             filtered.map(ind => {
               const isEditing = editingId === ind.id;
               const hasParams = Object.keys(ind.params).length > 0;
+              const isPremiumLocked = ind.tier === 'premium' && !wallet.premiumUnlocked;
 
               return (
                 <div
                   key={ind.id}
                   className={`p-3 rounded-2xl border transition-all ${
                     ind.enabled
-                      ? 'bg-surface-2 dark:bg-brand-fill border-line dark:border-line '
+                      ? 'bg-surface-2 dark:bg-brand-fill border-line dark:border-line'
+                      : isPremiumLocked
+                      ? 'bg-surface/60 border-line/60 opacity-90'
                       : 'bg-surface dark:bg-surface border-line dark:border-line hover:border-line dark:hover:border-line'
                   }`}
                 >
@@ -288,18 +347,24 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                     
                     {/* Left: Tap to toggle + Indicator details */}
                     <div
-                      onClick={() => onToggleIndicator(ind.id)}
+                      onClick={() => handleToggle(ind)}
                       className="flex items-start gap-2.5 sm:gap-3 flex-1 min-w-0 cursor-pointer select-none"
                     >
-                      {/* Checkbox button */}
+                      {/* Checkbox button / Lock */}
                       <div
                         className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                          ind.enabled
-                            ? 'bg-brand-fill text-on-brand  '
+                          isPremiumLocked
+                            ? 'bg-warn-tint text-warn border border-warn/30'
+                            : ind.enabled
+                            ? 'bg-brand-fill text-on-brand'
                             : 'border-2 border-line dark:border-line hover:border-line bg-surface dark:bg-surface-2'
                         }`}
                       >
-                        {ind.enabled && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        {isPremiumLocked ? (
+                          <Lock className="w-3.5 h-3.5" />
+                        ) : ind.enabled ? (
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        ) : null}
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -307,12 +372,27 @@ export const IndicatorModal: React.FC<IndicatorModalProps> = ({
                           <span className="font-extrabold text-xs sm:text-sm text-ink dark:text-ink">
                             {ind.name}
                           </span>
-                          {ind.badge && (
-                            <span className="text-ink font-mono font-bold px-1.5 py-0.2 rounded-full bg-surface-2 dark:bg-surface-2 text-warn dark:text-warn border border-line">
+                          {ind.tier === 'premium' ? (
+                            wallet.premiumUnlocked ? (
+                              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-pos-tint text-pos border border-pos/30">
+                                ✨ UNLOCKED
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn border border-warn/30 flex items-center gap-0.5">
+                                <Lock className="w-2.5 h-2.5" /> 1K+ CREDITS
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-surface-2 text-ink-2 border border-line">
+                              FREE
+                            </span>
+                          )}
+                          {ind.badge && ind.badge !== 'Institutional' && (
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-surface-2 dark:bg-surface-2 text-warn dark:text-warn border border-line">
                               {ind.badge}
                             </span>
                           )}
-                          <span className="text-ink font-mono uppercase px-1.5 py-0.2 rounded bg-surface-2 dark:bg-surface-2 text-ink-2 font-semibold">
+                          <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-surface-2 dark:bg-surface-2 text-ink-2 font-semibold">
                             {ind.category}
                           </span>
                         </div>

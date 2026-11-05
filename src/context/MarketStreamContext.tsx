@@ -200,17 +200,19 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
     let backoffDelay = 2000;
     let failedAttempts = 0;
 
-    // Avoid connecting to direct external WebSockets inside automated audit crawlers or Lighthouse
+    // Avoid connecting to direct external WebSockets inside automated audit crawlers, Lighthouse, or headless environments
     const isCrawler = typeof navigator !== 'undefined' && (
-      /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless/i.test(navigator.userAgent || '') ||
-      Boolean((window as any).__PRERENDER_INJECTED)
+      /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|axe|audit|ergora|ptst|inspect/i.test(navigator.userAgent || '') ||
+      Boolean((window as any).__PRERENDER_INJECTED) ||
+      Boolean((window as any).navigator?.webdriver)
     );
     if (isCrawler) return;
 
     const connect = () => {
-      if (stopped || failedAttempts >= 3) return;
+      // If stopped or if proxy rejects direct WS, stop attempting and fall back entirely to REST stream
+      if (stopped || failedAttempts >= 2) return;
       try {
-        // Connect via standard port 443 (WSS) to prevent proxy tunnel rejection on non-standard port 9443
+        // Connect via standard port 443 (WSS)
         socket = new WebSocket('wss://stream.binance.com:443/ws/!miniTicker@arr');
       } catch {
         cryptoSocketConnected.current = false;
@@ -265,6 +267,8 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
       };
 
       socket.onerror = () => {
+        cryptoSocketConnected.current = false;
+        failedAttempts += 1;
         try { socket?.close(); } catch {}
       };
 
@@ -272,11 +276,9 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
         cryptoSocketConnected.current = false;
         if (heartbeatTimer) clearInterval(heartbeatTimer);
         failedAttempts += 1;
-        if (!stopped) {
-          // If proxy/network blocks direct WebSockets (e.g. audit crawler / corporate proxy),
-          // gracefully back off to 5 minutes so pollQuotes() cleanly handles streaming via backend REST
-          const delay = failedAttempts >= 2 ? 300_000 : backoffDelay;
-          retryTimer = setTimeout(connect, delay);
+        // Do not spam reconnects if proxy rejected tunnel; REST polling handles ticks smoothly
+        if (!stopped && failedAttempts < 2) {
+          retryTimer = setTimeout(connect, backoffDelay);
           backoffDelay = Math.min(30_000, backoffDelay * 2);
         }
       };

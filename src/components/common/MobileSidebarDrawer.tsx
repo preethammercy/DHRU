@@ -29,7 +29,8 @@ import {
   LogIn,
   Eye,
   Target,
-  Briefcase
+  Briefcase,
+  Bot
 } from 'lucide-react';
 import { DhruLogo } from './DhruLogo';
 import { useAuth } from '../../context/AuthContext';
@@ -378,6 +379,7 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
             </span>
 
             {[
+              { id: 'autotrade', label: '⚡ Auto-Trade Bot Desk', icon: Bot, badge: 'Adaptive' },
               { id: 'ai-predictions', label: '🎯 AI Market Predictions & SMC', icon: Zap, badge: 'SMC v3.5' },
               { id: 'patterns', label: '👁️ AI Pattern Vision Scanner', icon: CandlestickChart, badge: 'Vision' },
               { id: 'risk-monitor', label: '🛡️ Volatility & Risk Monitor', icon: ShieldAlert },

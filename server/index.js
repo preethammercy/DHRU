@@ -18,6 +18,8 @@ import { getFiiDiiData } from './data/fiiDiiData.js';
 import { executeBrokerOrder, fetchBrokerFunds, validateOrderParams } from './services/brokerService.js';
 import { getDhruAnalysis } from './services/analysisEngine.js';
 import { autoTradeServerEngine } from './services/autoTradeServerEngine.js';
+import { createAutoTradeRouter, startAutoTradeLoop } from './routes/autoTrade.js';
+import { createWalletRouter } from './routes/wallet.js';
 
 dotenv.config();
 
@@ -746,6 +748,24 @@ app.post('/api/autotrade/stop', (req, res) => {
     res.status(500).json({ error: 'Failed to stop auto-trade', details: err.message });
   }
 });
+
+// AutoTrade Adaptive Stop-Loss Desk Router (Master Specification)
+const autoTradeDesk = createAutoTradeRouter({
+  getPrice: async (symbol) => {
+    try {
+      const q = await fetchInstrumentQuote(symbol);
+      return q?.price || 0;
+    } catch {
+      return 0;
+    }
+  }
+});
+app.use('/api/autotrade', autoTradeDesk.router);
+startAutoTradeLoop(autoTradeDesk.refresh);
+
+// Wallet, Credits & UPI Payment Gateway Router
+const walletRouter = createWalletRouter();
+app.use('/api/wallet', walletRouter);
 
 app.post('/api/autotrade/reset-halt', (req, res) => {
   try {

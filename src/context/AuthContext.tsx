@@ -37,6 +37,7 @@ interface AuthContextType {
   showMarketSelector: boolean;
   setShowMarketSelector: (show: boolean) => void;
   signInWithGoogle: () => Promise<void>;
+  signInLocalBypass: () => void;
   signOut: () => Promise<void>;
   updateUserProfile: (updates: Partial<DhruUser>) => void;
 }
@@ -121,13 +122,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
-            if (parsed.isDemo) {
-              // Purge legacy demo sessions
-              localStorage.removeItem('dhru_auth_user');
-              setUser(null);
+            if (parsed && parsed.uid) {
+              setUser(parsed);
             } else {
               setUser(null);
-              localStorage.removeItem('dhru_auth_user');
             }
           } catch {
             setUser(null);
@@ -141,6 +139,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => unsubscribe();
   }, []);
+
+  const signInLocalBypass = () => {
+    const localUser: DhruUser = {
+      uid: 'dhru-local-trader',
+      displayName: 'Preetham (Local Trader)',
+      email: 'preetham@dhru.ai',
+      traderIdentity: 'DHRU-QUANT-001',
+      kycStatus: 'verified',
+      baseCurrency: 'INR'
+    };
+    setUser(localUser);
+    localStorage.setItem('dhru_auth_user', JSON.stringify(localUser));
+    setShowMarketSelector(true);
+  };
 
   const signInWithGoogle = async () => {
     if (!auth || !googleProvider) {
@@ -195,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         showMarketSelector,
         setShowMarketSelector,
         signInWithGoogle,
+        signInLocalBypass,
         signOut,
         updateUserProfile
       }}

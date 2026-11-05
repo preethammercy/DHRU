@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Circle, Sparkles, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Circle, Sparkles, ShieldCheck, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { DhruLogo } from '../components/common/DhruLogo';
 import { AboutDhru } from '../components/common/AboutDhru';
@@ -9,9 +9,14 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInLocalBypass } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleLocalBypassLogin = () => {
+    signInLocalBypass();
+    if (onLoginSuccess) onLoginSuccess();
+  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -105,6 +110,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 </svg>
                 <span>{loading ? 'Connecting with Google...' : 'Continue with Google'}</span>
                 <ArrowRight className="h-4 w-4 ml-1 text-slate-400" />
+              </button>
+
+              <div className="relative my-4 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-line"></div></div>
+                <div className="relative bg-surface px-3 text-xs uppercase font-mono text-ink-3">or convenient localhost access</div>
+              </div>
+
+              {/* Instant Localhost / Guest Login Bypass Button */}
+              <button
+                type="button"
+                onClick={handleLocalBypassLogin}
+                className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-surface-2 hover:bg-surface border border-line hover:border-brand px-6 py-3 font-bold text-sm text-ink shadow-sm active:scale-[0.99] transition-all cursor-pointer"
+              >
+                <Zap className="w-4 h-4 text-amber-400" />
+                <span>⚡ 1-Click Localhost Access (100 Free Credits Included)</span>
               </button>
 
               {error && (

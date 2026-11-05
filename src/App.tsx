@@ -40,11 +40,14 @@ import { PositionsHoldingsPage } from './pages/PositionsHoldingsPage';
 import { LivePredictionsModal } from './components/common/LivePredictionsModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AutoTradeMonitor } from './components/common/AutoTradeMonitor';
+import { AutoTradePage } from './pages/AutoTradePage';
+import { UpiPaymentModal } from './components/payment/UpiPaymentModal';
 
 // Contexts
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MarketStreamProvider } from './context/MarketStreamContext';
 import { TradingProvider } from './context/TradingContext';
+import { WalletProvider } from './context/WalletContext';
 
 // Path mapping dictionary for URL routing (e.g., /home, /dashboard, /terminal, /markets, etc.)
 const PATH_TO_NAV: Record<string, string> = {
@@ -54,6 +57,10 @@ const PATH_TO_NAV: Record<string, string> = {
   'dashboard': 'overview',
   'terminal': 'terminal',
   'trade': 'terminal',
+  'autotrade': 'autotrade',
+  'auto-trade': 'autotrade',
+  'bot': 'autotrade',
+  'algo': 'autotrade',
   'indices': 'indices',
   'markets': 'indices',
   'assets': 'indices',
@@ -147,7 +154,7 @@ function AppContent() {
     localStorage.setItem('dhru_selected_symbol', selectedSymbol);
   }, [selectedSymbol]);
 
-  const pageOrder = ['overview', 'terminal', 'positions', 'indices', 'stocks', 'stock-detail', 'sectors', 'commodities', 'derivatives', 'news', 'ai-predictions', 'risk-monitor', 'patterns', 'watchlist', 'ask-dhru', 'profile'];
+  const pageOrder = ['overview', 'terminal', 'positions', 'autotrade', 'indices', 'stocks', 'stock-detail', 'sectors', 'commodities', 'derivatives', 'news', 'ai-predictions', 'risk-monitor', 'patterns', 'watchlist', 'ask-dhru', 'profile'];
 
   // Scroll entrance animation hook
   useScrollAnimation(activeNav);
@@ -353,6 +360,10 @@ function AppContent() {
           />
         )}
 
+        {activeNav === 'autotrade' && (
+          <AutoTradePage />
+        )}
+
         {activeNav === 'risk-monitor' && (
           <RiskMonitorPage />
         )}
@@ -502,7 +513,10 @@ export function App() {
       <AuthProvider>
         <MarketStreamProvider>
           <TradingProvider>
-            <AppContent />
+            <WalletProvider>
+              <AppContent />
+              <UpiPaymentModal />
+            </WalletProvider>
           </TradingProvider>
         </MarketStreamProvider>
       </AuthProvider>

@@ -17,7 +17,8 @@ import {
   Bookmark,
   Sparkles,
   User,
-  Briefcase
+  Briefcase,
+  Bot
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'motion/react';
@@ -36,6 +37,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }
         { id: 'overview', label: 'Crypto Overview', icon: LayoutDashboard },
         { id: 'terminal', label: 'Live Terminal', icon: CandlestickChart },
         { id: 'positions', label: 'Positions & Portfolio', icon: Briefcase },
+        { id: 'autotrade', label: '⚡ Auto-Trade Desk', icon: Bot },
         { id: 'indices', label: 'Crypto Assets', icon: Coins },
         { id: 'news', label: 'Market News', icon: Newspaper },
         { id: 'ai-predictions', label: 'AI Predictions', icon: BrainCircuit },
@@ -49,6 +51,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }
         { id: 'overview', label: 'Indian Overview', icon: LayoutDashboard },
         { id: 'terminal', label: 'Live Terminal', icon: CandlestickChart },
         { id: 'positions', label: 'Positions & Portfolio', icon: Briefcase },
+        { id: 'autotrade', label: '⚡ Auto-Trade Desk', icon: Bot },
         { id: 'indices', label: 'All Indices', icon: TrendingUp },
         { id: 'stocks', label: 'All Stocks', icon: ListFilter },
         { id: 'sectors', label: 'Sectors & Heatmap', icon: PieChart },

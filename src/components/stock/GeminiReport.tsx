@@ -32,6 +32,7 @@ import { useLivePrice } from '../../context/MarketStreamContext';
 import { useTrading } from '../../context/TradingContext';
 import { AutoTradePlan, calculateAutoTradeSize, readAutoTradePlans, removeAutoTradePlan, requestStopAutoTradePlan, splitAutoTradeLegs, summarizeLegTiers, upsertAutoTradePlan } from '../../services/autoTradePlans';
 import { dispatchTradeNotification } from '../common/TradeNotificationToast';
+import { useWallet } from '../../context/WalletContext';
 
 interface Props {
   symbol: string;
@@ -46,6 +47,7 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
   const isCrypto = symbol.endsWith('-USD');
   const currency = isCrypto ? '$' : '₹';
   const { brokerConfig, cashBalance, marginAvailable, riskSettings } = useTrading();
+  const { wallet, consumeCredits, openDepositModal } = useWallet();
   const live = useLivePrice(symbol);
   const [autoState, setAutoState] = useState<{ stage: 'armed' | 'open' | 'blocked' | 'done'; message: string } | null>(() => {
     try {
@@ -107,7 +109,7 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
     return Number.isFinite(quoteAt) && Date.now() - quoteAt <= 60_000;
   };
 
-  const armReportedPlan = () => {
+  const armReportedPlan = async () => {
     const trade = getLiveTradeSetup(report?.tradeSetup);
     if (!trade || trade.action === 'WAIT') {
       const msg = 'DHRU is currently observing neutral range levels. Wait for breakout confirmation.';
@@ -121,6 +123,23 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
       });
       return;
     }
+
+    // Require 10 credits to arm automatic multi-leg execution
+    const creditRes = await consumeCredits('autotrade', 10, symbol);
+    if (!creditRes.ok) {
+      const msg = creditRes.error || 'Arming DHRU Auto-Trade requires 10 Credits. Please recharge your wallet.';
+      setAutoState({ stage: 'blocked', message: msg });
+      dispatchTradeNotification({
+        type: 'REJECTED',
+        title: 'Insufficient Credits',
+        symbol,
+        status: 'BLOCKED',
+        reason: msg
+      });
+      openDepositModal('credits');
+      return;
+    }
+
     const currentPrice = live.price > 0 ? live.price : trade.entryPrice;
     const entryMin = trade.entryMin ?? trade.entryPrice;
     const entryMax = trade.entryMax ?? trade.entryPrice;
@@ -203,6 +222,22 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
   };
 
   const handleRegenerate = async () => {
+    // Require 5 credits to generate a fresh deep AI intelligence report
+    const creditRes = await consumeCredits('report', 5, symbol);
+    if (!creditRes.ok) {
+      const msg = creditRes.error || 'Generating a fresh AI intelligence report requires 5 Credits. Please top up your wallet.';
+      setReportError(msg);
+      dispatchTradeNotification({
+        type: 'REJECTED',
+        title: 'Insufficient Credits',
+        symbol,
+        status: 'BLOCKED',
+        reason: msg
+      });
+      openDepositModal('credits');
+      return;
+    }
+
     setLoading(true);
     setReportError('');
     setReport(null);
@@ -231,9 +266,11 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
         <button
           onClick={handleRegenerate}
           disabled={loading}
-          className="px-4 py-2 rounded-xl bg-brand-fill hover:bg-brand-fill-hover text-on-brand text-xs font-semibold  hover: transition-all cursor-pointer"
+          className="px-4 py-2 rounded-xl bg-brand-fill hover:bg-brand-fill-hover text-on-brand text-xs font-semibold hover:opacity-95 transition-all cursor-pointer flex items-center gap-1.5 mx-auto"
         >
-          Generate Live DHRU Intelligence Report
+          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+          <span>Generate Live DHRU Intelligence Report</span>
+          <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono font-bold">5 Credits</span>
         </button>
       </div>
     );
@@ -283,14 +320,19 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
           </div>
         </div>
 
-        <button
-          onClick={handleRegenerate}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface-2 hover:bg-surface-2 dark:bg-surface border border-line dark:border-line text-ink-2 dark:text-ink-3 hover:text-brand transition-all cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Generate Fresh Report
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono text-ink-2 bg-surface-2 px-2 py-1 rounded-lg border border-line">
+            Balance: <strong className="text-brand font-bold">{wallet.credits} Cr</strong>
+          </span>
+          <button
+            onClick={handleRegenerate}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface-2 hover:bg-surface-2 dark:bg-surface border border-line dark:border-line text-ink-2 dark:text-ink-3 hover:text-brand transition-all cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Refresh (5 Cr)</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-ink-2">
@@ -446,7 +488,7 @@ export const GeminiReport: React.FC<Props> = ({ symbol, initialReport }) => {
                   ? `⚡ DHRU Auto-Trade Active (${predictedTradesCount} Position${predictedTradesCount === 1 ? '' : 's'})`
                   : trade.action === 'WAIT'
                   ? '⏳ Setup Inactive · Waiting for Breakout'
-                  : `⚡ Start Fully Automatic DHRU Auto-Trade (${predictedTradesCount} Position${predictedTradesCount === 1 ? '' : 's'})`}
+                  : `⚡ Start Fully Automatic DHRU Auto-Trade (${predictedTradesCount} Positions · 10 Cr)`}
               </button>
               {live.price > 0 && (
                 <span className="text-xs text-ink-2 font-mono">

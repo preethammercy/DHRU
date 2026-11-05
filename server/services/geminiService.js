@@ -505,8 +505,6 @@ Return ONLY valid JSON. No markdown code blocks.`;
 
 
 export async function askDhruAssistant({ query, currentContext, history = [] }) {
-  const apiKey = getActiveApiKey();
-  if (!apiKey) throw new Error('Gemini is not configured. Add GEMINI_API_KEY to the project root .env file, or set it in your Vercel project environment variables, then restart/redeploy.');
   if (typeof query !== 'string' || !query.trim()) throw new Error('Enter a question to ask DHRU AI.');
   if (query.length > 4000) throw new Error('Please keep each message under 4,000 characters.');
 
@@ -550,6 +548,9 @@ export async function askDhruAssistant({ query, currentContext, history = [] }) 
       sourceContext: symbol
     };
   }
+
+  const apiKey = getActiveApiKey();
+  if (!apiKey) throw new Error('Gemini is not configured. Add GEMINI_API_KEY to the project root .env file, or set it in your Vercel project environment variables, then restart/redeploy.');
 
   const isCryptoContext = String(currentContext?.symbol || '').endsWith('-USD');
   const symCurrency = currentContext?.currency === 'USD' || isCryptoContext ? '$' : '₹';
