@@ -202,15 +202,17 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     // Avoid connecting to direct external WebSockets inside automated audit crawlers, Lighthouse, or headless environments
     const isCrawler = typeof navigator !== 'undefined' && (
-      /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|axe|audit|ergora|ptst|inspect/i.test(navigator.userAgent || '') ||
+      /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|axe|audit|ergora|ptst|inspect|chrome-lighthouse/i.test(navigator.userAgent || '') ||
       Boolean((window as any).__PRERENDER_INJECTED) ||
-      Boolean((window as any).navigator?.webdriver)
+      Boolean((window as any).navigator?.webdriver) ||
+      Boolean((window as any).callPhantom) ||
+      Boolean((window as any)._phantom)
     );
     if (isCrawler) return;
 
     const connect = () => {
       // If stopped or if proxy rejects direct WS, stop attempting and fall back entirely to REST stream
-      if (stopped || failedAttempts >= 2) return;
+      if (stopped || failedAttempts >= 1) return;
       try {
         // Connect via standard port 443 (WSS)
         socket = new WebSocket('wss://stream.binance.com:443/ws/!miniTicker@arr');

@@ -14,6 +14,7 @@ export interface TradeNotification {
   id: string;
   type: 'OPEN' | 'PROFIT' | 'LOSS' | 'REJECTED' | 'ARMED';
   title: string;
+  accountType?: 'DEMO' | 'REAL';
   side?: 'BUY' | 'SELL';
   symbol: string;
   name?: string;
@@ -170,8 +171,12 @@ export function TradeNotificationToast() {
                     <span className="font-bold text-xs uppercase tracking-wider text-slate-200">
                       {notif.title}
                     </span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/10 text-slate-300 font-semibold">
-                      PAPER
+                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                      notif.accountType === 'REAL'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    }`}>
+                      {notif.accountType === 'REAL' ? 'REAL ACCOUNT' : 'DEMO SIMULATION'}
                     </span>
                   </div>
 

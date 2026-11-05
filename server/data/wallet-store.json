@@ -1,11 +1,25 @@
 {
   "users": {
     "active-trader": {
-      "credits": 85,
+      "credits": 65,
       "tradingBalance": 0,
       "totalCreditsPurchased": 0,
       "premiumUnlocked": false,
       "history": [
+        {
+          "id": "tx-1793888776333",
+          "type": "AUTOTRADE_CONSUME",
+          "credits": -10,
+          "symbol": "FET-USD",
+          "at": "2026-11-05T14:26:16.333Z"
+        },
+        {
+          "id": "tx-1793888762558",
+          "type": "AUTOTRADE_CONSUME",
+          "credits": -10,
+          "symbol": "APT-USD",
+          "at": "2026-11-05T14:26:02.558Z"
+        },
         {
           "id": "tx-1793887189832",
           "type": "REPORT_CONSUME",

@@ -41,6 +41,7 @@ import { LivePredictionsModal } from './components/common/LivePredictionsModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AutoTradeMonitor } from './components/common/AutoTradeMonitor';
 import { AutoTradePage } from './pages/AutoTradePage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { UpiPaymentModal } from './components/payment/UpiPaymentModal';
 
 // Contexts
@@ -85,6 +86,8 @@ const PATH_TO_NAV: Record<string, string> = {
   'portfolio': 'positions',
   'profile': 'profile',
   'account': 'profile',
+  'admin': 'admin',
+  'approvals': 'admin',
   'ask-dhru': 'ask-dhru',
   'ai': 'ask-dhru',
 };
@@ -400,6 +403,10 @@ function AppContent() {
         {activeNav === 'profile' && (
           <ProfilePage />
         )}
+
+        {activeNav === 'admin' && (
+          <AdminDashboardPage onNavigate={setActiveNav} />
+        )}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -512,12 +519,12 @@ export function App() {
     <ErrorBoundary>
       <AuthProvider>
         <MarketStreamProvider>
-          <TradingProvider>
-            <WalletProvider>
+          <WalletProvider>
+            <TradingProvider>
               <AppContent />
               <UpiPaymentModal />
-            </WalletProvider>
-          </TradingProvider>
+            </TradingProvider>
+          </WalletProvider>
         </MarketStreamProvider>
       </AuthProvider>
     </ErrorBoundary>

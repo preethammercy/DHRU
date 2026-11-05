@@ -408,27 +408,56 @@ export const UpiPaymentModal: React.FC = () => {
               </div>
             </div>
 
-            {/* Simulated UPI QR Representation */}
-            <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white border border-slate-300 text-slate-900 shadow-inner">
-              <div className="w-36 h-36 bg-slate-950 p-2 rounded-xl flex items-center justify-center text-white">
-                <div className="border-4 border-dashed border-cyan-400 p-3 rounded-lg text-center">
-                  <QrCode className="w-16 h-16 text-cyan-400 mx-auto" />
-                  <span className="text-[9px] font-mono uppercase text-slate-300 block mt-1">Scan &amp; Pay</span>
-                </div>
+            {/* Official PhonePe UPI QR Code */}
+            <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white border border-slate-300 text-slate-900 shadow-md">
+              <div className="relative p-1 bg-white rounded-2xl shadow-sm border border-slate-200">
+                <img
+                  src="/payment-qr.jpg"
+                  alt="DHRU AI Official PhonePe UPI QR"
+                  className="w-52 h-52 object-contain rounded-xl"
+                  onError={(e) => {
+                    // Fallback to QR placeholder if image fails to load
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
               </div>
-              <p className="text-[11px] font-mono text-slate-600 mt-2">
-                Scan with Google Pay, PhonePe, Paytm or BHIM
-              </p>
+              <div className="mt-2.5 text-center">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-[11px] font-bold">
+                  <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
+                  Official PhonePe Merchant QR • preethamrishu@axl
+                </span>
+                <p className="text-[11px] font-mono text-slate-600 mt-1">
+                  Scan with PhonePe, Google Pay, Paytm, BHIM, or Cred
+                </p>
+              </div>
             </div>
 
-            {/* Mobile UPI Open Link */}
-            <a
-              href={upiUri}
-              className="w-full py-2.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-ink font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-brand" />
-              <span>Open Installed UPI App on this Device</span>
-            </a>
+            {/* Mobile UPI Open Deep Link */}
+            <div className="space-y-2">
+              <a
+                href={upiUri}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25 transition-all active:scale-98 cursor-pointer"
+              >
+                <Zap className="w-4 h-4 fill-amber-300 text-amber-300" />
+                <span>📱 Pay ₹{currentPayAmount.toLocaleString('en-IN')} via UPI App on this Mobile</span>
+              </a>
+
+              {/* Supported UPI App Pills */}
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[11px] font-medium text-ink-2">
+                <a href={upiUri} className="px-2.5 py-1 rounded-lg bg-surface-2 border border-line hover:border-brand transition-colors">
+                  💜 PhonePe
+                </a>
+                <a href={upiUri} className="px-2.5 py-1 rounded-lg bg-surface-2 border border-line hover:border-brand transition-colors">
+                  🔵 Google Pay
+                </a>
+                <a href={upiUri} className="px-2.5 py-1 rounded-lg bg-surface-2 border border-line hover:border-brand transition-colors">
+                  🟦 Paytm
+                </a>
+                <a href={upiUri} className="px-2.5 py-1 rounded-lg bg-surface-2 border border-line hover:border-brand transition-colors">
+                  🇮🇳 BHIM UPI
+                </a>
+              </div>
+            </div>
 
             {/* UTR Reference Input & Verify */}
             <div className="space-y-2 pt-2 border-t border-line">

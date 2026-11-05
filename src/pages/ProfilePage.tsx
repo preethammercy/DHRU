@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTrading } from '../context/TradingContext';
 import { useWallet } from '../context/WalletContext';
+import { AccountTypeSwitcher } from '../components/common/AccountTypeSwitcher';
 import {
   User,
   ShieldCheck,
@@ -118,14 +119,11 @@ export const ProfilePage: React.FC = () => {
             )}
 
             <div>
-              <div className="flex items-center justify-center sm:justify-start gap-2">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
                 <h1 className="text-2xl font-black text-ink dark:text-ink tracking-tight">
                   {displayName || 'Trader Profile'}
                 </h1>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Paper Simulation Account (Active)
-                </span>
+                <AccountTypeSwitcher />
               </div>
               <p className="text-xs text-ink-2 dark:text-ink-3 mt-1 font-mono">
                 Trader UID: {maskId(user?.uid || 'GUEST-8842')} • Paper Sim ID: {maskId('DHRU-IN-847291')}

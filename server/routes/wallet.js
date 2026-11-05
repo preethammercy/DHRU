@@ -281,5 +281,191 @@ export function createWalletRouter() {
     });
   });
 
+  // 6. Admin Panel: Platform Analytics Overview
+  router.get('/admin/overview', (req, res) => {
+    try {
+      const store = loadWalletStore();
+      const users = Object.entries(store.users || {});
+      const orders = Object.values(store.orders || {});
+
+      const totalUsers = Math.max(users.length, 1);
+      const totalTradingFunds = users.reduce((acc, [, u]) => acc + (Number(u.tradingBalance) || 0), 0);
+      const totalCreditsOutstanding = users.reduce((acc, [, u]) => acc + (Number(u.credits) || 0), 0);
+      
+      const verifiedOrders = orders.filter(o => o.status === 'VERIFIED');
+      const pendingOrders = orders.filter(o => o.status === 'PENDING');
+      const totalRevenueInr = verifiedOrders.reduce((acc, o) => acc + (Number(o.amount) || 0), 0);
+
+      res.json({
+        ok: true,
+        analytics: {
+          totalUsers,
+          totalTradingFunds,
+          totalCreditsOutstanding,
+          totalRevenueInr,
+          totalOrdersCount: orders.length,
+          verifiedOrdersCount: verifiedOrders.length,
+          pendingOrdersCount: pendingOrders.length,
+          targetVpa: UPI_TARGET_VPA,
+          payeeName: UPI_PAYEE_NAME,
+          systemStatus: 'OPERATIONAL'
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch admin overview', details: err.message });
+    }
+  });
+
+  // 7. Admin Panel: List All Payment Orders
+  router.get('/admin/orders', (req, res) => {
+    try {
+      const store = loadWalletStore();
+      const orders = Object.values(store.orders || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      res.json({ ok: true, orders });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch admin orders', details: err.message });
+    }
+  });
+
+  // 8. Admin Panel: Manual Approval of UPI Payment Order
+  router.post('/admin/approve-order', (req, res) => {
+    try {
+      const { orderId, adminNote = 'Approved via Admin Panel' } = req.body;
+      if (!orderId) {
+        return res.status(400).json({ error: 'Order ID is required' });
+      }
+
+      const store = loadWalletStore();
+      const order = store.orders[orderId];
+      if (!order) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      if (order.status === 'VERIFIED') {
+        return res.json({ ok: true, message: 'Order is already verified', order });
+      }
+
+      order.status = 'VERIFIED';
+      order.verifiedAt = Date.now();
+      order.adminNote = adminNote;
+
+      const userId = order.userId || 'default-user';
+      const user = store.users[userId] || {
+        credits: 100,
+        tradingBalance: 0,
+        totalCreditsPurchased: 0,
+        premiumUnlocked: false,
+        history: []
+      };
+
+      if (order.type === 'credits') {
+        user.credits += order.credits;
+        user.totalCreditsPurchased = (user.totalCreditsPurchased || 0) + order.credits;
+        user.history.unshift({
+          id: `tx-${Date.now()}`,
+          type: 'CREDIT_PURCHASE',
+          amount: order.amount,
+          credits: order.credits,
+          utr: order.utr || 'ADMIN-APPROVED',
+          note: adminNote,
+          at: new Date().toISOString()
+        });
+      } else {
+        user.tradingBalance += order.funds || order.amount;
+        user.history.unshift({
+          id: `tx-${Date.now()}`,
+          type: 'FUND_DEPOSIT',
+          amount: order.amount,
+          utr: order.utr || 'ADMIN-APPROVED',
+          note: adminNote,
+          at: new Date().toISOString()
+        });
+      }
+
+      if (user.totalCreditsPurchased >= 1000 || user.credits >= 1000) {
+        user.premiumUnlocked = true;
+      }
+
+      store.users[userId] = user;
+      saveWalletStore(store);
+
+      res.json({
+        ok: true,
+        message: `Order ${orderId} successfully approved! User ${userId} balance credited.`,
+        order,
+        user
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to approve order', details: err.message });
+    }
+  });
+
+  // 9. Admin Panel: Reject Payment Order
+  router.post('/admin/reject-order', (req, res) => {
+    try {
+      const { orderId, reason = 'UTR Verification Failed / Invalid Reference' } = req.body;
+      if (!orderId) {
+        return res.status(400).json({ error: 'Order ID is required' });
+      }
+
+      const store = loadWalletStore();
+      const order = store.orders[orderId];
+      if (!order) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      order.status = 'REJECTED';
+      order.rejectionReason = reason;
+      order.rejectedAt = Date.now();
+      saveWalletStore(store);
+
+      res.json({ ok: true, message: `Order ${orderId} marked as REJECTED`, order });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to reject order', details: err.message });
+    }
+  });
+
+  // 10. Admin Panel: Direct Balance Adjustment
+  router.post('/admin/adjust-balance', (req, res) => {
+    try {
+      const { userId = 'default-user', credits = 0, funds = 0, note = 'Admin adjustment' } = req.body;
+      const store = loadWalletStore();
+      const user = store.users[userId] || {
+        credits: 100,
+        tradingBalance: 0,
+        totalCreditsPurchased: 0,
+        premiumUnlocked: false,
+        history: []
+      };
+
+      if (credits) {
+        user.credits = Math.max(0, user.credits + Number(credits));
+        if (credits > 0) user.totalCreditsPurchased = (user.totalCreditsPurchased || 0) + Number(credits);
+      }
+      if (funds) {
+        user.tradingBalance = Math.max(0, user.tradingBalance + Number(funds));
+      }
+      if (user.credits >= 1000 || user.totalCreditsPurchased >= 1000) {
+        user.premiumUnlocked = true;
+      }
+
+      user.history.unshift({
+        id: `tx-${Date.now()}`,
+        type: 'ADMIN_ADJUSTMENT',
+        credits: Number(credits) || undefined,
+        amount: Number(funds) || undefined,
+        note,
+        at: new Date().toISOString()
+      });
+
+      store.users[userId] = user;
+      saveWalletStore(store);
+
+      res.json({ ok: true, message: 'Balance adjusted successfully', user });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to adjust balance', details: err.message });
+    }
+  });
+
   return router;
 }

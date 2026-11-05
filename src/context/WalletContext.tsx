@@ -29,6 +29,7 @@ interface WalletContextType {
   consumeCredits: (type: 'report' | 'autotrade', cost: number, symbol?: string) => Promise<{ ok: boolean; remaining?: number; error?: string }>;
   refreshWallet: () => Promise<void>;
   updateWalletDirectly: (patch: Partial<WalletState>) => void;
+  adjustTradingBalance: (delta: number, note?: string) => void;
 }
 
 const WALLET_STORAGE_KEY = 'dhru_user_wallet_v2';
@@ -130,6 +131,25 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
   }, []);
 
+  const adjustTradingBalance = useCallback((delta: number, note = 'Realized trade P&L') => {
+    if (!Number.isFinite(delta) || delta === 0) return;
+    setWallet(prev => {
+      const nextBal = Math.max(0, Number((prev.tradingBalance + delta).toFixed(2)));
+      const newTx: WalletTransaction = {
+        id: `tx-trade-${Date.now()}`,
+        type: delta >= 0 ? 'FUND_DEPOSIT' : 'AUTOTRADE_CONSUME',
+        amount: Math.abs(delta),
+        note: `${note}: ${delta >= 0 ? '+' : '-'}₹${Math.abs(delta).toFixed(2)}`,
+        at: new Date().toISOString()
+      };
+      return {
+        ...prev,
+        tradingBalance: nextBal,
+        history: [newTx, ...prev.history].slice(0, 100)
+      };
+    });
+  }, []);
+
   // Consumes credits for Reports (5 credits) or Auto-Trade (10 credits)
   const consumeCredits = useCallback(async (
     type: 'report' | 'autotrade',
@@ -187,7 +207,8 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         closeDepositModal,
         consumeCredits,
         refreshWallet,
-        updateWalletDirectly
+        updateWalletDirectly,
+        adjustTradingBalance
       }}
     >
       {children}

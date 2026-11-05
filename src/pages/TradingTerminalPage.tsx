@@ -6,6 +6,7 @@ import { useTrading, OrderSide, ProductType, OrderType } from '../context/Tradin
 import { useMarketStream, useLivePrice } from '../context/MarketStreamContext';
 import { useAuth } from '../context/AuthContext';
 import { useWallet } from '../context/WalletContext';
+import { AccountTypeSwitcher } from '../components/common/AccountTypeSwitcher';
 import { TradingViewChart } from '../components/chart/TradingViewChart';
 import { QuoteFreshness } from '../components/market/QuoteFreshness';
 import { getStockCandles, getStockDetails } from '../services/api';
@@ -310,6 +311,7 @@ export const TradingTerminalPage: React.FC<TerminalProps> = ({
 
         {/* Right: Balance Bar */}
         <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
+          <AccountTypeSwitcher compact />
           <div>
             <span className="text-ink-2">Avail. Margin:</span>{' '}
             <strong className="text-ink dark:text-ink font-bold">{currency}{marginAvailable.toLocaleString(isCrypto ? 'en-US' : 'en-IN', { maximumFractionDigits: 2 })}</strong>

@@ -17,12 +17,14 @@ import {
   ChevronDown,
   Coins,
   Zap,
-  User
+  User,
+  ShieldCheck
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTrading } from '../../context/TradingContext';
 import { useWallet } from '../../context/WalletContext';
+import { AccountTypeSwitcher } from './AccountTypeSwitcher';
 import { MarketStatus } from '../../types';
 import { DhruLogo } from './DhruLogo';
 
@@ -229,6 +231,9 @@ export const Header: React.FC<HeaderProps> = ({
             DHRU AI
           </button>
 
+          {/* Demo vs Real Account Switcher */}
+          <AccountTypeSwitcher compact />
+
           {/* Wallet Credits & Real Funds / Add Funds Button */}
           <button
             type="button"
@@ -382,6 +387,20 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <User className="w-3.5 h-3.5 text-brand dark:text-brand" />
                         <span>My Profile & Identities</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          onSelectNav('admin');
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-bold text-sky-700 dark:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 transition-colors cursor-pointer text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-3.5 h-3.5 text-sky-500" />
+                          <span>Admin & Approvals Desk</span>
+                        </div>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-600 text-white font-extrabold">Portal</span>
                       </button>
 
                       <button

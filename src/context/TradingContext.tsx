@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useMarketStream } from './MarketStreamContext';
 import { useAuth } from './AuthContext';
+import { useWallet } from './WalletContext';
 import { clearAutoTradePlans, removeAutoTradePlan } from '../services/autoTradePlans';
 import { dispatchTradeNotification } from '../components/common/TradeNotificationToast';
 
@@ -100,6 +101,10 @@ export interface RiskSettings {
 }
 
 interface TradingContextType {
+  // Account Mode: Demo Paper Simulation vs Real Account
+  accountType: 'demo' | 'real';
+  setAccountType: (type: 'demo' | 'real') => void;
+
   // Balances
   cashBalance: number;
   marginAvailable: number;
@@ -158,21 +163,39 @@ const INITIAL_POSITIONS: Position[] = [];
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { ticks } = useMarketStream();
   const { user, marketMode } = useAuth();
+  const { wallet, adjustTradingBalance } = useWallet();
 
-  const userKey = useCallback((key: string) => {
-    return user?.uid ? `dhru_user_${user.uid}_${marketMode}_${key}` : `dhru_guest_${marketMode}_${key}`;
-  }, [user?.uid, marketMode]);
+  const [accountType, setAccountTypeState] = useState<'demo' | 'real'>(() => {
+    if (typeof window === 'undefined') return 'demo';
+    return (localStorage.getItem('dhru_active_account_type') as 'demo' | 'real') || 'demo';
+  });
+
+  const setAccountType = useCallback((type: 'demo' | 'real') => {
+    setAccountTypeState(type);
+    try {
+      localStorage.setItem('dhru_active_account_type', type);
+    } catch {}
+  }, []);
+
+  const userKey = useCallback((key: string, overrideType?: 'demo' | 'real') => {
+    const acc = overrideType || accountType;
+    return user?.uid ? `dhru_user_${user.uid}_${acc}_${marketMode}_${key}` : `dhru_guest_${acc}_${marketMode}_${key}`;
+  }, [user?.uid, marketMode, accountType]);
+
   const legacyUserKey = useCallback((key: string) => user?.uid ? `dhru_user_${user.uid}_${key}` : `dhru_guest_${key}`, [user?.uid]);
   const readPortfolioValue = useCallback((key: string) => {
     const current = localStorage.getItem(userKey(key));
     if (current !== null) return current;
-    if (marketMode !== 'indian') return null;
-    return localStorage.getItem(legacyUserKey(key)) || localStorage.getItem(`dhru_${key}`);
-  }, [userKey, legacyUserKey, marketMode]);
+    if (accountType === 'demo' && marketMode === 'indian') {
+      return localStorage.getItem(legacyUserKey(key)) || localStorage.getItem(`dhru_${key}`);
+    }
+    return null;
+  }, [userKey, legacyUserKey, accountType, marketMode]);
   const [storageReadyKey, setStorageReadyKey] = useState('');
 
   // Each desk gets its own currency-native paper balance and portfolio storage.
   const [cashBalance, setCashBalance] = useState<number>(() => {
+    if (accountType === 'real') return wallet.tradingBalance;
     const saved = readPortfolioValue('cash_balance');
     return saved ? Number(saved) : marketMode === 'crypto' ? 12000 : 1000000;
   });
@@ -248,10 +271,14 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   });
 
-  // Reload the correct currency portfolio whenever user or market desk changes.
+  // Reload the correct portfolio whenever user, account type (demo vs real), or market desk changes.
   useEffect(() => {
-    const savedBalance = readPortfolioValue('cash_balance');
-    setCashBalance(savedBalance ? Number(savedBalance) : marketMode === 'crypto' ? 12000 : 1000000);
+    if (accountType === 'real') {
+      setCashBalance(wallet.tradingBalance);
+    } else {
+      const savedBalance = readPortfolioValue('cash_balance');
+      setCashBalance(savedBalance ? Number(savedBalance) : marketMode === 'crypto' ? 12000 : 1000000);
+    }
 
     const savedRealized = readPortfolioValue('realized_pnl');
     setRealizedPnl(savedRealized ? Number(savedRealized) : 0);
@@ -306,7 +333,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const savedRisk = readPortfolioValue('risk_settings');
     setRiskSettings(savedRisk ? JSON.parse(savedRisk) : { maxDailyLoss: 50000, maxOrderValue: 500000, requireConfirmation: true });
     setStorageReadyKey(userKey('cash_balance'));
-  }, [userKey, readPortfolioValue, marketMode, user?.displayName]);
+  }, [userKey, readPortfolioValue, marketMode, user?.displayName, accountType, wallet.tradingBalance]);
 
   // Persist only to the active desk's isolated storage namespace.
   useEffect(() => {
@@ -724,14 +751,34 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
     }
 
-    // Margin Check for Buy
+    // Margin Check
     const requiredMargin = product === 'MIS' ? estValue * 0.20 : estValue; // 5x leverage for Intraday MIS
-    const availablePool = Math.max(cashBalance, marginAvailable);
-    if (side === 'BUY' && requiredMargin > availablePool && !legId) {
-      return {
-        success: false,
-        message: `Insufficient margin. Required: ${currSym}${requiredMargin.toFixed(2)}, Available: ${currSym}${availablePool.toFixed(2)}`
-      };
+    if (accountType === 'real') {
+      if (side === 'BUY' && requiredMargin > wallet.tradingBalance && !legId) {
+        const msg = `Insufficient Real Trading Funds. Required: ${currSym}${requiredMargin.toFixed(2)}, Available: ${currSym}${wallet.tradingBalance.toFixed(2)}. Please add funds via UPI to execute real trades.`;
+        dispatchTradeNotification({
+          type: 'REJECTED',
+          title: 'Insufficient Real Funds',
+          accountType: 'REAL',
+          side,
+          symbol,
+          name,
+          quantity,
+          price: ltp,
+          product,
+          status: 'BLOCKED',
+          reason: msg
+        });
+        return { success: false, message: msg };
+      }
+    } else {
+      const availablePool = Math.max(cashBalance, marginAvailable);
+      if (side === 'BUY' && requiredMargin > availablePool && !legId) {
+        return {
+          success: false,
+          message: `Insufficient margin. Required: ${currSym}${requiredMargin.toFixed(2)}, Available: ${currSym}${availablePool.toFixed(2)}`
+        };
+      }
     }
 
     const orderId = `ORD_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
@@ -766,6 +813,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         id: orderId,
         type: 'OPEN',
         title: legId ? (tierLabel ? `Auto-Trade (${tierLabel}) Executed` : 'Auto-Trade Leg Executed') : 'Trade Executed Successfully',
+        accountType: (accountType.toUpperCase() as 'DEMO' | 'REAL'),
         side,
         symbol,
         name,
@@ -788,6 +836,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         id: orderId,
         type: 'OPEN',
         title: `${orderType} Order Placed`,
+        accountType: (accountType.toUpperCase() as 'DEMO' | 'REAL'),
         side,
         symbol,
         name,
@@ -871,8 +920,13 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       closedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     };
 
-    setRealizedPnl(r => Number((r + bookedProfit).toFixed(2)));
-    setCashBalance(c => Number((c + bookedProfit).toFixed(2)));
+    if (accountType === 'real') {
+      adjustTradingBalance(bookedProfit, `${pos.symbol} (${pos.side} ${pos.product})`);
+      setRealizedPnl(r => Number((r + bookedProfit).toFixed(2)));
+    } else {
+      setRealizedPnl(r => Number((r + bookedProfit).toFixed(2)));
+      setCashBalance(c => Number((c + bookedProfit).toFixed(2)));
+    }
     setPositions(prev => prev.filter(p => p.id !== positionId));
     setClosedPositions(cp => [closedPos, ...cp]);
     setOrders(o => [closeOrder, ...o]);
@@ -882,6 +936,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       id: closeOrder.id,
       type: bookedProfit >= 0 ? 'PROFIT' : 'LOSS',
       title: bookedProfit >= 0 ? 'Target Reached / Position Closed' : 'Stop Loss / Position Closed',
+      accountType: (accountType.toUpperCase() as 'DEMO' | 'REAL'),
       side: closeOrder.side,
       symbol: pos.symbol,
       name: pos.name,
@@ -952,14 +1007,19 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
     }
 
-    setRealizedPnl(r => Number((r + totalBooked).toFixed(2)));
-    setCashBalance(c => Number((c + totalBooked).toFixed(2)));
+    if (accountType === 'real') {
+      adjustTradingBalance(totalBooked, 'Square Off All');
+      setRealizedPnl(r => Number((r + totalBooked).toFixed(2)));
+    } else {
+      setRealizedPnl(r => Number((r + totalBooked).toFixed(2)));
+      setCashBalance(c => Number((c + totalBooked).toFixed(2)));
+    }
     setPositions([]);
     setClosedPositions(cp => [...closedList, ...cp]);
     setOrders(o => [...closeOrders, ...o]);
     setTradeHistory(th => [...closeOrders, ...th]);
     clearAutoTradePlans('All positions and auto-trade plans closed.');
-  }, [positions, ticks]);
+  }, [positions, ticks, accountType, adjustTradingBalance]);
 
   const updateBrokerConfig = useCallback((newConfig: Partial<BrokerConfig>) => {
     setBrokerConfig(prev => ({ ...prev, ...newConfig }));
@@ -970,6 +1030,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const resetSimulationBalance = useCallback(() => {
+    if (accountType === 'real') return;
     clearAutoTradePlans('Simulation reset; all auto-trade plans were cleared.');
     setCashBalance(marketMode === 'crypto' ? 12000 : 1000000);
     setRealizedPnl(0);
@@ -978,7 +1039,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setHoldings(INITIAL_HOLDINGS);
     setOrders([]);
     setTradeHistory([]);
-  }, [marketMode]);
+  }, [marketMode, accountType]);
 
   // Compute portfolio aggregates
   const totalInvested = useMemo(() => {
@@ -1012,7 +1073,9 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   return (
     <TradingContext.Provider
       value={{
-        cashBalance,
+        accountType,
+        setAccountType,
+        cashBalance: accountType === 'real' ? wallet.tradingBalance : cashBalance,
         marginAvailable,
         marginUsed,
         realizedPnl,
