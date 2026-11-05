@@ -245,6 +245,90 @@ export function createWalletRouter() {
     }
   });
 
+  // 4b. Withdraw Real Funds via Indian Bank Account or UPI
+  router.post('/withdraw', (req, res) => {
+    try {
+      const {
+        userId = 'default-user',
+        amount = 0,
+        method = 'UPI', // 'BANK' or 'UPI'
+        bankDetails = null,
+        upiDetails = null
+      } = req.body;
+
+      const numAmount = Number(amount);
+      if (!Number.isFinite(numAmount) || numAmount < 100) {
+        return res.status(400).json({ ok: false, error: 'Minimum withdrawal amount is ₹100' });
+      }
+
+      const store = loadWalletStore();
+      if (!store.withdrawals) store.withdrawals = {};
+      const user = store.users[userId] || {
+        credits: 100,
+        tradingBalance: 0,
+        totalCreditsPurchased: 0,
+        premiumUnlocked: false,
+        history: []
+      };
+
+      if (user.tradingBalance < numAmount) {
+        return res.status(400).json({
+          ok: false,
+          error: `Insufficient trading funds. Available: ₹${user.tradingBalance.toFixed(2)}, Requested: ₹${numAmount.toFixed(2)}`
+        });
+      }
+
+      // Deduct balance
+      user.tradingBalance = Number((user.tradingBalance - numAmount).toFixed(2));
+      const withdrawalId = `WDR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      const withdrawal = {
+        id: withdrawalId,
+        userId,
+        amount: numAmount,
+        method,
+        bankDetails: method === 'BANK' ? bankDetails : null,
+        upiDetails: method === 'UPI' ? upiDetails : null,
+        status: 'PENDING',
+        createdAt: Date.now()
+      };
+
+      store.withdrawals[withdrawalId] = withdrawal;
+      user.history.unshift({
+        id: `tx-${Date.now()}`,
+        type: 'WITHDRAWAL_REQUEST',
+        amount: -numAmount,
+        note: `Withdrawal to ${method === 'UPI' ? (upiDetails?.upiId || 'UPI') : (bankDetails?.bankName || 'Bank')}`,
+        at: new Date().toISOString()
+      });
+
+      store.users[userId] = user;
+      saveWalletStore(store);
+
+      res.json({
+        ok: true,
+        message: 'Withdrawal request submitted successfully',
+        withdrawal,
+        wallet: user
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to process withdrawal', details: err.message });
+    }
+  });
+
+  // 4c. Get user withdrawals
+  router.get('/withdrawals', (req, res) => {
+    try {
+      const userId = req.query.userId || 'default-user';
+      const store = loadWalletStore();
+      const all = Object.values(store.withdrawals || {});
+      const userWithdrawals = all.filter(w => w.userId === userId).sort((a, b) => b.createdAt - a.createdAt);
+      res.json({ ok: true, withdrawals: userWithdrawals });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch withdrawals', details: err.message });
+    }
+  });
+
   // 5. Convenient Demo / Localhost Login Bypass
   router.post('/demo-login', (req, res) => {
     const userId = 'local-demo-trader';
@@ -464,6 +548,67 @@ export function createWalletRouter() {
       res.json({ ok: true, message: 'Balance adjusted successfully', user });
     } catch (err) {
       res.status(500).json({ error: 'Failed to adjust balance', details: err.message });
+    }
+  });
+
+  // 11. Admin Panel: List Withdrawals
+  router.get('/admin/withdrawals', (req, res) => {
+    try {
+      const store = loadWalletStore();
+      const withdrawals = Object.values(store.withdrawals || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      res.json({ ok: true, withdrawals });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch admin withdrawals', details: err.message });
+    }
+  });
+
+  // 12. Admin Panel: Approve Withdrawal
+  router.post('/admin/approve-withdrawal', (req, res) => {
+    try {
+      const { withdrawalId, adminNote = 'Processed via banking gateway' } = req.body;
+      if (!withdrawalId) return res.status(400).json({ error: 'Withdrawal ID required' });
+      const store = loadWalletStore();
+      const w = store.withdrawals?.[withdrawalId];
+      if (!w) return res.status(404).json({ error: 'Withdrawal request not found' });
+      w.status = 'VERIFIED';
+      w.adminNote = adminNote;
+      w.verifiedAt = Date.now();
+      saveWalletStore(store);
+      res.json({ ok: true, message: `Withdrawal ${withdrawalId} approved and transferred.`, withdrawal: w });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to approve withdrawal', details: err.message });
+    }
+  });
+
+  // 13. Admin Panel: Reject Withdrawal & Refund Balance
+  router.post('/admin/reject-withdrawal', (req, res) => {
+    try {
+      const { withdrawalId, reason = 'Bank details mismatch' } = req.body;
+      if (!withdrawalId) return res.status(400).json({ error: 'Withdrawal ID required' });
+      const store = loadWalletStore();
+      const w = store.withdrawals?.[withdrawalId];
+      if (!w) return res.status(404).json({ error: 'Withdrawal request not found' });
+      if (w.status !== 'REJECTED') {
+        w.status = 'REJECTED';
+        w.rejectionReason = reason;
+        w.rejectedAt = Date.now();
+        // Refund funds back to user
+        const user = store.users[w.userId];
+        if (user) {
+          user.tradingBalance = Number((user.tradingBalance + w.amount).toFixed(2));
+          user.history.unshift({
+            id: `tx-${Date.now()}`,
+            type: 'WITHDRAWAL_REFUND',
+            amount: w.amount,
+            note: `Refund for rejected withdrawal: ${reason}`,
+            at: new Date().toISOString()
+          });
+        }
+        saveWalletStore(store);
+      }
+      res.json({ ok: true, message: `Withdrawal ${withdrawalId} rejected and refunded.`, withdrawal: w });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to reject withdrawal', details: err.message });
     }
   });
 

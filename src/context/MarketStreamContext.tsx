@@ -176,7 +176,12 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       const hasLiveIndianFeed = await pollQuotes();
-      if (!stopped) timer = setTimeout(poll, hasLiveIndianFeed && isIndianMarketOpenNow() ? 5000 : 60_000);
+      if (!stopped) {
+        // Fast 3.5s refresh for 24/7 global crypto & active symbols, 5s for open NSE, 15s otherwise
+        const hasActiveSymbols = activeSymbols.current.size > 0;
+        const interval = hasActiveSymbols ? 3500 : (hasLiveIndianFeed && isIndianMarketOpenNow() ? 5000 : 15_000);
+        timer = setTimeout(poll, interval);
+      }
     };
     poll();
     const marketClock = setInterval(() => setIsMarketLive(isIndianMarketOpenNow()), 30_000);
@@ -278,10 +283,10 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
         cryptoSocketConnected.current = false;
         if (heartbeatTimer) clearInterval(heartbeatTimer);
         failedAttempts += 1;
-        // Do not spam reconnects if proxy rejected tunnel; REST polling handles ticks smoothly
-        if (!stopped && failedAttempts < 2) {
+        // Keep retrying with backoff up to 30s
+        if (!stopped && failedAttempts < 10) {
           retryTimer = setTimeout(connect, backoffDelay);
-          backoffDelay = Math.min(30_000, backoffDelay * 2);
+          backoffDelay = Math.min(30_000, backoffDelay * 1.5);
         }
       };
     };
@@ -347,7 +352,7 @@ export function useLivePrice(symbol: string, initialQuote?: any) {
   const isClosed = isIndian && !isIndianMarketOpenNow();
   const tick = ticks[symbol];
   const tickAge = tick?.timestamp ? now - tick.timestamp : Number.POSITIVE_INFINITY;
-  const tickFresh = tickAge >= 0 && tickAge <= 15_000;
+  const tickFresh = tickAge >= 0 && tickAge <= 60_000;
   const status = isClosed
     ? 'CLOSED'
     : (tick?.status === 'LIVE' && !tickFresh ? 'STALE' : tick?.status || initialQuote?.status || 'UNAVAILABLE');

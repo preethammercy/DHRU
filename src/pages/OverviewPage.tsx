@@ -72,6 +72,21 @@ export const OverviewPage: React.FC<Props> = ({ onSelectStock, onTradeStock, onN
 
   useEffect(() => {
     loadData();
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (marketMode === 'crypto') {
+      interval = setInterval(async () => {
+        try {
+          const cryptoRes = await getCryptoInstruments().catch(() => null);
+          const cryptoList = cryptoRes?.crypto || cryptoRes?.instruments || [];
+          if (cryptoList.length > 0) {
+            setCryptoData(cryptoList.filter((asset: any) => String(asset.symbol).endsWith('-USD')));
+          }
+        } catch {}
+      }, 4000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [marketMode]);
 
   const isCrypto = marketMode === 'crypto';

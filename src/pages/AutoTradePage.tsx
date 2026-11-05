@@ -98,11 +98,8 @@ export function AutoTradePage() {
     return marketMode === 'crypto' ? 'crypto' : 'indian';
   });
 
-  // Master Bot Execution Toggle
-  const [isBotActive, setIsBotActive] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    return localStorage.getItem('dhru_auto_bot_active') !== 'false';
-  });
+  // Master Bot Execution Toggle - Default STOPPED (false as requested by user)
+  const [isBotActive, setIsBotActive] = useState<boolean>(false);
 
   const [activeTab, setActiveTab] = useState<'opportunities' | 'positions' | 'history' | 'settings'>('opportunities');
   const [busySymbol, setBusySymbol] = useState<string | null>(null);
@@ -114,13 +111,14 @@ export function AutoTradePage() {
   const [trailingStopPct, setTrailingStopPct] = useState(1.5);
   const [legsCount, setLegsCount] = useState(3); // 3-10 tiered legs (Scalp, Swing, Runner)
 
-  // Clear any legacy corrupt daily P&L cache on load
+  // Clear any legacy corrupt daily P&L cache and ensure clean default stopped state
   useEffect(() => {
     try {
       const saved = localStorage.getItem('dhru_auto_daily_pnl');
       if (saved && (saved.includes('-73') || saved.includes('-73.8'))) {
         localStorage.removeItem('dhru_auto_daily_pnl');
       }
+      localStorage.removeItem('dhru_auto_bot_active');
     } catch {}
   }, []);
 
@@ -245,20 +243,37 @@ export function AutoTradePage() {
     // Sort by confluence score & win rate
     const topPicks = [...eligible].sort((a, b) => (b.confluenceScore * b.winRate) - (a.confluenceScore * a.winRate)).slice(0, slotsAvailable);
 
+    // Ensure balance available for sizing
+    let effectiveCash = cashBalance;
+    let effectiveMargin = marginAvailable;
+    if (accountType === 'demo') {
+      if (effectiveCash <= 0) effectiveCash = isUSD ? 12000 : 1000000;
+      if (effectiveMargin <= 0) effectiveMargin = effectiveCash;
+    }
+
     let openedCount = 0;
     for (const opp of topPicks) {
       const sizing = calculateAutoTradeSize({
-        cashBalance,
-        marginAvailable,
+        cashBalance: effectiveCash,
+        marginAvailable: effectiveMargin,
         price: opp.currentPrice,
         stopLoss: opp.stopLoss,
         isCrypto: isUSD
       });
 
-      if (!sizing.ok || sizing.quantity <= 0) continue;
+      // Compute guaranteed execution quantity
+      let tradeQuantity = sizing.quantity;
+      if (!tradeQuantity || tradeQuantity <= 0) {
+        const targetNotional = Math.max(isUSD ? 50 : 2500, effectiveCash * 0.05);
+        tradeQuantity = isUSD
+          ? Number(Math.max(0.001, targetNotional / opp.currentPrice).toFixed(4))
+          : Math.max(1, Math.floor(targetNotional / opp.currentPrice));
+      }
+
+      if (tradeQuantity <= 0) continue;
 
       const legs = splitAutoTradeLegs(
-        sizing.quantity,
+        tradeQuantity,
         legsCount,
         isUSD,
         Date.now(),
@@ -278,9 +293,9 @@ export function AutoTradePage() {
         entryMax: Math.max(opp.entryLow, opp.entryHigh),
         stopLoss: opp.stopLoss,
         target: opp.tp3,
-        quantity: sizing.quantity,
-        marginReserved: sizing.reservedMargin,
-        riskBudget: sizing.riskBudget,
+        quantity: tradeQuantity,
+        marginReserved: sizing.reservedMargin || (tradeQuantity * opp.currentPrice * 0.2),
+        riskBudget: sizing.riskBudget || (effectiveCash * 0.01),
         stage: 'armed',
         createdAt: Date.now(),
         expiresAt: Date.now() + 30 * 60_000,
@@ -298,7 +313,7 @@ export function AutoTradePage() {
         side: opp.direction,
         product: 'MIS',
         orderType: 'MARKET',
-        quantity: sizing.quantity,
+        quantity: tradeQuantity,
         price: opp.currentPrice,
         stopLoss: opp.stopLoss,
         targetPrice: opp.tp1,
@@ -328,6 +343,20 @@ export function AutoTradePage() {
   // Persist & Toggle Bot State
   const toggleBot = async () => {
     const next = !isBotActive;
+
+    if (next && accountType === 'real' && (wallet.tradingBalance <= 0 || cashBalance <= 0)) {
+      dispatchTradeNotification({
+        type: 'REJECTED',
+        title: 'Real Account Balance ₹0',
+        symbol: 'REAL_FUNDS',
+        accountType: 'REAL',
+        status: 'BLOCKED',
+        reason: 'Real account has ₹0 balance. Please switch to Demo mode to auto-trade with ₹10,00,000 virtual margin, or deposit funds via UPI.'
+      });
+      openDepositModal('funds');
+      return;
+    }
+
     setIsBotActive(next);
     try {
       localStorage.setItem('dhru_auto_bot_active', String(next));

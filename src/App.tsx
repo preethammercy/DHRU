@@ -43,6 +43,8 @@ import { AutoTradeMonitor } from './components/common/AutoTradeMonitor';
 import { AutoTradePage } from './pages/AutoTradePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { UpiPaymentModal } from './components/payment/UpiPaymentModal';
+import { WithdrawModal } from './components/payment/WithdrawModal';
+import { MobilePromptModal } from './components/common/MobilePromptModal';
 
 // Contexts
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -524,6 +526,8 @@ export function App() {
             <TradingProvider>
               <AppContent />
               <UpiPaymentModal />
+              <WithdrawModal />
+              <MobilePromptModal />
             </TradingProvider>
           </WalletProvider>
         </MarketStreamProvider>

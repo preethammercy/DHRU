@@ -16,8 +16,10 @@ import {
   DollarSign,
   Layers,
   Activity,
-  Power
+  Power,
+  ArrowDownLeft
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useWallet } from '../context/WalletContext';
 import { dispatchTradeNotification } from '../components/common/TradeNotificationToast';
 
@@ -56,9 +58,14 @@ interface Props {
 }
 
 export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
+  const { user } = useAuth();
   const { refreshWallet } = useWallet();
+  const isSuperAdmin = user?.email?.toLowerCase() === 'preethamjee2008@gmail.com';
+
+  const [deskTab, setDeskTab] = useState<'deposits' | 'withdrawals'>('deposits');
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [orders, setOrders] = useState<PaymentOrder[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('PENDING');
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,9 +81,10 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
   const fetchAdminData = useCallback(async () => {
     try {
       setLoading(true);
-      const [overviewRes, ordersRes] = await Promise.all([
+      const [overviewRes, ordersRes, withdrawalsRes] = await Promise.all([
         fetch('/api/wallet/admin/overview').then(r => r.json()).catch(() => null),
-        fetch('/api/wallet/admin/orders').then(r => r.json()).catch(() => null)
+        fetch('/api/wallet/admin/orders').then(r => r.json()).catch(() => null),
+        fetch('/api/wallet/admin/withdrawals').then(r => r.json()).catch(() => null)
       ]);
 
       if (overviewRes?.ok && overviewRes.analytics) {
@@ -84,6 +92,9 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
       }
       if (ordersRes?.ok && Array.isArray(ordersRes.orders)) {
         setOrders(ordersRes.orders);
+      }
+      if (withdrawalsRes?.ok && Array.isArray(withdrawalsRes.withdrawals)) {
+        setWithdrawals(withdrawalsRes.withdrawals);
       }
     } catch (err) {
       console.error('[Admin] Failed to load admin desk:', err);
@@ -97,6 +108,70 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
     const interval = setInterval(fetchAdminData, 15000);
     return () => clearInterval(interval);
   }, [fetchAdminData]);
+
+  const handleApproveWithdrawal = async (withdrawalId: string) => {
+    const utr = window.prompt(`Enter Bank / UPI Transaction Reference (UTR) for ${withdrawalId}:`, `IMPS-${Date.now().toString().slice(-8)}`);
+    if (!utr) return;
+
+    setActionBusyId(withdrawalId);
+    try {
+      const res = await fetch('/api/wallet/admin/approve-withdrawal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ withdrawalId, adminNote: `Payout transferred. Bank UTR: ${utr}` })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        dispatchTradeNotification({
+          type: 'PROFIT',
+          title: 'Withdrawal Payout Approved',
+          symbol: 'PAYOUT',
+          status: 'TRANSFERRED',
+          reason: `Withdrawal ${withdrawalId} approved and transferred. Reference: ${utr}`
+        });
+        await fetchAdminData();
+        await refreshWallet();
+      } else {
+        alert(data.error || 'Failed to approve withdrawal');
+      }
+    } catch (err: any) {
+      alert(`Error approving withdrawal: ${err.message}`);
+    } finally {
+      setActionBusyId(null);
+    }
+  };
+
+  const handleRejectWithdrawal = async (withdrawalId: string) => {
+    const reason = window.prompt('Enter reason for rejecting withdrawal (funds will be refunded to user):', 'Incorrect Bank Account / IFSC mismatch');
+    if (!reason) return;
+
+    setActionBusyId(withdrawalId);
+    try {
+      const res = await fetch('/api/wallet/admin/reject-withdrawal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ withdrawalId, reason })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        dispatchTradeNotification({
+          type: 'REJECTED',
+          title: 'Withdrawal Request Rejected',
+          symbol: 'REFUNDED',
+          status: 'REFUNDED',
+          reason: `Withdrawal ${withdrawalId} rejected. Funds refunded to user balance: ${reason}`
+        });
+        await fetchAdminData();
+        await refreshWallet();
+      } else {
+        alert(data.error || 'Failed to reject withdrawal');
+      }
+    } catch (err: any) {
+      alert(`Error rejecting withdrawal: ${err.message}`);
+    } finally {
+      setActionBusyId(null);
+    }
+  };
 
   const handleApproveOrder = async (orderId: string) => {
     if (!window.confirm(`Confirm approval for Order ${orderId}? This will immediately credit the user's balance.`)) {
@@ -210,6 +285,21 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
     return true;
   });
 
+  const filteredWithdrawals = withdrawals.filter(w => {
+    if (filter === 'PENDING' && w.status !== 'PENDING') return false;
+    if (filter === 'VERIFIED' && w.status !== 'VERIFIED') return false;
+    if (filter === 'REJECTED' && w.status !== 'REJECTED') return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchId = (w.id || '').toLowerCase().includes(q);
+      const matchUser = (w.userId || '').toLowerCase().includes(q);
+      const matchBank = (w.bankDetails?.bankName || '').toLowerCase().includes(q);
+      const matchUpi = (w.upiDetails?.upiId || '').toLowerCase().includes(q);
+      return matchId || matchUser || matchBank || matchUpi;
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-6 animate-fade-in pb-28">
       {/* 1. Header Banner */}
@@ -225,6 +315,11 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live Desk
               </span>
+              {isSuperAdmin && (
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-500/30 font-black flex items-center gap-1 shadow-sm">
+                  👑 Super Admin Master: {user?.email}
+                </span>
+              )}
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-ink tracking-tight flex items-center gap-2">
               <span>Admin & Payment Approvals Control Center</span>
@@ -330,6 +425,35 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
         </div>
       </div>
 
+      {/* Desk Mode Switcher: Deposits vs Withdrawals */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-line pb-3">
+        <button
+          type="button"
+          onClick={() => setDeskTab('deposits')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+            deskTab === 'deposits'
+              ? 'bg-brand-fill text-on-brand shadow-sm'
+              : 'bg-surface-2 text-ink-2 hover:text-ink'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          <span>UPI Deposits Approval ({orders.filter(o => o.status === 'PENDING').length} Pending)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setDeskTab('withdrawals')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+            deskTab === 'withdrawals'
+              ? 'bg-brand-fill text-on-brand shadow-sm'
+              : 'bg-surface-2 text-ink-2 hover:text-ink'
+          }`}
+        >
+          <ArrowDownLeft className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Bank &amp; UPI Withdrawals ({withdrawals.filter(w => w.status === 'PENDING').length} Pending)</span>
+        </button>
+      </div>
+
       {/* 3. Main Split View: Payment Approvals Desk & User Balance Adjuster */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -338,8 +462,14 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
           <div className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
               <div>
-                <h2 className="text-base font-bold text-ink">Payment Approval Desk</h2>
-                <p className="text-xs text-ink-2">Verify user UTR numbers and approve deposits into wallet accounts.</p>
+                <h2 className="text-base font-bold text-ink">
+                  {deskTab === 'deposits' ? 'UPI Payment Approval Desk' : 'Bank & UPI Withdrawal Approval Desk'}
+                </h2>
+                <p className="text-xs text-ink-2">
+                  {deskTab === 'deposits'
+                    ? 'Verify user UTR numbers and approve deposits into wallet accounts.'
+                    : 'Process outgoing payouts to Indian bank accounts (IMPS/NEFT) and UPI VPAs.'}
+                </p>
               </div>
 
               {/* Filter Tabs */}
@@ -373,9 +503,156 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
               />
             </div>
 
-            {/* Orders Table */}
+            {/* Content Table: Withdrawals or Deposits */}
             <div className="mt-4 overflow-x-auto">
-              {filteredOrders.length === 0 ? (
+              {deskTab === 'withdrawals' ? (
+                /* WITHDRAWALS TABLE */
+                filteredWithdrawals.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-ink-2">
+                    <Clock className="w-8 h-8 text-ink-3 mx-auto mb-2 opacity-50" />
+                    <p className="font-semibold">No withdrawal requests match this filter.</p>
+                    <p className="text-[11px] text-ink-3 mt-0.5">Trader withdrawal requests for Bank/UPI will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredWithdrawals.map(w => {
+                      const isPending = w.status === 'PENDING';
+                      const isVerified = w.status === 'VERIFIED';
+                      const isRejected = w.status === 'REJECTED';
+                      const isBusy = actionBusyId === w.id;
+
+                      return (
+                        <div
+                          key={w.id}
+                          className={`p-3.5 rounded-xl border transition-all ${
+                            isPending
+                              ? 'border-amber-500/30 bg-amber-500/5'
+                              : isVerified
+                              ? 'border-emerald-500/30 bg-emerald-500/5'
+                              : 'border-line bg-surface-2/50'
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono font-black text-xs text-ink">{w.id}</span>
+                                <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                                  isPending
+                                    ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                                    : isVerified
+                                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                                    : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
+                                }`}>
+                                  {w.status}
+                                </span>
+                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-2 text-ink-2 border border-line font-bold uppercase">
+                                  {w.method === 'UPI' ? '📱 UPI VPA' : '🏦 Bank Transfer'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-ink-2 mt-1">
+                                User: <strong className="text-ink font-semibold">{w.userId}</strong> • Requested: {new Date(w.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="text-base font-black font-mono text-cyan-600 dark:text-cyan-400">
+                                ₹{Number(w.amount).toLocaleString('en-IN')}
+                              </span>
+                              <span className="text-[10px] text-ink-3 font-mono block">
+                                ≈ ${(Number(w.amount) / 86.50).toFixed(2)} USD
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Bank / UPI Details */}
+                          <div className="mt-2.5 p-2 rounded-lg bg-surface border border-line/60 text-xs font-mono space-y-1">
+                            {w.method === 'UPI' ? (
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className="text-ink-2">UPI VPA: </span>
+                                  <strong className="text-ink font-bold">{w.upiDetails?.upiId}</strong>
+                                </div>
+                                {w.upiDetails?.beneficiaryName && (
+                                  <span className="text-ink-2">Beneficiary: <strong className="text-ink">{w.upiDetails.beneficiaryName}</strong></span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="space-y-0.5">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div>
+                                    <span className="text-ink-2">Bank: </span>
+                                    <strong className="text-ink font-bold">{w.bankDetails?.bankName}</strong>
+                                  </div>
+                                  <div>
+                                    <span className="text-ink-2">Account: </span>
+                                    <strong className="text-ink font-bold">{w.bankDetails?.accountNumber}</strong>
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div>
+                                    <span className="text-ink-2">IFSC: </span>
+                                    <strong className="text-ink font-bold">{w.bankDetails?.ifscCode}</strong>
+                                  </div>
+                                  <div>
+                                    <span className="text-ink-2">Holder: </span>
+                                    <strong className="text-ink font-bold">{w.bankDetails?.accountHolderName}</strong>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Controls */}
+                          <div className="mt-2.5 pt-2 border-t border-line/50 flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-[10px] text-ink-3 font-mono">
+                              {w.adminNote ? `Admin note: ${w.adminNote}` : (w.rejectionReason ? `Reason: ${w.rejectionReason}` : 'Awaiting payout action')}
+                            </span>
+
+                            <div className="flex items-center gap-2">
+                              {isPending && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApproveWithdrawal(w.id)}
+                                    disabled={isBusy}
+                                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>{isBusy ? 'Processing...' : 'Approve & Mark Paid'}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRejectWithdrawal(w.id)}
+                                    disabled={isBusy}
+                                    className="px-2.5 py-1.5 rounded-lg bg-surface-2 border border-line hover:border-rose-500/50 text-rose-600 text-xs font-mono font-bold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    <span>Reject &amp; Refund</span>
+                                  </button>
+                                </>
+                              )}
+                              {isVerified && (
+                                <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  <span>Paid / Transferred</span>
+                                </span>
+                              )}
+                              {isRejected && (
+                                <span className="text-xs font-mono text-rose-500 font-semibold flex items-center gap-1">
+                                  <XCircle className="w-4 h-4" />
+                                  <span>Rejected &amp; Refunded</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                /* Orders Table */
+                filteredOrders.length === 0 ? (
                 <div className="py-12 text-center text-xs text-ink-2">
                   <Clock className="w-8 h-8 text-ink-3 mx-auto mb-2 opacity-50" />
                   <p className="font-semibold">No payment orders match this filter.</p>
@@ -488,7 +765,8 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
                     );
                   })}
                 </div>
-              )}
+              )
+            )}
             </div>
           </div>
         </div>

@@ -84,12 +84,12 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
         
         {/* Left: Mobile 3-Line Hamburger Menu Button + Logo & Brand */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           
           {/* 3-Line Hamburger Menu Button (at Left Corner Upside for Mobile) */}
           <button
             onClick={onOpenMobileMenu}
-            className="lg:hidden p-2 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line text-ink dark:text-ink-3 hover:text-brand dark:hover:text-brand active:scale-95 transition-all cursor-pointer shrink-0 "
+            className="lg:hidden p-2 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line text-ink dark:text-ink-3 hover:text-brand dark:hover:text-brand active:scale-95 transition-all cursor-pointer shrink-0"
             aria-label="Open Navigation Menu"
             title="Open Platform Menu"
           >
@@ -98,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* 'D' Logo & Brand Title with Pulse Effect */}
           <div
-            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group min-w-0"
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group shrink-0"
             onClick={() => onSelectNav('overview')}
           >
             <div className="relative shrink-0">
@@ -106,9 +106,9 @@ export const Header: React.FC<HeaderProps> = ({
               <DhruLogo size={32} />
             </div>
 
-            <div className="min-w-0">
+            <div className="shrink-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-lg sm:text-xl tracking-tight bg-brand-fill    dark:from-white   text-ink">
+                <span className="font-black text-lg sm:text-xl tracking-tight bg-brand-fill dark:from-white text-ink">
                   DHRU.AI
                 </span>
                 <button
@@ -137,44 +137,28 @@ export const Header: React.FC<HeaderProps> = ({
                   <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
                 </button>
               </div>
-              <p className="text-ink-2 dark:text-ink-3 hidden sm:block tracking-wide font-medium truncate">
+              <p className="text-ink-2 dark:text-ink-3 hidden sm:block tracking-wide font-medium truncate max-w-[280px]">
                 Understand Every Market. See Beyond the Numbers.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Center: Universal Search Bar Trigger */}
-        <div className="flex-1 max-w-md mx-2 min-w-[220px] hidden 2xl:block">
-          <button
-            onClick={onOpenSearch}
-            className="w-full flex items-center justify-between px-4 py-2 text-xs text-ink-2 dark:text-ink-3 bg-surface-2 dark:bg-surface border border-line dark:border-line hover:border-brand hover:bg-surface-3 dark:hover:bg-surface-2 rounded-xl transition-all group cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Search className="w-4 h-4 text-ink-3 group-hover:text-brand dark:group-hover:text-brand transition-colors shrink-0" />
-              <span className="truncate">
-                {marketMode === 'crypto'
-                  ? 'Search 20+ cryptos: Bitcoin, Ethereum, Solana, XRP, SUI...'
-                  : 'Search 2,600+ NSE stocks, indices, sectors...'}
-              </span>
-            </div>
-            <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium text-ink-2 bg-surface dark:bg-surface-2 rounded border border-line dark:border-line shrink-0 ml-2">
-              Ctrl + K
-            </kbd>
-          </button>
-        </div>
-
         {/* Right Actions */}
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 xl:gap-2.5">
-          {/* Quick Search Button (visible below 2xl) */}
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 xl:gap-2.5 ml-auto">
+          {/* Quick Search Button */}
           <button
             onClick={onOpenSearch}
-            className="p-2 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line text-ink-2 dark:text-ink-3 hover:text-brand hover:border-line transition-colors cursor-pointer 2xl:hidden shrink-0"
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-surface-2 dark:bg-surface border border-line dark:border-line text-ink-2 dark:text-ink-3 hover:text-brand hover:border-brand transition-all cursor-pointer shrink-0 text-xs shadow-sm"
             type="button"
             aria-label="Search markets (Ctrl+K)"
             title="Search markets (Ctrl+K)"
           >
-            <Search className="w-4 h-4" />
+            <Search className="w-3.5 h-3.5 text-ink-3 shrink-0" />
+            <span className="hidden md:inline font-medium">Search</span>
+            <kbd className="hidden md:inline-block px-1.5 py-0.2 text-[10px] font-mono font-medium text-ink-3 bg-surface dark:bg-surface-2 rounded border border-line">
+              Ctrl+K
+            </kbd>
           </button>
           
           {/* Market Status Pill */}
@@ -408,13 +392,15 @@ export const Header: React.FC<HeaderProps> = ({
                           onSelectNav('admin');
                           setProfileDropdownOpen(false);
                         }}
-                        className="w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-bold text-sky-700 dark:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 transition-colors cursor-pointer text-left"
+                        className="w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-bold text-sky-700 dark:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 transition-all cursor-pointer text-left shadow-sm"
                       >
                         <div className="flex items-center gap-2">
-                          <ShieldCheck className="w-3.5 h-3.5 text-sky-500" />
+                          <ShieldCheck className="w-4 h-4 text-sky-500" />
                           <span>Admin & Approvals Desk</span>
                         </div>
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-600 text-white font-extrabold">Portal</span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-600 text-white font-extrabold">
+                          {user?.email?.toLowerCase() === 'preethamjee2008@gmail.com' ? 'SUPER ADMIN' : 'PORTAL'}
+                        </span>
                       </button>
 
                       <button

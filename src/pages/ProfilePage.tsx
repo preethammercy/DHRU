@@ -1,7 +1,7 @@
 // DHRU.AI - User Profile & Trader Identity Settings Page
 // Manage profile information, verified trader identity, exchange KYC status, and risk parameters.
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTrading } from '../context/TradingContext';
 import { useWallet } from '../context/WalletContext';
@@ -22,7 +22,10 @@ import {
   Globe2,
   Layers,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Clock
 } from 'lucide-react';
 
 function maskId(id: string): string {
@@ -33,7 +36,7 @@ function maskId(id: string): string {
 
 export const ProfilePage: React.FC = () => {
   const { user, updateUserProfile, marketMode, setMarketMode } = useAuth();
-  const { wallet, openDepositModal } = useWallet();
+  const { wallet, openDepositModal, openWithdrawModal } = useWallet();
   const {
     cashBalance,
     marginAvailable,
@@ -58,6 +61,19 @@ export const ProfilePage: React.FC = () => {
 
   const [savedFeedback, setSavedFeedback] = useState(false);
   const [resetFeedback, setResetFeedback] = useState(false);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+
+  // Load withdrawal requests for current user
+  useEffect(() => {
+    fetch(`/api/wallet/withdrawals?userId=${encodeURIComponent(user?.uid || 'default-user')}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d?.ok && Array.isArray(d.withdrawals)) {
+          setWithdrawals(d.withdrawals);
+        }
+      })
+      .catch(() => {});
+  }, [user?.uid]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,7 +178,7 @@ export const ProfilePage: React.FC = () => {
               Deposit real trading funds via UPI, purchase AI Intelligence credits, or unlock institutional SMC indicators.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => openDepositModal('credits')}
@@ -178,6 +194,14 @@ export const ProfilePage: React.FC = () => {
             >
               <Wallet className="w-4 h-4" />
               <span>+ Add Funds (UPI)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openWithdrawModal()}
+              className="px-4 py-2 rounded-xl bg-surface-2 hover:bg-surface border border-line hover:border-cyan-500 text-ink font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+            >
+              <ArrowDownLeft className="w-4 h-4 text-cyan-500" />
+              <span>Withdraw Funds</span>
             </button>
           </div>
         </div>
@@ -230,30 +254,37 @@ export const ProfilePage: React.FC = () => {
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-ink-2">Real Trading Funds Balance</span>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="text-3xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-                    ₹{wallet.tradingBalance.toLocaleString()}
+                    ₹{wallet.tradingBalance.toLocaleString('en-IN')}
                   </span>
-                  <span className="text-xs font-semibold text-ink-2">INR</span>
+                  <span className="text-xs font-bold text-ink-2 font-mono">
+                    ≈ ${(wallet.tradingBalance / 86.50).toFixed(2)} USD
+                  </span>
                 </div>
               </div>
               <span className="px-2.5 py-1 rounded-full text-xs font-bold font-mono bg-emerald-500/10 text-emerald-600 border border-emerald-500/30">
-                UPI Instant
+                Live Dual-Currency
               </span>
             </div>
 
             <p className="text-xs text-ink-2 leading-relaxed">
-              Deposit capital via UPI to <strong className="font-mono text-ink">preethamrishu@axl</strong>. Funds reflect in your trading balance with instantaneous UTR verification.
+              Real funds balance converts at live market FX rate (<strong className="font-mono text-ink">1 USD ≈ ₹86.50</strong>) when switching to 24/7 Global Crypto desk.
             </p>
 
             <div className="pt-2 border-t border-line/60 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[11px] text-ink-3">
-                10-Minute expiry timer with QR code generator.
-              </span>
               <button
                 type="button"
                 onClick={() => openDepositModal('funds')}
                 className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1 cursor-pointer"
               >
-                <span>Deposit via UPI</span>
+                <span>+ Deposit via UPI</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => openWithdrawModal()}
+                className="text-xs font-bold text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Withdraw to Bank/UPI</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -314,6 +345,51 @@ export const ProfilePage: React.FC = () => {
             </div>
           </div>
         )}
+        {/* Withdrawal Payouts Activity */}
+        {withdrawals && withdrawals.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-line">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-ink-2 block">
+              Recent Payout Requests (Bank / UPI)
+            </span>
+            <div className="divide-y divide-line border border-line rounded-2xl overflow-hidden bg-surface">
+              {withdrawals.slice(0, 5).map((w: any) => (
+                <div key={w.id} className="p-3 flex items-center justify-between text-xs hover:bg-surface-2 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-1.5 rounded-lg ${
+                      w.status === 'VERIFIED'
+                        ? 'bg-pos-tint text-pos'
+                        : w.status === 'REJECTED'
+                        ? 'bg-neg-tint text-neg'
+                        : 'bg-amber-500/10 text-amber-500'
+                    }`}>
+                      <ArrowDownLeft className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-ink">
+                          {w.method === 'UPI' ? `UPI: ${w.upiDetails?.upiId}` : `Bank: ${w.bankDetails?.bankName} (A/C ...${(w.bankDetails?.accountNumber || '').slice(-4)})`}
+                        </span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                          w.status === 'VERIFIED'
+                            ? 'bg-emerald-500/15 text-emerald-500'
+                            : w.status === 'REJECTED'
+                            ? 'bg-rose-500/15 text-rose-500'
+                            : 'bg-amber-500/15 text-amber-500 animate-pulse'
+                        }`}>
+                          {w.status}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-ink-3 font-mono">{new Date(w.createdAt).toLocaleString()} • Ref: {w.id}</p>
+                    </div>
+                  </div>
+                  <div className="text-right font-mono font-bold">
+                    <span className="text-ink">₹{Number(w.amount).toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Settings Form */}
@@ -365,9 +441,17 @@ export const ProfilePage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-ink-2 dark:text-ink-3 mb-1.5">
-                Registered Contact Number
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-ink-2 dark:text-ink-3">
+                  Registered Mobile Number
+                </label>
+                {phone && phone.replace(/\D/g, '').length >= 10 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-500">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Verified KYC
+                  </span>
+                )}
+              </div>
               <input
                 type="tel"
                 value={phone}
@@ -375,6 +459,7 @@ export const ProfilePage: React.FC = () => {
                 placeholder="+91 98450 12890"
                 className="w-full px-4 py-2.5 text-xs bg-surface-2 dark:bg-surface border border-line dark:border-line rounded-xl focus:outline-none focus:ring-2 focus:ring-brand font-mono font-medium text-ink dark:text-ink"
               />
+              <p className="text-[10px] text-ink-3 mt-1">Required for real INR payouts and instant UPI notifications.</p>
             </div>
 
             <div>

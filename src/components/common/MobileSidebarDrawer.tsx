@@ -30,7 +30,8 @@ import {
   Eye,
   Target,
   Briefcase,
-  Bot
+  Bot,
+  ArrowDownLeft
 } from 'lucide-react';
 import { DhruLogo } from './DhruLogo';
 import { useAuth } from '../../context/AuthContext';
@@ -62,7 +63,7 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
   const { watchlist } = useWatchlist();
   const { marginAvailable, positions } = useTrading();
   const { isMarketLive } = useMarketStream();
-  const { wallet, openDepositModal } = useWallet();
+  const { wallet, openDepositModal, openWithdrawModal } = useWallet();
 
   const isCrypto = marketMode === 'crypto';
 
@@ -301,6 +302,7 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
                 <div className="p-2 rounded-xl bg-surface border border-line">
                   <span className="text-[10px] text-ink-3 uppercase block font-mono">Real Funds</span>
                   <span className="text-base font-black font-mono text-emerald-600 dark:text-emerald-400">₹{wallet.tradingBalance.toLocaleString()}</span>
+                  <span className="text-[10px] text-ink-3 font-mono block">≈ ${(wallet.tradingBalance / 86.50).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -328,6 +330,18 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
                   <span>+ Add Funds</span>
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  openWithdrawModal();
+                  onClose();
+                }}
+                className="w-full py-1.5 px-2 rounded-xl bg-surface hover:bg-surface-2 border border-line hover:border-cyan-500 text-ink text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+              >
+                <ArrowDownLeft className="w-3 h-3 text-cyan-500" />
+                <span>Withdraw Funds (Bank / UPI)</span>
+              </button>
             </div>
           </div>
 
