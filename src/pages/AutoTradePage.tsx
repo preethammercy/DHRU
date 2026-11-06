@@ -799,7 +799,13 @@ export function AutoTradePage() {
             return (
               <div
                 key={opp.symbol}
-                className="rounded-3xl border border-line bg-surface p-5 hover:border-brand/40 transition-all shadow-sm flex flex-col justify-between space-y-4"
+                className={`rounded-3xl border bg-surface p-5 transition-all shadow-sm flex flex-col justify-between space-y-4 ${
+                  ticks[opp.symbol]?.flash === 'up'
+                    ? 'border-emerald-500 ring-1 ring-emerald-500/40 bg-emerald-500/5'
+                    : ticks[opp.symbol]?.flash === 'down'
+                    ? 'border-rose-500 ring-1 ring-rose-500/40 bg-rose-500/5'
+                    : 'border-line hover:border-brand/40'
+                }`}
               >
                 <div>
                   {/* Top Row: Symbol, Price, Win Rate */}
@@ -810,7 +816,13 @@ export function AutoTradePage() {
                         <span className="text-xs font-mono text-ink-2">{opp.symbol}</span>
                       </div>
                       <div className="mt-1 flex items-center gap-2">
-                        <span className="text-lg font-black font-mono text-ink">
+                        <span className={`text-lg font-black font-mono px-1.5 py-0.5 rounded transition-all inline-block ${
+                          ticks[opp.symbol]?.flash === 'up'
+                            ? 'flash-up text-pos font-black ring-1 ring-pos'
+                            : ticks[opp.symbol]?.flash === 'down'
+                            ? 'flash-down text-neg font-black ring-1 ring-neg'
+                            : 'text-ink'
+                        }`}>
                           {currencySymbol}{opp.currentPrice.toLocaleString(isUSD ? 'en-US' : 'en-IN', {
                             minimumFractionDigits: isUSD && opp.currentPrice < 1 ? 4 : 2,
                             maximumFractionDigits: isUSD && opp.currentPrice < 1 ? 4 : 2
@@ -960,7 +972,13 @@ export function AutoTradePage() {
                       <div className="mt-2 flex flex-wrap items-center gap-4 text-xs font-mono text-ink-2">
                         <span>Qty: <strong className="text-ink">{pos.quantity}</strong></span>
                         <span>Entry: <strong className="text-ink">{currencySymbol}{pos.averagePrice}</strong></span>
-                        <span>LTP: <strong className="text-ink">{currencySymbol}{pos.currentPrice}</strong></span>
+                        <span>LTP: <strong className={`font-mono px-1.5 py-0.5 rounded transition-all inline-block ${
+                          ticks[pos.symbol]?.flash === 'up'
+                            ? 'flash-up text-pos font-black ring-1 ring-pos'
+                            : ticks[pos.symbol]?.flash === 'down'
+                            ? 'flash-down text-neg font-black ring-1 ring-neg'
+                            : 'text-ink'
+                        }`}>{currencySymbol}{pos.currentPrice}</strong></span>
                         {pos.stopLoss && (
                           <span className="text-rose-500">Stop: <strong>{currencySymbol}{pos.stopLoss}</strong></span>
                         )}

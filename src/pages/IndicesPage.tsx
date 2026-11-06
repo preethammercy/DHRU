@@ -37,11 +37,11 @@ const LiveAssetCard: React.FC<{
   return (
     <div
       onClick={() => onSelectIndex(item.symbol)}
-      className={`p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-surface dark:bg-surface border cursor-pointer transition-all  card-3d zoom-card pressable group flex flex-col justify-between ${
+      className={`p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-surface dark:bg-surface border cursor-pointer transition-all card-3d zoom-card pressable group flex flex-col justify-between ${
         flash === 'up'
-          ? 'flash-up border-line bg-surface-2'
+          ? 'border-emerald-500 ring-1 ring-emerald-500/40 bg-emerald-500/5'
           : flash === 'down'
-          ? 'flash-down border-line bg-surface-2'
+          ? 'border-rose-500 ring-1 ring-rose-500/40 bg-rose-500/5'
           : 'border-line dark:border-line hover:border-line dark:hover:border-line'
       }`}
     >
@@ -61,7 +61,13 @@ const LiveAssetCard: React.FC<{
       </div>
 
       <div className="pt-2 sm:pt-4 mt-2 sm:mt-3 border-t border-line dark:border-line flex items-center justify-between gap-1">
-        <div className="text-sm sm:text-lg font-bold font-mono text-ink dark:text-ink">
+        <div className={`text-sm sm:text-lg font-bold font-mono px-1.5 py-0.5 rounded transition-all inline-block ${
+          flash === 'up'
+            ? 'flash-up text-pos font-black ring-1 ring-pos'
+            : flash === 'down'
+            ? 'flash-down text-neg font-black ring-1 ring-neg'
+            : 'text-ink dark:text-ink'
+        }`}>
           {price > 0 ? `${currency}${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: maxDecimals })}` : 'N/A'}
         </div>
         <div className="flex items-center gap-1 sm:gap-2">

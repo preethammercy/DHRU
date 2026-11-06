@@ -449,23 +449,6 @@ export const Header: React.FC<HeaderProps> = ({
                         </a>
                       </div>
 
-                      {isAdmin && (
-                        <button
-                          onClick={() => {
-                            onSelectNav('admin');
-                            setProfileDropdownOpen(false);
-                          }}
-                          className="w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 transition-all cursor-pointer text-left shadow-sm"
-                        >
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-purple-500" />
-                            <span>Admin & Approvals Desk</span>
-                          </div>
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-600 text-white font-extrabold">
-                            SUPER ADMIN
-                          </span>
-                        </button>
-                      )}
 
                       <button
                         onClick={() => {

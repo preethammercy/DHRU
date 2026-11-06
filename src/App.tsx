@@ -44,6 +44,7 @@ import { AutoTradePage } from './pages/AutoTradePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { ContactUsPage } from './pages/ContactUsPage';
+import { SystemBroadcastBanner } from './components/common/SystemBroadcastBanner';
 import { UpiPaymentModal } from './components/payment/UpiPaymentModal';
 import { WithdrawModal } from './components/payment/WithdrawModal';
 import { MobilePromptModal } from './components/common/MobilePromptModal';
@@ -271,6 +272,9 @@ function AppContent() {
 
       {/* 3D Spatial Interactive Depth Background */}
       <SpatialBackground reduceMotion={reduceMotion} />
+
+      {/* Global Real-Time System Announcement / Broadcast Banner */}
+      <SystemBroadcastBanner />
 
       {/* 1. Global Header */}
       <Header

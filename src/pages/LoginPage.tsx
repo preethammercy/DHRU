@@ -68,12 +68,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const prefillAdmin = () => {
-    setEmail('preethamjee2008@gmail.com');
-    setPassword('Preetham@0416');
-    setAuthMode('email');
-  };
-
   return (
     <div className="min-h-screen w-full bg-[#070A10] text-slate-100 flex flex-col justify-between selection:bg-cyan-500 selection:text-black">
       
@@ -170,16 +164,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               >
                 <span>Launch Terminal (₹10L Virtual Capital)</span>
                 <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={prefillAdmin}
-                className="px-5 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-purple-500/50 text-purple-300 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
-                title="Super Admin Portal Login"
-              >
-                <ShieldCheck className="w-4 h-4 text-purple-400" />
-                <span>Super Admin Portal</span>
               </button>
             </div>
 
@@ -294,14 +278,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                    <button
-                      type="button"
-                      onClick={prefillAdmin}
-                      className="text-cyan-400 hover:underline cursor-pointer"
-                    >
-                      Fill Admin Credentials
-                    </button>
+                  <div className="flex items-center justify-end text-[11px] font-mono text-slate-400">
                     <span>Min 6 characters</span>
                   </div>
 
@@ -464,9 +441,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               <a href="mailto:preethamjee2008@gmail.com" className="hover:text-cyan-400">
                 Support: preethamjee2008@gmail.com
               </a>
-              <button onClick={prefillAdmin} className="text-purple-400 hover:text-purple-300 cursor-pointer">
-                Admin Portal
-              </button>
             </div>
           </div>
 

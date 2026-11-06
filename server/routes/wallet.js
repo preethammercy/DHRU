@@ -688,5 +688,115 @@ export function createWalletRouter() {
     }
   });
 
+  // 14. Admin Panel: List All Users & Balances
+  router.get('/admin/users', verifySuperAdmin, (req, res) => {
+    try {
+      const store = loadWalletStore();
+      const usersList = Object.entries(store.users || {}).map(([userId, data]) => ({
+        userId,
+        displayName: data.displayName || userId,
+        email: data.email || (userId.includes('@') ? userId : ''),
+        phone: data.phone || '',
+        credits: data.credits || 0,
+        tradingBalance: data.tradingBalance || 0,
+        totalCreditsPurchased: data.totalCreditsPurchased || 0,
+        premiumUnlocked: !!data.premiumUnlocked,
+        isBanned: !!data.isBanned,
+        canTrade: data.canTrade !== false,
+        role: (data.email || '').toLowerCase() === SUPER_ADMIN_EMAIL ? 'SUPER_ADMIN' : 'TRADER',
+        txCount: Array.isArray(data.history) ? data.history.length : 0,
+        updatedAt: data.history?.[0]?.at || null
+      }));
+      res.json({ ok: true, users: usersList });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch users', details: err.message });
+    }
+  });
+
+  // 15. Admin Panel: Update User Account Permissions (Ban / Trading Permission)
+  router.post('/admin/update-permissions', verifySuperAdmin, (req, res) => {
+    try {
+      const { userId, isBanned, canTrade } = req.body;
+      if (!userId) return res.status(400).json({ error: 'User ID is required' });
+      const store = loadWalletStore();
+      if (!store.users[userId]) {
+        store.users[userId] = {
+          credits: 100,
+          tradingBalance: 0,
+          totalCreditsPurchased: 0,
+          premiumUnlocked: false,
+          history: []
+        };
+      }
+      if (typeof isBanned === 'boolean') store.users[userId].isBanned = isBanned;
+      if (typeof canTrade === 'boolean') store.users[userId].canTrade = canTrade;
+      saveWalletStore(store);
+      res.json({ ok: true, message: `User ${userId} permissions updated successfully.`, user: store.users[userId] });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to update permissions', details: err.message });
+    }
+  });
+
+  const BROADCAST_FILE = path.join(__dirname, '..', 'data', 'system-broadcast.json');
+  const loadBroadcast = () => {
+    try {
+      if (fs.existsSync(BROADCAST_FILE)) {
+        return JSON.parse(fs.readFileSync(BROADCAST_FILE, 'utf-8'));
+      }
+    } catch {}
+    return { active: false, title: '', message: '', type: 'INFO', updatedAt: null };
+  };
+  const saveBroadcast = (bc) => {
+    try {
+      fs.writeFileSync(BROADCAST_FILE, JSON.stringify(bc, null, 2));
+    } catch (err) {
+      console.error('[Broadcast Save Error]', err);
+    }
+  };
+
+  // 16. Public: Fetch Active System Broadcast
+  router.get('/broadcast/active', (req, res) => {
+    try {
+      const bc = loadBroadcast();
+      res.json({ ok: true, broadcast: bc });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch broadcast' });
+    }
+  });
+
+  // 17. Admin Panel: Publish System Broadcast
+  router.post('/admin/broadcast', verifySuperAdmin, (req, res) => {
+    try {
+      const { title, message, type = 'INFO', active = true } = req.body;
+      if (!title || !message) {
+        return res.status(400).json({ error: 'Title and message are required for broadcasting.' });
+      }
+      const bc = {
+        id: `bc-${Date.now()}`,
+        active: Boolean(active),
+        title: title.trim(),
+        message: message.trim(),
+        type: type.toUpperCase(),
+        updatedAt: new Date().toISOString(),
+        createdBy: 'Super Admin'
+      };
+      saveBroadcast(bc);
+      res.json({ ok: true, message: 'Broadcast published system-wide successfully.', broadcast: bc });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to publish broadcast', details: err.message });
+    }
+  });
+
+  // 18. Admin Panel: Clear / Deactivate Broadcast
+  router.post('/admin/broadcast/clear', verifySuperAdmin, (req, res) => {
+    try {
+      const bc = { active: false, title: '', message: '', type: 'INFO', updatedAt: new Date().toISOString() };
+      saveBroadcast(bc);
+      res.json({ ok: true, message: 'Broadcast cleared successfully.' });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to clear broadcast' });
+    }
+  });
+
   return router;
 }
