@@ -13,7 +13,7 @@ export const QuoteFreshness: React.FC<Props> = ({ status, source, lastUpdated, t
   const isClosed = status === 'CLOSED';
   const label = isClosed
     ? 'Market Closed, final close 15:30'
-    : status === 'STALE' || (status === 'LIVE' && ageMs > 15_000)
+    : status === 'STALE' || (status === 'LIVE' && ageMs > 90_000)
       ? 'STALE'
       : status === 'LIVE'
         ? 'LIVE'

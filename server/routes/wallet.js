@@ -109,6 +109,73 @@ export function createWalletRouter() {
     }
   });
 
+  // 2b. User Submits UTR for Admin Approval
+  router.post('/submit-utr', (req, res) => {
+    try {
+      const {
+        orderId,
+        utr,
+        userId = 'trader',
+        userEmail = '',
+        userName = '',
+        userPhone = '',
+        amount = 100,
+        type = 'funds',
+        credits = 0
+      } = req.body;
+
+      const cleanUtr = String(utr ?? '').trim().replace(/[^a-zA-Z0-9]/g, '');
+      if (cleanUtr.length < 6) {
+        return res.status(400).json({ error: 'Please enter a valid 12-digit UPI UTR or Transaction Reference number.' });
+      }
+
+      const store = loadWalletStore();
+      const numAmount = Number(amount) || 100;
+      const targetOrderId = orderId || `DHRU-UPI-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      let order = store.orders[targetOrderId];
+      if (!order) {
+        order = {
+          orderId: targetOrderId,
+          userId,
+          userEmail,
+          userName,
+          userPhone,
+          type,
+          amount: numAmount,
+          credits: type === 'credits' ? Number(credits || 0) : 0,
+          funds: type === 'funds' ? numAmount : 0,
+          targetVpa: UPI_TARGET_VPA,
+          payeeName: UPI_PAYEE_NAME,
+          createdAt: Date.now(),
+          expiresAt: Date.now() + ORDER_EXPIRY_MS,
+          status: 'PENDING',
+          utr: cleanUtr,
+          submittedAt: Date.now()
+        };
+      } else {
+        order.utr = cleanUtr;
+        order.userId = userId || order.userId;
+        order.userEmail = userEmail || order.userEmail;
+        order.userName = userName || order.userName;
+        order.userPhone = userPhone || order.userPhone;
+        order.status = 'PENDING';
+        order.submittedAt = Date.now();
+      }
+
+      store.orders[targetOrderId] = order;
+      saveWalletStore(store);
+
+      res.json({
+        ok: true,
+        message: `UTR ${cleanUtr} submitted successfully! Awaiting Admin verification.`,
+        order
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to submit UTR', details: err.message });
+    }
+  });
+
   // 3. Verify UPI Payment & Add Credits / Funds
   router.post('/verify-upi', (req, res) => {
     try {

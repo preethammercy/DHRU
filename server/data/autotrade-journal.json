@@ -1,6 +1,6 @@
 [
   {
-    "id": "basket-BTC-USD-1793901895799",
+    "id": "basket-BTC-USD-1793937771558",
     "symbol": "BTC-USD",
     "market": "crypto",
     "side": "BUY",
@@ -12,8 +12,8 @@
     "netPnl": 7.21,
     "totalFees": 1.81,
     "rMultiple": 0.03,
-    "openedAt": 1793901895801,
-    "closedAt": 1793901895807,
+    "openedAt": 1793937771559,
+    "closedAt": 1793937771562,
     "exitReason": "Test completed cleanup",
     "legs": [
       {
@@ -43,7 +43,7 @@
     ]
   },
   {
-    "id": "basket-TIGHTEN-USD-1793901894443",
+    "id": "basket-TIGHTEN-USD-1793937770265",
     "symbol": "TIGHTEN-USD",
     "market": "crypto",
     "side": "BUY",
@@ -55,8 +55,8 @@
     "netPnl": -0.12,
     "totalFees": 0.1,
     "rMultiple": 0,
-    "openedAt": 1793901894443,
-    "closedAt": 1793901894444,
+    "openedAt": 1793937770265,
+    "closedAt": 1793937770265,
     "exitReason": "Test finished",
     "legs": [
       {
@@ -89,6 +89,6 @@
     "symbol": "LOSS-USD",
     "market": "crypto",
     "netPnl": -100,
-    "closedAt": "2026-11-05T18:04:54.443Z"
+    "closedAt": "2026-11-06T04:02:50.265Z"
   }
 ]

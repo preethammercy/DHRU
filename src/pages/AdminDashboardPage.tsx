@@ -17,7 +17,8 @@ import {
   Layers,
   Activity,
   Power,
-  ArrowDownLeft
+  ArrowDownLeft,
+  Copy
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useWallet } from '../context/WalletContext';
@@ -39,6 +40,9 @@ interface AdminAnalytics {
 interface PaymentOrder {
   orderId: string;
   userId: string;
+  userEmail?: string;
+  userName?: string;
+  userPhone?: string;
   type: 'credits' | 'funds';
   amount: number;
   credits: number;
@@ -701,20 +705,39 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
                               </span>
                             </div>
 
-                            <div className="mt-1.5 flex items-center gap-3 text-[11px] font-mono text-ink-2">
-                              <span>User: <strong className="text-ink">{order.userId}</strong></span>
-                              <span>Amount: <strong className="text-ink">₹{order.amount}</strong></span>
-                              <span>Time: {new Date(order.createdAt).toLocaleTimeString()}</span>
-                            </div>
-
-                            {order.utr && (
-                              <div className="mt-1 text-xs font-mono">
-                                <span className="text-ink-2">Bank UTR Ref: </span>
-                                <strong className="text-brand font-bold bg-brand/10 px-1.5 py-0.5 rounded">
-                                  {order.utr}
-                                </strong>
+                            <div className="mt-2 p-2.5 rounded-xl bg-surface-2 border border-line space-y-1.5">
+                              <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+                                <span>Trader: <strong className="text-ink">{order.userName || order.userId}</strong></span>
+                                {order.userEmail && <span>Email: <strong className="text-ink">{order.userEmail}</strong></span>}
+                                {order.userPhone && <span>Phone: <strong className="text-ink">📱 +91 {order.userPhone}</strong></span>}
+                                <span>Amount: <strong className="text-emerald-500 font-extrabold text-sm">₹{order.amount.toLocaleString('en-IN')}</strong></span>
+                                <span>Created: {new Date(order.createdAt).toLocaleTimeString()}</span>
                               </div>
-                            )}
+
+                              {/* Prominently Highlighted User-Entered UTR Reference */}
+                              <div className="flex items-center gap-2 pt-1">
+                                <span className="text-xs text-ink-2 font-mono font-bold">User Entered UTR:</span>
+                                {order.utr ? (
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 font-mono font-black text-xs">
+                                    <span>{order.utr}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (navigator?.clipboard?.writeText) {
+                                          navigator.clipboard.writeText(order.utr);
+                                        }
+                                      }}
+                                      className="p-1 hover:text-ink cursor-pointer"
+                                      title="Copy UTR to clipboard"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-ink-3 italic font-mono">Pending UTR entry by user</span>
+                                )}
+                              </div>
+                            </div>
 
                             {order.adminNote && (
                               <div className="mt-1 text-[11px] text-ink-3 italic">

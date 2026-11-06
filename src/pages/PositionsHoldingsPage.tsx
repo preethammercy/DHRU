@@ -88,6 +88,10 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
     );
   }, [closedPositions, searchQuery]);
 
+  const closedTodaySum = useMemo(() => {
+    return Number(filteredClosedPositions.reduce((acc, p) => acc + (Number(p.pnl) || 0), 0).toFixed(2));
+  }, [filteredClosedPositions]);
+
   const filteredHoldings = useMemo(() => {
     return holdings.filter(h =>
       h.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -625,8 +629,8 @@ export const PositionsHoldingsPage: React.FC<PositionsHoldingsPageProps> = ({
                       </h3>
                     </div>
                     <span className="text-xs font-mono font-bold text-ink-2 dark:text-ink-3">
-                      Total Realized: <strong className={realizedPnl >= 0 ? 'text-pos dark:text-pos' : 'text-neg dark:text-neg'}>
-                        {realizedPnl > 0 ? '+' : ''}{formatCurrency(realizedPnl)}
+                      Total Realized: <strong className={closedTodaySum >= 0 ? 'text-pos dark:text-pos' : 'text-neg dark:text-neg'}>
+                        {closedTodaySum > 0 ? '+' : ''}{formatCurrency(closedTodaySum)}
                       </strong>
                     </span>
                   </div>

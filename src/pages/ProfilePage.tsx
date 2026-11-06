@@ -25,14 +25,9 @@ import {
   ChevronRight,
   ArrowDownLeft,
   ArrowUpRight,
-  Clock
+  Clock,
+  Copy
 } from 'lucide-react';
-
-function maskId(id: string): string {
-  if (!id) return '***';
-  if (id.length <= 6) return id.slice(0, 2) + '***' + id.slice(-1);
-  return id.slice(0, 3) + '***' + id.slice(-4);
-}
 
 export const ProfilePage: React.FC = () => {
   const { user, updateUserProfile, marketMode, setMarketMode } = useAuth();
@@ -74,6 +69,28 @@ export const ProfilePage: React.FC = () => {
       })
       .catch(() => {});
   }, [user?.uid]);
+
+  const [copiedUid, setCopiedUid] = useState(false);
+  const [copiedProfileId, setCopiedProfileId] = useState(false);
+
+  const fullUid = user?.uid || 'dhru-user-847291';
+  const fullProfileId = traderIdentity || (user?.traderIdentity || 'DHRU-QUANT-001');
+
+  const handleCopyUid = () => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(fullUid);
+      setCopiedUid(true);
+      setTimeout(() => setCopiedUid(false), 2000);
+    }
+  };
+
+  const handleCopyProfileId = () => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(fullProfileId);
+      setCopiedProfileId(true);
+      setTimeout(() => setCopiedProfileId(false), 2000);
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,12 +158,34 @@ export const ProfilePage: React.FC = () => {
                 </h1>
                 <AccountTypeSwitcher />
               </div>
-              <p className="text-xs text-ink-2 dark:text-ink-3 mt-1 font-mono">
-                Trader UID: {maskId(user?.uid || 'GUEST-8842')} • Paper Sim ID: {maskId('DHRU-IN-847291')}
-              </p>
-              <div className="mt-2.5 inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-surface-2 dark:bg-surface-2 text-xs text-ink-2 dark:text-ink-3 font-medium">
-                <Briefcase className="w-3.5 h-3.5 text-brand dark:text-brand" />
-                <span>{traderIdentity}</span>
+              {/* Full Unmasked Trader UID & Profile ID Badges with 1-Click Copy */}
+              <div className="mt-2.5 flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs font-mono">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-surface-2 border border-line text-ink">
+                  <span className="text-ink-3">UID:</span>
+                  <strong className="font-bold font-mono select-all text-brand">{fullUid}</strong>
+                  <button
+                    type="button"
+                    onClick={handleCopyUid}
+                    className="p-1 hover:text-brand cursor-pointer text-ink-3"
+                    title="Copy full UID"
+                  >
+                    {copiedUid ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-surface-2 border border-line text-ink">
+                  <Briefcase className="w-3 h-3 text-brand shrink-0" />
+                  <span className="text-ink-3">Profile ID:</span>
+                  <strong className="font-bold font-mono select-all text-ink">{fullProfileId}</strong>
+                  <button
+                    type="button"
+                    onClick={handleCopyProfileId}
+                    className="p-1 hover:text-brand cursor-pointer text-ink-3"
+                    title="Copy full Profile ID"
+                  >
+                    {copiedProfileId ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

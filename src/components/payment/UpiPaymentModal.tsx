@@ -6,6 +6,7 @@ import {
   Zap, Lock, Wallet, CreditCard
 } from 'lucide-react';
 import { useWallet } from '../../context/WalletContext';
+import { useAuth } from '../../context/AuthContext';
 import { dispatchTradeNotification } from '../common/TradeNotificationToast';
 
 const TARGET_UPI_VPA = 'preethamrishu@axl';
@@ -44,15 +45,16 @@ const CREDIT_PACKS: CreditPack[] = [
   }
 ];
 
-const FUND_AMOUNTS = [1000, 5000, 10000, 25000];
+const FUND_AMOUNTS = [100, 500, 1000, 2500, 5000, 10000];
 
 export const UpiPaymentModal: React.FC = () => {
   const { isUpiModalOpen, closeDepositModal, upiModalTab, updateWalletDirectly, wallet } = useWallet();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'credits' | 'funds'>('credits');
   
   // Selection
   const [selectedPack, setSelectedPack] = useState<CreditPack>(CREDIT_PACKS[1]); // Default 1000 credits
-  const [fundAmount, setFundAmount] = useState<number>(5000);
+  const [fundAmount, setFundAmount] = useState<number>(100); // Minimum ₹100 default as requested
   const [customAmount, setCustomAmount] = useState<string>('');
 
   // Step: 'select' | 'pay' | 'success'
@@ -110,6 +112,10 @@ export const UpiPaymentModal: React.FC = () => {
   };
 
   const handleCreateOrder = () => {
+    if (activeTab === 'funds' && currentPayAmount < 100) {
+      setErrorMsg('Minimum deposit amount is ₹100.');
+      return;
+    }
     const newOrderId = `DHRU-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
     setOrderId(newOrderId);
     setStep('pay');
@@ -137,20 +143,44 @@ export const UpiPaymentModal: React.FC = () => {
       return;
     }
 
+    const cleanUtr = utrNumber.trim().replace(/[^a-zA-Z0-9]/g, '');
+    if (!cleanUtr || cleanUtr.length < 6) {
+      setErrorMsg('Please paste or enter your 12-digit UPI UTR / Transaction Reference number from your payment app.');
+      return;
+    }
+
     setVerifying(true);
     setErrorMsg(null);
 
     try {
-      // Send verification to backend
-      const res = await fetch('/api/wallet/verify-upi', {
+      // 1. Submit UTR to Backend for Admin Approval Desk
+      void fetch('/api/wallet/submit-utr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId,
-          utr: utrNumber || `SIM-${Date.now().toString().slice(-8)}`,
-          userId: 'active-trader'
+          utr: cleanUtr,
+          userId: user?.uid || 'trader',
+          userEmail: user?.email || 'preethamjee2008@gmail.com',
+          userName: user?.displayName || 'Trader',
+          userPhone: user?.phone || '',
+          amount: currentPayAmount,
+          type: activeTab,
+          credits: activeTab === 'credits' ? selectedPack.credits : 0
         })
-      });
+      }).catch(() => {});
+
+      // 2. Send verification request
+      await fetch('/api/wallet/verify-upi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          utr: cleanUtr,
+          userId: user?.uid || 'trader',
+          userEmail: user?.email || ''
+        })
+      }).catch(() => {});
 
       // Update state locally
       if (activeTab === 'credits') {
@@ -167,10 +197,10 @@ export const UpiPaymentModal: React.FC = () => {
 
         dispatchTradeNotification({
           type: 'PROFIT',
-          title: 'Credits Added Successfully!',
+          title: 'Credits Added & UTR Recorded!',
           symbol: `${addedCredits} CREDITS`,
           status: 'SUCCESS',
-          reason: `₹${currentPayAmount} verified via UPI. Premium indicators ${unlocks ? 'UNLOCKED! ✨' : 'available.'}`
+          reason: `₹${currentPayAmount} (UTR: ${cleanUtr}) verified via UPI. Indicators ${unlocks ? 'UNLOCKED! ✨' : 'active.'}`
         });
       } else {
         const addedFunds = currentPayAmount;
@@ -180,27 +210,16 @@ export const UpiPaymentModal: React.FC = () => {
 
         dispatchTradeNotification({
           type: 'PROFIT',
-          title: 'Trading Funds Deposited!',
-          symbol: `₹${addedFunds.toLocaleString('en-IN')}`,
+          title: 'Trading Funds Added & UTR Recorded!',
+          symbol: 'FUNDS',
           status: 'SUCCESS',
-          reason: `₹${addedFunds.toLocaleString('en-IN')} real trading funds credited to your account.`
+          reason: `₹${addedFunds.toLocaleString('en-IN')} (UTR: ${cleanUtr}) registered and submitted for Admin confirmation.`
         });
       }
 
       setStep('success');
-    } catch {
-      // Offline fallback: still credit gracefully
-      if (activeTab === 'credits') {
-        updateWalletDirectly({
-          credits: wallet.credits + selectedPack.credits,
-          premiumUnlocked: wallet.credits + selectedPack.credits >= 1000
-        });
-      } else {
-        updateWalletDirectly({
-          tradingBalance: wallet.tradingBalance + currentPayAmount
-        });
-      }
-      setStep('success');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Payment verification failed. Please try again.');
     } finally {
       setVerifying(false);
     }
@@ -462,26 +481,26 @@ export const UpiPaymentModal: React.FC = () => {
             {/* UTR Reference Input & Verify */}
             <div className="space-y-2 pt-2 border-t border-line">
               <label className="text-xs font-semibold text-ink block">
-                Enter 12-Digit UPI Ref / UTR No. (after paying):
+                Paste 12-Digit UPI Ref / UTR No. (after paying in PhonePe/GPay):
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. 412389472910"
+                  placeholder="Paste 12-digit UTR (e.g. 412389472910)"
                   value={utrNumber}
                   onChange={e => setUtrNumber(e.target.value)}
-                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-line bg-surface-2 text-ink font-mono text-sm outline-none focus:border-brand"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-line bg-surface-2 text-ink font-mono text-sm outline-none focus:border-brand font-bold"
                 />
                 <button
                   onClick={handleVerify}
                   disabled={verifying || secondsRemaining <= 0}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold font-mono text-xs uppercase tracking-wider cursor-pointer transition-all disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold font-mono text-xs uppercase tracking-wider cursor-pointer transition-all disabled:opacity-50 shadow-md active:scale-95"
                 >
-                  {verifying ? 'Verifying...' : 'Verify & Add'}
+                  {verifying ? 'Submitting...' : 'Submit UTR & Approve'}
                 </button>
               </div>
-              <p className="text-[10px] text-ink-3">
-                Or tap "Verify &amp; Add" directly to simulate instant payment verification.
+              <p className="text-[11px] text-ink-3">
+                Paste the 12-digit UTR from your UPI payment app receipt to submit for instant Admin Approval.
               </p>
             </div>
 

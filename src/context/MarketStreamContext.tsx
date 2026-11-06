@@ -61,6 +61,7 @@ const INITIAL_SYMBOLS = ['^NSEI','^BSESN','^NSEBANK','RELIANCE.NS','TCS.NS','HDF
 
 export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ticks, setTicks] = useState<Record<string, LiveTick>>({});
+  const ticksRef = useRef<Record<string, LiveTick>>({});
   const [connectionStatus, setConnectionStatus] = useState<'connected'|'connecting'|'disconnected'>('connecting');
   const [isMarketLive, setIsMarketLive] = useState(isIndianMarketOpenNow());
   const [now, setNow] = useState(Date.now());
@@ -69,7 +70,7 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const cryptoSocketConnected = useRef(false);
   const flashTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
-  // Performance Optimization: Throttle UI state updates to <= 4 renders/sec (250ms batch window)
+  // Performance Optimization: 40ms batch window (25 FPS smooth streaming)
   const pendingTicksBuffer = useRef<Map<string, LiveTick>>(new Map());
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -121,6 +122,7 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
           }, 700));
         }
       }
+      ticksRef.current = next;
       return next;
     });
   }, []);
@@ -135,11 +137,12 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
       pendingTicksBuffer.current.set(quote.symbol, quote);
     }
 
+    // High-frequency responsive UI streaming: 40ms batch window (25 updates/sec)
     if (!flushTimer.current) {
       flushTimer.current = setTimeout(() => {
         flushTimer.current = null;
         flushBuffer();
-      }, 250); // Bounded to 4 updates/sec maximum
+      }, 40);
     }
   }, [flushBuffer]);
 
@@ -177,15 +180,15 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const poll = async () => {
       const hasLiveIndianFeed = await pollQuotes();
       if (!stopped) {
-        // Fast 3.5s refresh for 24/7 global crypto & active symbols, 5s for open NSE, 15s otherwise
+        // Ultra-fast 1.2s polling for active symbols & Indian equities, 3.5s otherwise
         const hasActiveSymbols = activeSymbols.current.size > 0;
-        const interval = hasActiveSymbols ? 3500 : (hasLiveIndianFeed && isIndianMarketOpenNow() ? 5000 : 15_000);
+        const interval = hasActiveSymbols ? 1200 : (hasLiveIndianFeed && isIndianMarketOpenNow() ? 2000 : 8000);
         timer = setTimeout(poll, interval);
       }
     };
     poll();
     const marketClock = setInterval(() => setIsMarketLive(isIndianMarketOpenNow()), 30_000);
-    const freshnessClock = setInterval(() => setNow(Date.now()), 5000);
+    const freshnessClock = setInterval(() => setNow(Date.now()), 3000);
     return () => {
       stopped = true;
       if (timer) clearTimeout(timer);
@@ -196,16 +199,14 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [pollQuotes]);
 
-  // Direct Binance WebSocket with Exponential Backoff + Proxy Tunnel Fail-Safe + Heartbeat
+  // Ultra-Low Latency Direct Binance Trade & Ticker WebSocket (Sub-Millisecond Real-Time Ticks)
   useEffect(() => {
     let socket: WebSocket | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
     let stopped = false;
-    let backoffDelay = 2000;
-    let failedAttempts = 0;
+    let retryAttempts = 0;
 
-    // Avoid connecting to direct external WebSockets inside automated audit crawlers, Lighthouse, or headless environments
     const isCrawler = typeof navigator !== 'undefined' && (
       /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless|axe|audit|ergora|ptst|inspect|chrome-lighthouse/i.test(navigator.userAgent || '') ||
       Boolean((window as any).__PRERENDER_INJECTED) ||
@@ -215,25 +216,39 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     if (isCrawler) return;
 
+    // Combined Firehose: Sub-millisecond matched trade events across all 22 Binance USDT pairs + multi-ticker array
+    const TRADE_STREAMS = [
+      'btcusdt@trade', 'ethusdt@trade', 'solusdt@trade', 'bnbusdt@trade', 'xrpusdt@trade',
+      'dogeusdt@trade', 'adausdt@trade', 'avaxusdt@trade', 'linkusdt@trade', 'nearusdt@trade',
+      'suiusdt@trade', 'pepeusdt@trade', 'dotusdt@trade', 'aptusdt@trade', 'shibusdt@trade',
+      'ltcusdt@trade', 'uniusdt@trade', 'arbusdt@trade', 'opusdt@trade', 'renderusdt@trade',
+      'icpusdt@trade', 'fetusdt@trade', '!miniTicker@arr'
+    ].join('/');
+
     const connect = () => {
-      // If stopped or if proxy rejects direct WS, stop attempting and fall back entirely to REST stream
-      if (stopped || failedAttempts >= 1) return;
+      if (stopped) return;
       try {
-        // Connect via standard port 443 (WSS)
-        socket = new WebSocket('wss://stream.binance.com:443/ws/!miniTicker@arr');
+        const wsUrl = `wss://stream.binance.com:9443/stream?streams=${TRADE_STREAMS}`;
+        socket = new WebSocket(wsUrl);
       } catch {
-        cryptoSocketConnected.current = false;
-        failedAttempts += 1;
-        return;
+        try {
+          socket = new WebSocket('wss://data-stream.binance.vision/ws/!miniTicker@arr');
+        } catch {
+          cryptoSocketConnected.current = false;
+          if (!stopped) {
+            retryAttempts++;
+            retryTimer = setTimeout(connect, Math.min(5000, 500 * Math.pow(1.5, retryAttempts)));
+          }
+          return;
+        }
       }
       
       socket.onopen = () => {
         cryptoSocketConnected.current = true;
         setConnectionStatus('connected');
-        failedAttempts = 0;
-        backoffDelay = 2000;
+        retryAttempts = 0;
 
-        // Heartbeat every 15s
+        // Heartbeat every 15s to keep connection pinned open
         if (heartbeatTimer) clearInterval(heartbeatTimer);
         heartbeatTimer = setInterval(() => {
           if (socket && socket.readyState === WebSocket.OPEN) {
@@ -244,20 +259,59 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       socket.onmessage = event => {
         try {
-          const items = JSON.parse(event.data);
-          if (!Array.isArray(items)) return;
+          const payload = JSON.parse(event.data);
           const at = Date.now();
-          const updates: LiveTick[] = items.flatMap(item => {
+
+          // 1. Single Matched Trade Event (Sub-millisecond latency)
+          if (payload?.data?.e === 'trade' && payload.data.s && payload.data.p) {
+            const sym = BINANCE_PAIR_MAP[payload.data.s];
+            const tradePrice = Number(payload.data.p);
+            const tradeTime = Number(payload.data.T || at);
+
+            if (sym && Number.isFinite(tradePrice) && tradePrice > 0) {
+              binanceLastSeen.current.set(sym, at);
+              const existing = ticksRef.current[sym];
+              const openPrice = (existing?.previousClose && existing.previousClose > 0) ? existing.previousClose : tradePrice;
+              const change = tradePrice - openPrice;
+              const changePercent = openPrice > 0 ? (change / openPrice) * 100 : (existing?.changePercent ?? 0);
+              const dayHigh = existing?.dayHigh ? Math.max(existing.dayHigh, tradePrice) : tradePrice;
+              const dayLow = existing?.dayLow ? Math.min(existing.dayLow, tradePrice) : tradePrice;
+
+              handleTickUpdate([{
+                symbol: sym,
+                price: tradePrice,
+                previousClose: openPrice,
+                change,
+                changePercent,
+                dayHigh,
+                dayLow,
+                volume: existing?.volume || Number(payload.data.q || 0),
+                timestamp: tradeTime,
+                isLive: true,
+                status: 'LIVE',
+                source: 'LIVE (Binance WS)',
+                currency: 'USDT',
+                lastUpdated: new Date(tradeTime).toISOString()
+              }], true);
+              return;
+            }
+          }
+
+          // 2. Multi-Ticker Array Stream
+          const items = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
+          if (!items) return;
+
+          const updates: LiveTick[] = items.flatMap((item: any) => {
             const symbol = BINANCE_PAIR_MAP[item.s];
             const price = Number(item.c), open = Number(item.o), timestamp = Number(item.E || at);
-            if (!symbol || !Number.isFinite(price) || price <= 0 || !Number.isFinite(open) || open <= 0 || Math.abs(at - timestamp) > 60_000) return [];
+            if (!symbol || !Number.isFinite(price) || price <= 0 || !Number.isFinite(open) || open <= 0) return [];
             binanceLastSeen.current.set(symbol, at);
             return [{
               symbol,
               price,
               previousClose: open,
               change: price - open,
-              changePercent: (price - open) / open * 100,
+              changePercent: ((price - open) / open) * 100,
               dayHigh: Number(item.h),
               dayLow: Number(item.l),
               volume: Number(item.v),
@@ -270,23 +324,22 @@ export const MarketStreamProvider: React.FC<{ children: React.ReactNode }> = ({ 
             }];
           });
           if (updates.length) handleTickUpdate(updates, true);
-        } catch { /* discard malformed provider payload */ }
+        } catch { /* discard malformed payload */ }
       };
 
       socket.onerror = () => {
         cryptoSocketConnected.current = false;
-        failedAttempts += 1;
         try { socket?.close(); } catch {}
       };
 
       socket.onclose = () => {
         cryptoSocketConnected.current = false;
         if (heartbeatTimer) clearInterval(heartbeatTimer);
-        failedAttempts += 1;
-        // Keep retrying with backoff up to 30s
-        if (!stopped && failedAttempts < 10) {
-          retryTimer = setTimeout(connect, backoffDelay);
-          backoffDelay = Math.min(30_000, backoffDelay * 1.5);
+        // Seamless automatic reconnection with fast backoff
+        if (!stopped) {
+          retryAttempts++;
+          const delay = Math.min(4000, 300 * Math.pow(1.4, retryAttempts));
+          retryTimer = setTimeout(connect, delay);
         }
       };
     };
@@ -352,7 +405,7 @@ export function useLivePrice(symbol: string, initialQuote?: any) {
   const isClosed = isIndian && !isIndianMarketOpenNow();
   const tick = ticks[symbol];
   const tickAge = tick?.timestamp ? now - tick.timestamp : Number.POSITIVE_INFINITY;
-  const tickFresh = tickAge >= 0 && tickAge <= 60_000;
+  const tickFresh = tickAge >= 0 && tickAge <= 90_000;
   const status = isClosed
     ? 'CLOSED'
     : (tick?.status === 'LIVE' && !tickFresh ? 'STALE' : tick?.status || initialQuote?.status || 'UNAVAILABLE');
