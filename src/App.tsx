@@ -42,6 +42,8 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AutoTradeMonitor } from './components/common/AutoTradeMonitor';
 import { AutoTradePage } from './pages/AutoTradePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+import { ContactUsPage } from './pages/ContactUsPage';
 import { UpiPaymentModal } from './components/payment/UpiPaymentModal';
 import { WithdrawModal } from './components/payment/WithdrawModal';
 import { MobilePromptModal } from './components/common/MobilePromptModal';
@@ -92,6 +94,13 @@ const PATH_TO_NAV: Record<string, string> = {
   'approvals': 'admin',
   'ask-dhru': 'ask-dhru',
   'ai': 'ask-dhru',
+  'privacy': 'privacy',
+  'privacy-policy': 'privacy',
+  'legal': 'privacy',
+  'contact': 'contact',
+  'contact-us': 'contact',
+  'help': 'contact',
+  'support': 'contact',
 };
 
 function getNavFromLocation(): { nav: string; symbol?: string } {
@@ -159,7 +168,7 @@ function AppContent() {
     localStorage.setItem('dhru_selected_symbol', selectedSymbol);
   }, [selectedSymbol]);
 
-  const pageOrder = ['overview', 'terminal', 'positions', 'autotrade', 'indices', 'stocks', 'stock-detail', 'sectors', 'commodities', 'derivatives', 'news', 'ai-predictions', 'risk-monitor', 'patterns', 'watchlist', 'ask-dhru', 'profile'];
+  const pageOrder = ['overview', 'terminal', 'positions', 'autotrade', 'indices', 'stocks', 'stock-detail', 'sectors', 'commodities', 'derivatives', 'news', 'ai-predictions', 'risk-monitor', 'patterns', 'watchlist', 'ask-dhru', 'profile', 'admin', 'privacy', 'contact'];
 
   // Scroll entrance animation hook
   useScrollAnimation(activeNav);
@@ -409,6 +418,14 @@ function AppContent() {
 
         {activeNav === 'admin' && (
           <AdminDashboardPage onNavigate={setActiveNav} />
+        )}
+
+        {activeNav === 'privacy' && (
+          <PrivacyPolicyPage onNavigate={setActiveNav} />
+        )}
+
+        {activeNav === 'contact' && (
+          <ContactUsPage onNavigate={setActiveNav} />
         )}
           </motion.div>
         </AnimatePresence>

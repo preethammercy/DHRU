@@ -18,7 +18,10 @@ import {
   Activity,
   Power,
   ArrowDownLeft,
-  Copy
+  Copy,
+  Mail,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useWallet } from '../context/WalletContext';
@@ -66,10 +69,11 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
   const { refreshWallet } = useWallet();
   const isSuperAdmin = user?.email?.toLowerCase() === 'preethamjee2008@gmail.com';
 
-  const [deskTab, setDeskTab] = useState<'deposits' | 'withdrawals'>('deposits');
+  const [deskTab, setDeskTab] = useState<'deposits' | 'withdrawals' | 'inquiries'>('deposits');
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [orders, setOrders] = useState<PaymentOrder[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [inquiries, setInquiries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('PENDING');
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,10 +89,12 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
   const fetchAdminData = useCallback(async () => {
     try {
       setLoading(true);
-      const [overviewRes, ordersRes, withdrawalsRes] = await Promise.all([
-        fetch('/api/wallet/admin/overview').then(r => r.json()).catch(() => null),
-        fetch('/api/wallet/admin/orders').then(r => r.json()).catch(() => null),
-        fetch('/api/wallet/admin/withdrawals').then(r => r.json()).catch(() => null)
+      const headers = { 'Content-Type': 'application/json', 'x-admin-email': user?.email || '' };
+      const [overviewRes, ordersRes, withdrawalsRes, inquiriesRes] = await Promise.all([
+        fetch('/api/wallet/admin/overview', { headers }).then(r => r.json()).catch(() => null),
+        fetch('/api/wallet/admin/orders', { headers }).then(r => r.json()).catch(() => null),
+        fetch('/api/wallet/admin/withdrawals', { headers }).then(r => r.json()).catch(() => null),
+        fetch('/api/contact/messages', { headers }).then(r => r.json()).catch(() => null)
       ]);
 
       if (overviewRes?.ok && overviewRes.analytics) {
@@ -100,12 +106,15 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
       if (withdrawalsRes?.ok && Array.isArray(withdrawalsRes.withdrawals)) {
         setWithdrawals(withdrawalsRes.withdrawals);
       }
+      if (inquiriesRes?.ok && Array.isArray(inquiriesRes.messages)) {
+        setInquiries(inquiriesRes.messages);
+      }
     } catch (err) {
       console.error('[Admin] Failed to load admin desk:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.email]);
 
   useEffect(() => {
     void fetchAdminData();
@@ -121,7 +130,7 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
     try {
       const res = await fetch('/api/wallet/admin/approve-withdrawal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-email': user?.email || '' },
         body: JSON.stringify({ withdrawalId, adminNote: `Payout transferred. Bank UTR: ${utr}` })
       });
       const data = await res.json();
@@ -153,7 +162,7 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
     try {
       const res = await fetch('/api/wallet/admin/reject-withdrawal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-email': user?.email || '' },
         body: JSON.stringify({ withdrawalId, reason })
       });
       const data = await res.json();
@@ -185,7 +194,7 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
     try {
       const res = await fetch('/api/wallet/admin/approve-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-email': user?.email || '' },
         body: JSON.stringify({ orderId, adminNote: 'Verified and approved via Admin Desk' })
       });
       const data = await res.json();
@@ -218,7 +227,7 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
     try {
       const res = await fetch('/api/wallet/admin/reject-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-email': user?.email || '' },
         body: JSON.stringify({ orderId, reason })
       });
       const data = await res.json();
@@ -252,7 +261,7 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
     try {
       const res = await fetch('/api/wallet/admin/adjust-balance', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-email': user?.email || '' },
         body: JSON.stringify({
           userId: adjustUserId.trim(),
           creditsDelta: adjustType === 'credits' ? adjustDelta : 0,
@@ -303,6 +312,31 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
     }
     return true;
   });
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-6">
+        <div className="max-w-md w-full p-8 rounded-3xl border border-rose-500/30 bg-surface text-center space-y-4 shadow-xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20">
+            <ShieldCheck className="h-8 w-8 text-rose-500" />
+          </div>
+          <h2 className="text-xl font-bold text-ink">Super Admin Authorization Required</h2>
+          <p className="text-xs text-ink-2 leading-relaxed">
+            Access to the DHRU.AI Central Financial Operations &amp; Payment Approvals Desk is strictly restricted to the Super Admin account (<strong>preethamjee2008@gmail.com</strong>).
+          </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => onNavigate?.('overview')}
+              className="px-6 py-2.5 rounded-xl bg-brand-fill text-on-brand font-bold text-xs uppercase tracking-wider cursor-pointer shadow-sm"
+            >
+              Back to Trading Terminal
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in pb-28">
@@ -456,6 +490,19 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
           <ArrowDownLeft className="w-3.5 h-3.5 text-cyan-400" />
           <span>Bank &amp; UPI Withdrawals ({withdrawals.filter(w => w.status === 'PENDING').length} Pending)</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setDeskTab('inquiries')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+            deskTab === 'inquiries'
+              ? 'bg-brand-fill text-on-brand shadow-sm'
+              : 'bg-surface-2 text-ink-2 hover:text-ink'
+          }`}
+        >
+          <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+          <span>Help &amp; Contact Inquiries ({inquiries.filter(m => m.status === 'NEW').length} New)</span>
+        </button>
       </div>
 
       {/* 3. Main Split View: Payment Approvals Desk & User Balance Adjuster */}
@@ -467,12 +514,18 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
               <div>
                 <h2 className="text-base font-bold text-ink">
-                  {deskTab === 'deposits' ? 'UPI Payment Approval Desk' : 'Bank & UPI Withdrawal Approval Desk'}
+                  {deskTab === 'deposits'
+                    ? 'UPI Payment Approval Desk'
+                    : deskTab === 'withdrawals'
+                    ? 'Bank & UPI Withdrawal Approval Desk'
+                    : 'User Help & Contact Inquiries Desk'}
                 </h2>
                 <p className="text-xs text-ink-2">
                   {deskTab === 'deposits'
                     ? 'Verify user UTR numbers and approve deposits into wallet accounts.'
-                    : 'Process outgoing payouts to Indian bank accounts (IMPS/NEFT) and UPI VPAs.'}
+                    : deskTab === 'withdrawals'
+                    ? 'Process outgoing payouts to Indian bank accounts (IMPS/NEFT) and UPI VPAs.'
+                    : 'Manage support messages, feedback, and assistance requests from traders.'}
                 </p>
               </div>
 
@@ -649,6 +702,85 @@ export const AdminDashboardPage: React.FC<Props> = ({ onNavigate }) => {
                               )}
                             </div>
                           </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : deskTab === 'inquiries' ? (
+                /* INQUIRIES TABLE */
+                inquiries.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-ink-2">
+                    <MessageSquare className="w-8 h-8 text-ink-3 mx-auto mb-2 opacity-50" />
+                    <p className="font-semibold">No support inquiries received yet.</p>
+                    <p className="text-[11px] text-ink-3 mt-0.5">Contact and help messages submitted by traders will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {inquiries.map(item => {
+                      const isNew = item.status === 'NEW';
+                      return (
+                        <div
+                          key={item.id}
+                          className={`p-4 rounded-xl border transition-all ${
+                            isNew ? 'border-amber-500/40 bg-amber-500/5' : 'border-line bg-surface-2/40'
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-line/60">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-bold text-xs text-ink">{item.name}</span>
+                              <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase ${
+                                isNew ? 'bg-amber-500/20 text-amber-600' : 'bg-emerald-500/20 text-emerald-600'
+                              }`}>
+                                {item.status}
+                              </span>
+                              <span className="text-[11px] font-mono text-ink-3">
+                                {new Date(item.createdAt).toLocaleTimeString()} · {new Date(item.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs font-mono">
+                              <a href={`mailto:${item.email}`} className="text-brand hover:underline flex items-center gap-1">
+                                <Mail className="w-3.5 h-3.5" />
+                                <span>{item.email}</span>
+                              </a>
+                              {item.phone && (
+                                <a href={`tel:${item.phone}`} className="text-emerald-500 hover:underline">
+                                  📱 {item.phone}
+                                </a>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-2 text-xs space-y-1">
+                            <strong className="text-ink font-bold block">{item.subject}</strong>
+                            <p className="text-ink-2 whitespace-pre-wrap bg-surface p-3 rounded-lg border border-line/40">
+                              {item.message}
+                            </p>
+                          </div>
+
+                          {isNew && (
+                            <div className="mt-3 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    await fetch('/api/contact/resolve', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json', 'x-admin-email': user?.email || '' },
+                                      body: JSON.stringify({ id: item.id })
+                                    });
+                                    await fetchAdminData();
+                                  } catch (err) {
+                                    alert('Failed to mark resolved');
+                                  }
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-bold flex items-center gap-1 cursor-pointer transition-all"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Mark Resolved</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

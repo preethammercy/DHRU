@@ -432,8 +432,17 @@ export function createWalletRouter() {
     });
   });
 
+  const SUPER_ADMIN_EMAIL = 'preethamjee2008@gmail.com';
+  const verifySuperAdmin = (req, res, next) => {
+    const caller = (req.headers['x-admin-email'] || req.query.adminEmail || req.body?.adminEmail || '').toLowerCase();
+    if (caller && caller !== SUPER_ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Access denied: Super Admin authorization required.' });
+    }
+    next();
+  };
+
   // 6. Admin Panel: Platform Analytics Overview
-  router.get('/admin/overview', (req, res) => {
+  router.get('/admin/overview', verifySuperAdmin, (req, res) => {
     try {
       const store = loadWalletStore();
       const users = Object.entries(store.users || {});
@@ -468,7 +477,7 @@ export function createWalletRouter() {
   });
 
   // 7. Admin Panel: List All Payment Orders
-  router.get('/admin/orders', (req, res) => {
+  router.get('/admin/orders', verifySuperAdmin, (req, res) => {
     try {
       const store = loadWalletStore();
       const orders = Object.values(store.orders || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -479,7 +488,7 @@ export function createWalletRouter() {
   });
 
   // 8. Admin Panel: Manual Approval of UPI Payment Order
-  router.post('/admin/approve-order', (req, res) => {
+  router.post('/admin/approve-order', verifySuperAdmin, (req, res) => {
     try {
       const { orderId, adminNote = 'Approved via Admin Panel' } = req.body;
       if (!orderId) {
@@ -552,7 +561,7 @@ export function createWalletRouter() {
   });
 
   // 9. Admin Panel: Reject Payment Order
-  router.post('/admin/reject-order', (req, res) => {
+  router.post('/admin/reject-order', verifySuperAdmin, (req, res) => {
     try {
       const { orderId, reason = 'UTR Verification Failed / Invalid Reference' } = req.body;
       if (!orderId) {
@@ -577,7 +586,7 @@ export function createWalletRouter() {
   });
 
   // 10. Admin Panel: Direct Balance Adjustment
-  router.post('/admin/adjust-balance', (req, res) => {
+  router.post('/admin/adjust-balance', verifySuperAdmin, (req, res) => {
     try {
       const { userId = 'default-user', credits = 0, funds = 0, note = 'Admin adjustment' } = req.body;
       const store = loadWalletStore();
@@ -619,7 +628,7 @@ export function createWalletRouter() {
   });
 
   // 11. Admin Panel: List Withdrawals
-  router.get('/admin/withdrawals', (req, res) => {
+  router.get('/admin/withdrawals', verifySuperAdmin, (req, res) => {
     try {
       const store = loadWalletStore();
       const withdrawals = Object.values(store.withdrawals || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -630,7 +639,7 @@ export function createWalletRouter() {
   });
 
   // 12. Admin Panel: Approve Withdrawal
-  router.post('/admin/approve-withdrawal', (req, res) => {
+  router.post('/admin/approve-withdrawal', verifySuperAdmin, (req, res) => {
     try {
       const { withdrawalId, adminNote = 'Processed via banking gateway' } = req.body;
       if (!withdrawalId) return res.status(400).json({ error: 'Withdrawal ID required' });
@@ -648,7 +657,7 @@ export function createWalletRouter() {
   });
 
   // 13. Admin Panel: Reject Withdrawal & Refund Balance
-  router.post('/admin/reject-withdrawal', (req, res) => {
+  router.post('/admin/reject-withdrawal', verifySuperAdmin, (req, res) => {
     try {
       const { withdrawalId, reason = 'Bank details mismatch' } = req.body;
       if (!withdrawalId) return res.status(400).json({ error: 'Withdrawal ID required' });

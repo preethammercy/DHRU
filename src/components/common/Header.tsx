@@ -20,7 +20,10 @@ import {
   ShieldCheck,
   ArrowDownToLine,
   ArrowUpRight,
-  CheckCircle2
+  CheckCircle2,
+  MessageSquare,
+  Shield,
+  Instagram
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -147,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <ChevronDown className="w-2.5 h-2.5 ml-0.5" />
                 </button>
               </div>
-              <p className="text-ink-2 dark:text-ink-3 hidden md:block text-[11px] tracking-wide font-medium truncate max-w-[280px]">
+              <p className="text-ink-2 dark:text-ink-3 hidden 2xl:block text-[11px] tracking-wide font-medium truncate max-w-[280px]">
                 Understand Every Market. See Beyond the Numbers.
               </p>
             </div>
@@ -396,6 +399,55 @@ export const Header: React.FC<HeaderProps> = ({
                         </div>
                         <ArrowUpRight className="w-3.5 h-3.5 text-ink-3" />
                       </button>
+
+                      <button
+                        onClick={() => {
+                          onSelectNav('contact');
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-semibold text-ink-2 dark:text-ink-3 hover:bg-surface-2 transition-colors cursor-pointer text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="w-3.5 h-3.5 text-brand" />
+                          <span>Help & Contact Us</span>
+                        </div>
+                        <ArrowUpRight className="w-3.5 h-3.5 text-ink-3" />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          onSelectNav('privacy');
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-semibold text-ink-2 dark:text-ink-3 hover:bg-surface-2 transition-colors cursor-pointer text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-3.5 h-3.5 text-brand" />
+                          <span>Privacy Policy & Legal</span>
+                        </div>
+                        <ArrowUpRight className="w-3.5 h-3.5 text-ink-3" />
+                      </button>
+
+                      {/* Official Instagram Handles */}
+                      <div className="pt-2 pb-1 border-t border-line/60 flex items-center justify-between px-2 text-[11px] font-mono">
+                        <a
+                          href="https://instagram.com/dhruai.in"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-pink-500 hover:text-pink-400 font-bold flex items-center gap-1 hover:underline"
+                        >
+                          <Instagram className="w-3 h-3" />
+                          <span>@dhruai.in</span>
+                        </a>
+                        <a
+                          href="https://instagram.com/preetham_va"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-ink-3 hover:text-brand font-medium flex items-center gap-1 hover:underline"
+                        >
+                          <span>Dev: @preetham_va</span>
+                        </a>
+                      </div>
 
                       {isAdmin && (
                         <button

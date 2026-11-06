@@ -34,40 +34,44 @@ export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }
 
   const navItems = marketMode === 'crypto'
     ? [
-        { id: 'overview', label: 'Crypto Overview', icon: LayoutDashboard },
-        { id: 'terminal', label: 'Live Terminal', icon: CandlestickChart },
-        { id: 'positions', label: 'Positions & Portfolio', icon: Briefcase },
-        { id: 'autotrade', label: '⚡ Auto-Trade Desk', icon: Bot },
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'terminal', label: 'Terminal', icon: CandlestickChart },
+        { id: 'positions', label: 'Positions', icon: Briefcase },
+        { id: 'autotrade', label: '⚡ Auto-Trade', icon: Bot },
         { id: 'indices', label: 'Crypto Assets', icon: Coins },
-        { id: 'news', label: 'Market News', icon: Newspaper },
-        { id: 'ai-predictions', label: 'AI Predictions', icon: BrainCircuit },
+        { id: 'news', label: 'News', icon: Newspaper },
+        { id: 'ai-predictions', label: 'AI Forecast', icon: BrainCircuit },
         { id: 'risk-monitor', label: 'Risk Monitor', icon: ShieldAlert },
-        { id: 'patterns', label: 'AI Pattern Scanner', icon: CandlestickChart },
+        { id: 'patterns', label: 'Patterns', icon: CandlestickChart },
         { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
         { id: 'profile', label: 'My Profile', icon: User },
         { id: 'ask-dhru', label: 'DHRU AI', icon: Sparkles },
       ]
     : [
-        { id: 'overview', label: 'Indian Overview', icon: LayoutDashboard },
-        { id: 'terminal', label: 'Live Terminal', icon: CandlestickChart },
-        { id: 'positions', label: 'Positions & Portfolio', icon: Briefcase },
-        { id: 'autotrade', label: '⚡ Auto-Trade Desk', icon: Bot },
-        { id: 'indices', label: 'All Indices', icon: TrendingUp },
-        { id: 'stocks', label: 'All Stocks', icon: ListFilter },
-        { id: 'sectors', label: 'Sectors & Heatmap', icon: PieChart },
-        { id: 'commodities', label: 'Commodities & FX', icon: Coins },
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'terminal', label: 'Terminal', icon: CandlestickChart },
+        { id: 'positions', label: 'Positions', icon: Briefcase },
+        { id: 'autotrade', label: '⚡ Auto-Trade', icon: Bot },
+        { id: 'indices', label: 'Indices', icon: TrendingUp },
+        { id: 'stocks', label: 'Stocks', icon: ListFilter },
+        { id: 'sectors', label: 'Sectors', icon: PieChart },
+        { id: 'commodities', label: 'Commodities', icon: Coins },
         { id: 'derivatives', label: 'Futures & Options', icon: Binary },
-        { id: 'news', label: 'Financial News', icon: Newspaper },
-        { id: 'ai-predictions', label: 'AI Predictions', icon: BrainCircuit },
+        { id: 'news', label: 'News', icon: Newspaper },
+        { id: 'ai-predictions', label: 'AI Forecast', icon: BrainCircuit },
         { id: 'risk-monitor', label: 'Risk Monitor', icon: ShieldAlert },
-        { id: 'patterns', label: 'AI Pattern Scanner', icon: CandlestickChart },
+        { id: 'patterns', label: 'Patterns', icon: CandlestickChart },
         { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
         { id: 'profile', label: 'My Profile', icon: User },
         { id: 'ask-dhru', label: 'DHRU AI', icon: Sparkles },
       ];
 
   return (
-    <nav aria-label="Primary navigation" className="hidden lg:block w-full bg-surface dark:bg-surface border-b border-line dark:border-line overflow-x-auto scrollbar-none ">
+    <nav
+      aria-label="Primary navigation"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      className="hidden lg:block w-full bg-surface dark:bg-surface border-b border-line dark:border-line overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex gap-1 py-0 min-w-max">
           {navItems.map(item => {
@@ -78,14 +82,21 @@ export const Navigation: React.FC<NavigationProps> = ({ activeNav, onSelectNav }
                 key={item.id}
                 aria-current={isActive ? 'page' : undefined}
                 onClick={() => onSelectNav(item.id)}
-                className={`relative flex items-center gap-2 px-3 py-2.5 text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                className={`relative flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                   isActive
-                    ? 'text-ink dark:text-ink-3 font-bold'
+                    ? 'text-ink dark:text-ink font-bold'
                     : 'text-ink-2 dark:text-ink-3 hover:text-brand hover:bg-surface-2 dark:hover:bg-surface-2'
                 }`}
               >
-                {isActive && <motion.span layoutId="primary-nav-indicator" className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-brand-fill rounded-full" transition={{ duration: duration.base, ease: ease.out }} aria-hidden="true" />}
-                <Icon className={`relative z-10 w-3.5 h-3.5 ${isActive ? 'text-ink dark:text-ink-3' : 'text-ink-3 group-hover:text-brand'}`} />
+                {isActive && (
+                  <motion.span
+                    layoutId="primary-nav-indicator"
+                    className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-brand-fill rounded-full"
+                    transition={{ duration: duration.base, ease: ease.out }}
+                    aria-hidden="true"
+                  />
+                )}
+                <Icon className={`relative z-10 w-3.5 h-3.5 ${isActive ? 'text-ink dark:text-ink' : 'text-ink-3 group-hover:text-brand'}`} />
                 <span className="relative z-10">{item.label}</span>
               </button>
             );

@@ -20,6 +20,7 @@ import { getDhruAnalysis } from './services/analysisEngine.js';
 import { autoTradeServerEngine } from './services/autoTradeServerEngine.js';
 import { createAutoTradeRouter, startAutoTradeLoop } from './routes/autoTrade.js';
 import { createWalletRouter } from './routes/wallet.js';
+import { createContactRouter } from './routes/contact.js';
 
 dotenv.config();
 
@@ -32,6 +33,15 @@ const REPORT_TTL_MS = 60 * 1000; // 60 seconds fresh cache
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// High-Security HTTP Headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -766,6 +776,9 @@ startAutoTradeLoop(autoTradeDesk.refresh);
 // Wallet, Credits & UPI Payment Gateway Router
 const walletRouter = createWalletRouter();
 app.use('/api/wallet', walletRouter);
+
+// Contact & Support Inquiry Router
+app.use('/api/contact', createContactRouter());
 
 app.post('/api/autotrade/reset-halt', (req, res) => {
   try {

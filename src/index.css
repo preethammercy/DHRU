@@ -86,15 +86,30 @@ html.dark [class~="dark:bg-brand-fill"][class~="dark:text-brand"] { color:var(--
 
 /* Cross-browser scrollbar hiding for slick trading strips */
 .no-scrollbar::-webkit-scrollbar,
-.scrollbar-none::-webkit-scrollbar {
+.scrollbar-none::-webkit-scrollbar,
+[data-no-scrollbar]::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+  background: transparent !important;
+}
+.no-scrollbar::-webkit-scrollbar-thumb,
+.scrollbar-none::-webkit-scrollbar-thumb,
+[data-no-scrollbar]::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+}
+.no-scrollbar::-webkit-scrollbar-track,
+.scrollbar-none::-webkit-scrollbar-track,
+[data-no-scrollbar]::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
 }
 .no-scrollbar,
-.scrollbar-none {
+.scrollbar-none,
+[data-no-scrollbar] {
   -ms-overflow-style: none !important;  /* IE and Edge */
-  scrollbar-width: none !important;  /* Firefox */
+  scrollbar-width: none !important;  /* Firefox and modern Chrome */
 }
 
 .mask-fade-edges {

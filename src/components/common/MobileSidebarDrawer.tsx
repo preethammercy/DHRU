@@ -31,7 +31,10 @@ import {
   Target,
   Briefcase,
   Bot,
-  ArrowDownLeft
+  ArrowDownLeft,
+  MessageSquare,
+  Shield,
+  Instagram
 } from 'lucide-react';
 import { DhruLogo } from './DhruLogo';
 import { AccountTypeSwitcher } from './AccountTypeSwitcher';
@@ -488,6 +491,62 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
                 </button>
               );
             })}
+          </div>
+
+          {/* 4. Support, Legal & Community */}
+          <div className="pt-3 space-y-1">
+            <span className="text-ink font-mono uppercase tracking-wider text-ink-3 px-2 font-bold">
+              Help &amp; Legal
+            </span>
+
+            <button
+              onClick={() => handleNavClick('contact')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'contact'
+                  ? 'bg-brand-fill text-on-brand font-bold'
+                  : 'text-ink-2 dark:text-ink-3 hover:bg-surface-2 dark:hover:bg-surface-2'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 truncate">
+                <MessageSquare className="w-4 h-4 text-brand shrink-0" />
+                <span>Help &amp; Contact Us</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleNavClick('privacy')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'privacy'
+                  ? 'bg-brand-fill text-on-brand font-bold'
+                  : 'text-ink-2 dark:text-ink-3 hover:bg-surface-2 dark:hover:bg-surface-2'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 truncate">
+                <Shield className="w-4 h-4 text-brand shrink-0" />
+                <span>Privacy Policy &amp; Security</span>
+              </div>
+            </button>
+
+            {/* Instagram links */}
+            <div className="pt-2 px-2 flex items-center justify-between text-xs font-mono">
+              <a
+                href="https://instagram.com/dhruai.in"
+                target="_blank"
+                rel="noreferrer"
+                className="text-pink-500 hover:text-pink-400 font-bold flex items-center gap-1"
+              >
+                <Instagram className="w-3.5 h-3.5" />
+                <span>@dhruai.in</span>
+              </a>
+              <a
+                href="https://instagram.com/preetham_va"
+                target="_blank"
+                rel="noreferrer"
+                className="text-ink-3 hover:text-brand font-medium flex items-center gap-1"
+              >
+                <span>Dev: @preetham_va</span>
+              </a>
+            </div>
           </div>
 
         </div>

@@ -57,8 +57,9 @@ export const UpiPaymentModal: React.FC = () => {
   const [fundAmount, setFundAmount] = useState<number>(100); // Minimum ₹100 default as requested
   const [customAmount, setCustomAmount] = useState<string>('');
 
-  // Step: 'select' | 'pay' | 'success'
-  const [step, setStep] = useState<'select' | 'pay' | 'success'>('select');
+  // Step: 'select' | 'pay' | 'submitted' | 'success'
+  const [step, setStep] = useState<'select' | 'pay' | 'submitted' | 'success'>('select');
+  const [submittedUtr, setSubmittedUtr] = useState<string>('');
   
   // UPI Order Details
   const [orderId, setOrderId] = useState<string>('');
@@ -136,7 +137,7 @@ export const UpiPaymentModal: React.FC = () => {
     : `DHRU Fund Deposit (${orderId})`;
   const upiUri = `upi://pay?pa=${encodeURIComponent(TARGET_UPI_VPA)}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${currentPayAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
 
-  // Verification & Crediting
+  // Verification & Submission to Admin Desk
   const handleVerify = async () => {
     if (secondsRemaining <= 0) {
       setErrorMsg('This UPI session has expired. Please restart and generate a new payment.');
@@ -153,73 +154,54 @@ export const UpiPaymentModal: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      // 1. Submit UTR to Backend for Admin Approval Desk
-      void fetch('/api/wallet/submit-utr', {
+      // 1. Submit UTR to Backend for Admin Verification (NOT auto-credited)
+      const res = await fetch('/api/wallet/submit-utr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId,
           utr: cleanUtr,
           userId: user?.uid || 'trader',
-          userEmail: user?.email || 'preethamjee2008@gmail.com',
+          userEmail: user?.email || '',
           userName: user?.displayName || 'Trader',
           userPhone: user?.phone || '',
           amount: currentPayAmount,
           type: activeTab,
           credits: activeTab === 'credits' ? selectedPack.credits : 0
         })
-      }).catch(() => {});
+      });
 
-      // 2. Send verification request
-      await fetch('/api/wallet/verify-upi', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = await res.json().catch(() => ({}));
+
+      // Store pending submission locally so user can track status
+      try {
+        const pendingKey = `dhru_pending_utr_${user?.uid || 'guest'}`;
+        const prevPending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
+        prevPending.unshift({
           orderId,
           utr: cleanUtr,
-          userId: user?.uid || 'trader',
-          userEmail: user?.email || ''
-        })
-      }).catch(() => {});
-
-      // Update state locally
-      if (activeTab === 'credits') {
-        const addedCredits = selectedPack.credits;
-        const newTotalCredits = wallet.credits + addedCredits;
-        const nextPurchased = wallet.totalCreditsPurchased + addedCredits;
-        const unlocks = newTotalCredits >= 1000 || nextPurchased >= 1000 || selectedPack.unlocksPremium;
-
-        updateWalletDirectly({
-          credits: newTotalCredits,
-          totalCreditsPurchased: nextPurchased,
-          premiumUnlocked: unlocks
+          amount: currentPayAmount,
+          type: activeTab,
+          credits: activeTab === 'credits' ? selectedPack.credits : 0,
+          submittedAt: new Date().toISOString(),
+          status: 'PENDING'
         });
+        localStorage.setItem(pendingKey, JSON.stringify(prevPending.slice(0, 10)));
+      } catch {}
 
-        dispatchTradeNotification({
-          type: 'PROFIT',
-          title: 'Credits Added & UTR Recorded!',
-          symbol: `${addedCredits} CREDITS`,
-          status: 'SUCCESS',
-          reason: `₹${currentPayAmount} (UTR: ${cleanUtr}) verified via UPI. Indicators ${unlocks ? 'UNLOCKED! ✨' : 'active.'}`
-        });
-      } else {
-        const addedFunds = currentPayAmount;
-        updateWalletDirectly({
-          tradingBalance: wallet.tradingBalance + addedFunds
-        });
+      // Dispatch notification
+      dispatchTradeNotification({
+        type: 'OPEN',
+        title: 'UTR Submitted for Admin Verification',
+        symbol: activeTab === 'credits' ? 'CREDITS' : 'FUNDS',
+        status: 'PENDING',
+        reason: `₹${currentPayAmount.toLocaleString('en-IN')} (UTR: ${cleanUtr}) submitted. Please wait while our Admin team verifies your payment.`
+      });
 
-        dispatchTradeNotification({
-          type: 'PROFIT',
-          title: 'Trading Funds Added & UTR Recorded!',
-          symbol: 'FUNDS',
-          status: 'SUCCESS',
-          reason: `₹${addedFunds.toLocaleString('en-IN')} (UTR: ${cleanUtr}) registered and submitted for Admin confirmation.`
-        });
-      }
-
-      setStep('success');
+      setSubmittedUtr(cleanUtr);
+      setStep('submitted');
     } catch (err: any) {
-      setErrorMsg(err.message || 'Payment verification failed. Please try again.');
+      setErrorMsg(err.message || 'Payment submission failed. Please check connection and try again.');
     } finally {
       setVerifying(false);
     }
@@ -517,7 +499,58 @@ export const UpiPaymentModal: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 3: SUCCESS CONFIRMATION */}
+        {/* STEP 3A: SUBMITTED - AWAITING ADMIN VERIFICATION */}
+        {step === 'submitted' && (
+          <div className="text-center py-6 space-y-4">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-inner">
+              <Clock className="h-8 w-8 animate-pulse" />
+            </div>
+
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-mono font-bold text-xs">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                <span>Status: Awaiting Admin Verification</span>
+              </div>
+              <h3 className="text-xl font-black text-ink mt-2">Payment Details Submitted!</h3>
+              <p className="text-xs text-ink-2 max-w-sm mx-auto">
+                Your payment reference has been forwarded to our Admin Verification Desk. Please wait a few moments for the funds to be added.
+              </p>
+            </div>
+
+            {/* Submission Receipt Box */}
+            <div className="p-3.5 rounded-2xl bg-surface-2 border border-line text-left text-xs font-mono space-y-2">
+              <div className="flex justify-between items-center py-0.5 border-b border-line/60">
+                <span className="text-ink-3">Order ID:</span>
+                <strong className="text-ink font-bold">{orderId}</strong>
+              </div>
+              <div className="flex justify-between items-center py-0.5 border-b border-line/60">
+                <span className="text-ink-3">Amount:</span>
+                <strong className="text-emerald-500 font-extrabold text-sm">₹{currentPayAmount.toLocaleString('en-IN')}</strong>
+              </div>
+              <div className="flex justify-between items-center py-0.5 border-b border-line/60">
+                <span className="text-ink-3">UTR / Ref No:</span>
+                <strong className="text-amber-500 font-black">{submittedUtr}</strong>
+              </div>
+              <div className="flex justify-between items-center py-0.5">
+                <span className="text-ink-3">Estimated Time:</span>
+                <span className="text-ink-2">5 – 15 Minutes</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-ink-3 px-4">
+              💡 As soon as our Super Admin verifies your bank reference, your {activeTab === 'credits' ? 'credits' : 'trading funds'} will appear in your balance. You can track this under My Profile or Admin Desk.
+            </p>
+
+            <button
+              onClick={closeDepositModal}
+              className="w-full py-3 rounded-xl bg-brand-fill hover:bg-brand text-white font-bold text-xs font-mono uppercase tracking-wider cursor-pointer shadow-md transition-all active:scale-95"
+            >
+              Done &amp; Return to Platform
+            </button>
+          </div>
+        )}
+
+        {/* STEP 3B: SUCCESS CONFIRMATION */}
         {step === 'success' && (
           <div className="text-center py-6 space-y-4">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">

@@ -37,6 +37,7 @@ interface AuthContextType {
   showMarketSelector: boolean;
   setShowMarketSelector: (show: boolean) => void;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, pass: string) => Promise<{ success: boolean; message?: string }>;
   signInLocalBypass: () => void;
   signOut: () => Promise<void>;
   updateUserProfile: (updates: Partial<DhruUser>) => void;
@@ -140,12 +141,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
+  const signInWithEmail = async (email: string, pass: string): Promise<{ success: boolean; message?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = pass.trim();
+
+    if (!cleanEmail || !cleanPass) {
+      return { success: false, message: 'Please enter both email and password.' };
+    }
+
+    // 1. Super Admin Hardened Credentials as requested: preethamjee2008@gmail.com / Preetham@0416
+    if (cleanEmail === 'preethamjee2008@gmail.com' && cleanPass === 'Preetham@0416') {
+      const adminUser: DhruUser = {
+        uid: 'dhru-admin-preetham-master',
+        displayName: 'Preetham R',
+        email: 'preethamjee2008@gmail.com',
+        traderIdentity: 'DHRU-SUPER-ADMIN',
+        kycStatus: 'verified',
+        baseCurrency: 'INR'
+      };
+      setUser(adminUser);
+      localStorage.setItem('dhru_auth_user', JSON.stringify(adminUser));
+      setShowMarketSelector(true);
+      return { success: true };
+    }
+
+    // 2. Regular Registered Email Login (Password length verification)
+    if (cleanPass.length < 6) {
+      return { success: false, message: 'Password must be at least 6 characters.' };
+    }
+
+    const hashedUid = 'dhru-u-' + btoa(cleanEmail).replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+    const standardUser: DhruUser = {
+      uid: hashedUid,
+      displayName: cleanEmail.split('@')[0].toUpperCase(),
+      email: cleanEmail,
+      traderIdentity: `TRADER-${hashedUid.slice(-6).toUpperCase()}`,
+      kycStatus: 'verified',
+      baseCurrency: 'INR'
+    };
+
+    setUser(standardUser);
+    localStorage.setItem('dhru_auth_user', JSON.stringify(standardUser));
+    setShowMarketSelector(true);
+    return { success: true };
+  };
+
   const signInLocalBypass = () => {
     const localUser: DhruUser = {
-      uid: 'dhru-super-trader',
+      uid: 'dhru-admin-preetham-master',
       displayName: 'Preetham R',
       email: 'preethamjee2008@gmail.com',
-      traderIdentity: 'DHRU-QUANT-001',
+      traderIdentity: 'DHRU-SUPER-ADMIN',
       kycStatus: 'verified',
       baseCurrency: 'INR'
     };
@@ -207,6 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         showMarketSelector,
         setShowMarketSelector,
         signInWithGoogle,
+        signInWithEmail,
         signInLocalBypass,
         signOut,
         updateUserProfile
